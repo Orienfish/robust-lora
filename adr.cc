@@ -35,9 +35,23 @@ void OnDataRateChange (uint8_t oldDr, uint8_t newDr)
 {
   NS_LOG_DEBUG ("DR" << unsigned(oldDr) << " -> DR" << unsigned(newDr));
 }
+
 void OnTxPowerChange (double oldTxPower, double newTxPower)
 {
   NS_LOG_DEBUG (oldTxPower << " dBm -> " << newTxPower << " dBm");
+}
+
+std::vector < std::string > split(std::string const & str, const char delim) {
+    std::vector < std::string > result;
+
+    std::stringstream ss(str);
+    std::string s;
+
+    while (std::getline(ss, s, delim)) {
+        result.push_back(s);
+    }
+
+    return result;
 }
 
 int main (int argc, char *argv[])
@@ -176,17 +190,19 @@ int main (int argc, char *argv[])
   }
   else { // read from file
     std::cout << "Read from existing ed device location file." << std::endl;
-    mobilityEd.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-                                      "X", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
-                                                         ("Min", DoubleValue(-sideLength),
-                                                          "Max", DoubleValue(sideLength))),
-                                      "Y", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
-                                                         ("Min", DoubleValue(-sideLength),
-                                                          "Max", DoubleValue(sideLength))));
-    mobilityEd.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-    for (int i = 0; i < nDevices; ++i) {
-      mobilityEd.Install (endDevices.Get (i));
+    std::string line;
+    Ptr<ListPositionAllocator> positionAllocEd = CreateObject<ListPositionAllocator> ();
+    while (std::getline(EdLocationFile, line)) {
+        if (line.size() > 0) {
+            std::vector < std::string > coordinates = split(line, ' ');
+            double x = atof(coordinates.at(0).c_str());
+            double y = atof(coordinates.at(1).c_str());
+            positionAllocEd->Add (Vector (x, y, 0.0) );
+        }
     }
+    mobilityEd.SetPositionAllocator (positionAllocEd);
+    mobilityEd.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    mobilityEd.Install (endDevices);
   }
 
   // Install mobility model on mobile nodes
