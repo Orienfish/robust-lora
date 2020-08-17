@@ -142,18 +142,20 @@ int main (int argc, char *argv[])
 
   Ptr<LoraChannel> channel = CreateObject<LoraChannel> (loss, delay);
 
-  /////////////
-  // Helpers //
-  /////////////
+  ////////////////
+  // Create EDs //
+  ////////////////
+  NodeContainer endDevices;
+  endDevices.Create (nDevices);
 
   // End Device mobility
-  MobilityHelper mobilityEd, mobilityGw;
-
+  MobilityHelper mobilityEd;
 
   // No exisiting end devices location file, then randomly generate locations and save it to the file
   std::string file_name = "EdLocation_" + std::to_string(nDevices) + ".txt";
   std::ifstream EdLocationFile(file_name);
-  if ( EdLocationFile.fail() ) { // no such file exists
+  if (EdLocationFile.fail()) { // no such file exists
+    std::cout << "Randomly generate ed device locations and save to file." << std::endl;
     mobilityEd.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
                                       "X", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
                                                          ("Min", DoubleValue(-sideLength),
@@ -161,8 +163,19 @@ int main (int argc, char *argv[])
                                       "Y", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
                                                          ("Min", DoubleValue(-sideLength),
                                                           "Max", DoubleValue(sideLength))));
+    // Install mobility model on fixed nodes and output location
+    mobilityEd.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    std::ofstream OutputFile(file_name);
+    for (int i = 0; i < nDevices; ++i) {
+      mobilityEd.Install (endDevices.Get (i));
+      Ptr<MobilityModel> position = endDevices.Get (i) -> GetObject<MobilityModel> ();
+      Vector pos = position->GetPosition ();
+      OutputFile << pos.x << " " << pos.y << std::endl;
+    }
+    OutputFile.close();   
   }
   else { // read from file
+    std::cout << "Read from existing ed device location file." << std::endl;
     mobilityEd.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
                                       "X", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
                                                          ("Min", DoubleValue(-sideLength),
@@ -170,60 +183,12 @@ int main (int argc, char *argv[])
                                       "Y", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
                                                          ("Min", DoubleValue(-sideLength),
                                                           "Max", DoubleValue(sideLength))));
+    mobilityEd.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    for (int i = 0; i < nDevices; ++i) {
+      mobilityEd.Install (endDevices.Get (i));
+    }
   }
 
-
-
-  // // Gateway mobility
-  int nGateways = 5;
-  Ptr<ListPositionAllocator> positionAllocGw = CreateObject<ListPositionAllocator> ();
-  positionAllocGw->Add (Vector (0.0, 0.0, 15.0));
-  positionAllocGw->Add (Vector (-5000.0, -5000.0, 15.0));
-  positionAllocGw->Add (Vector (-5000.0, 5000.0, 15.0));
-  positionAllocGw->Add (Vector (5000.0, -5000.0, 15.0));
-  positionAllocGw->Add (Vector (5000.0, 5000.0, 15.0));
-  mobilityGw.SetPositionAllocator (positionAllocGw);
-  mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-  //Ptr<HexGridPositionAllocator> hexAllocator = CreateObject<HexGridPositionAllocator> (gatewayDistance / 2);
-  //mobilityGw.SetPositionAllocator (hexAllocator);
-  //mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-
-  // Create the LoraPhyHelper
-  LoraPhyHelper phyHelper = LoraPhyHelper ();
-  phyHelper.SetChannel (channel);
-
-  // Create the LorawanMacHelper
-  LorawanMacHelper macHelper = LorawanMacHelper ();
-
-  // Create the LoraHelper
-  LoraHelper helper = LoraHelper ();
-  helper.EnablePacketTracking ();
-
-  ////////////////
-  // Create GWs //
-  ////////////////
-
-  NodeContainer gateways;
-  gateways.Create (nGateways);
-  mobilityGw.Install (gateways);
-
-  // Create the LoraNetDevices of the gateways
-  phyHelper.SetDeviceType (LoraPhyHelper::GW);
-  macHelper.SetDeviceType (LorawanMacHelper::GW);
-  helper.Install (phyHelper, macHelper, gateways);
-
-  ////////////////
-  // Create EDs //
-  ////////////////
-
-  NodeContainer endDevices;
-  endDevices.Create (nDevices);
-
-  // Install mobility model on fixed nodes
-  mobilityEd.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-  for (int i = 0; i < nDevices; ++i) {
-    mobilityEd.Install (endDevices.Get (i));
-  }
   // Install mobility model on mobile nodes
   //mobilityEd.SetMobilityModel ("ns3::RandomWalk2dMobilityModel",
   //                             "Bounds", RectangleValue (Rectangle (-sideLength, sideLength,
@@ -237,6 +202,47 @@ int main (int argc, char *argv[])
   //    mobilityEd.Install (endDevices.Get (i));
   //  }
 
+
+  ////////////////
+  // Create GWs //
+  ////////////////
+  NodeContainer gateways;
+  int nGateways = 5;
+  gateways.Create (nGateways);
+
+  MobilityHelper mobilityGw;
+  Ptr<ListPositionAllocator> positionAllocGw = CreateObject<ListPositionAllocator> ();
+  positionAllocGw->Add (Vector (0.0, 0.0, 15.0));
+  positionAllocGw->Add (Vector (-5000.0, -5000.0, 15.0));
+  positionAllocGw->Add (Vector (-5000.0, 5000.0, 15.0));
+  positionAllocGw->Add (Vector (5000.0, -5000.0, 15.0));
+  positionAllocGw->Add (Vector (5000.0, 5000.0, 15.0));
+  mobilityGw.SetPositionAllocator (positionAllocGw);
+  mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  //Ptr<HexGridPositionAllocator> hexAllocator = CreateObject<HexGridPositionAllocator> (gatewayDistance / 2);
+  //mobilityGw.SetPositionAllocator (hexAllocator);
+  //mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobilityGw.Install (gateways);
+
+  /////////////////////////////
+  // Create the LoRa Helpers //
+  /////////////////////////////
+  LoraPhyHelper phyHelper = LoraPhyHelper ();
+  phyHelper.SetChannel (channel);
+
+
+  // Create the LorawanMacHelper
+  LorawanMacHelper macHelper = LorawanMacHelper ();
+
+  // Create the LoraHelper
+  LoraHelper helper = LoraHelper ();
+  helper.EnablePacketTracking ();
+
+  // Create the LoraNetDevices of the gateways
+  phyHelper.SetDeviceType (LoraPhyHelper::GW);
+  macHelper.SetDeviceType (LorawanMacHelper::GW);
+  helper.Install (phyHelper, macHelper, gateways);
+
   // Create a LoraDeviceAddressGenerator
   uint8_t nwkId = 54;
   uint32_t nwkAddr = 1864;
@@ -249,7 +255,9 @@ int main (int argc, char *argv[])
   macHelper.SetRegion (LorawanMacHelper::EU);
   helper.Install (phyHelper, macHelper, endDevices);
 
-  // Install applications in EDs
+  /////////////////////////////////
+  // Install applications in EDs //
+  /////////////////////////////////
   int appPeriodSeconds = 1200;      // One packet every 20 minutes
   PeriodicSenderHelper appHelper = PeriodicSenderHelper ();
   appHelper.SetPeriod (Seconds (appPeriodSeconds));
@@ -260,9 +268,9 @@ int main (int argc, char *argv[])
     macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
   }
 
-  ////////////
-  // Create NS
-  ////////////
+  ///////////////
+  // Create NS //
+  ///////////////
 
   NodeContainer networkServers;
   networkServers.Create (1);
@@ -279,6 +287,9 @@ int main (int argc, char *argv[])
   ForwarderHelper forwarderHelper;
   forwarderHelper.Install (gateways);
 
+  /////////////
+  // Tracing //
+  /////////////
   // Connect our traces
   Config::ConnectWithoutContext ("/NodeList/*/DeviceList/0/$ns3::LoraNetDevice/Mac/$ns3::EndDeviceLorawanMac/TxPower",
                                  MakeCallback (&OnTxPowerChange));
