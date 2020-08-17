@@ -41,18 +41,15 @@ void OnTxPowerChange (double oldTxPower, double newTxPower)
   NS_LOG_DEBUG (oldTxPower << " dBm -> " << newTxPower << " dBm");
 }
 
-std::vector < std::string > split(std::string const & str, const char delim) {
-    std::vector < std::string > result;
+std::vector < std::string > split(std::string const & str, const char delim);
+void EnablePeriodicDeviceStatusPrinting (NodeContainer endDevices,
+                                         NodeContainer gateways,
+                                         std::string filename,
+                                         Time interval);
+void DoPrintDeviceStatus (NodeContainer endDevices,
+                          NodeContainer gateways,
+                          std::string filename);
 
-    std::stringstream ss(str);
-    std::string s;
-
-    while (std::getline(ss, s, delim)) {
-        result.push_back(s);
-    }
-
-    return result;
-}
 
 int main (int argc, char *argv[])
 {
@@ -115,13 +112,13 @@ int main (int argc, char *argv[])
   /////////////
 
   // LogComponentEnable ("AdrExample", LOG_LEVEL_ALL);
-  // LogComponentEnable ("LoraPacketTracker", LOG_LEVEL_ALL);
+  LogComponentEnable ("LoraPacketTracker", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkServer", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkController", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkScheduler", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkStatus", LOG_LEVEL_ALL);
-  // LogComponentEnable ("EndDeviceStatus", LOG_LEVEL_ALL);
-  LogComponentEnable ("AdrComponent", LOG_LEVEL_ALL);
+  LogComponentEnable ("EndDeviceStatus", LOG_LEVEL_ALL);
+  // LogComponentEnable ("AdrComponent", LOG_LEVEL_ALL);
   // LogComponentEnable("ClassAEndDeviceLorawanMac", LOG_LEVEL_ALL);
   // LogComponentEnable ("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
   // LogComponentEnable ("MacCommand", LOG_LEVEL_ALL);
@@ -168,7 +165,8 @@ int main (int argc, char *argv[])
   // No exisiting end devices location file, then randomly generate locations and save it to the file
   std::string file_name = "EdLocation_" + std::to_string(nDevices) + ".txt";
   std::ifstream EdLocationFile(file_name);
-  if (EdLocationFile.fail()) { // no such file exists
+  if (EdLocationFile.fail()) // no such file exists
+  {
     std::cout << "Randomly generate ed device locations and save to file." << std::endl;
     mobilityEd.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
                                       "X", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
@@ -188,7 +186,8 @@ int main (int argc, char *argv[])
     }
     OutputFile.close();   
   }
-  else { // read from file
+  else // read from file
+  {
     std::cout << "Read from existing ed device location file." << std::endl;
     std::string line;
     Ptr<ListPositionAllocator> positionAllocEd = CreateObject<ListPositionAllocator> ();
@@ -314,7 +313,7 @@ int main (int argc, char *argv[])
 
   // Activate printing of ED MAC parameters
   Time stateSamplePeriod = Seconds (1200);
-  helper.EnablePeriodicDeviceStatusPrinting (endDevices, gateways, "nodeData.txt", stateSamplePeriod);
+  EnablePeriodicDeviceStatusPrinting (endDevices, gateways, "nodeData.txt", stateSamplePeriod);
   helper.EnablePeriodicPhyPerformancePrinting (gateways, "phyPerformance.txt", stateSamplePeriod);
   helper.EnablePeriodicGlobalPerformancePrinting ("globalPerformance.txt", stateSamplePeriod);
 
@@ -330,4 +329,82 @@ int main (int argc, char *argv[])
                                                Seconds (1200 * (nPeriods - 1))) << std::endl;
 
   return 0;
+}
+
+
+// split implementation for reading from external text files
+std::vector < std::string > split(std::string const & str, const char delim) 
+{
+    std::vector < std::string > result;
+
+    std::stringstream ss(str);
+    std::string s;
+
+    while (std::getline(ss, s, delim)) {
+        result.push_back(s);
+    }
+
+    return result;
+}
+
+// Schedule periodic end devices' status printing - including energy
+void EnablePeriodicDeviceStatusPrinting (NodeContainer endDevices,
+                                         NodeContainer gateways,
+                                         std::string filename,
+                                         Time interval)
+{
+  DoPrintDeviceStatus (endDevices, gateways, filename);
+
+  // Schedule periodic printing
+  Simulator::Schedule (interval,
+                       &EnablePeriodicDeviceStatusPrinting,
+                       endDevices, gateways, filename, interval);
+}
+
+// Event function of printing end devices' status - including energy
+void DoPrintDeviceStatus (NodeContainer endDevices,
+                          NodeContainer gateways,
+                          std::string filename)
+{
+  const char * c = filename.c_str ();
+  std::ofstream outputFile;
+  if (Simulator::Now () == Seconds (0))
+  {
+    // Delete contents of the file as it is opened
+    outputFile.open (c, std::ofstream::out | std::ofstream::trunc);
+  }
+  else
+  {
+    // Only append to the file
+    outputFile.open (c, std::ofstream::out | std::ofstream::app);
+  }
+
+  Time currentTime = Simulator::Now();
+  for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
+  {
+    Ptr<Node> object = *j;
+    Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
+    NS_ASSERT (position != 0);
+    Ptr<NetDevice> netDevice = object->GetDevice (0);
+    Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+    NS_ASSERT (loraNetDevice != 0);
+    Ptr<ClassAEndDeviceLorawanMac> mac = loraNetDevice->GetMac ()->GetObject<ClassAEndDeviceLorawanMac> ();
+    int dr = int(mac->GetDataRate ());
+    double txPower = mac->GetTransmissionPower ();
+    Vector pos = position->GetPosition ();
+    outputFile << currentTime.GetSeconds () << " "
+               << object->GetId () <<  " "
+               << pos.x << " " << pos.y << " " << dr << " "
+               << unsigned(txPower) << std::endl;
+  }
+  for (NodeContainer::Iterator j = gateways.Begin (); j != gateways.End (); ++j)
+  {
+    Ptr<Node> object = *j;
+    Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
+    Vector pos = position->GetPosition ();
+    outputFile << currentTime.GetSeconds () << " "
+               << object->GetId () <<  " "
+               << pos.x << " " << pos.y << " " << "-1 -1" << std::endl;
+  }
+  outputFile.close ();
 }
