@@ -46,7 +46,7 @@ int main (int argc, char *argv[])
   bool verbose = false;
   bool adrEnabled = false;
   bool initializeSF = true;
-  int nDevices = 400;
+  int nDevices = 10;
   int nPeriods = 2;
   double mobileNodeProbability = 0;
   double sideLength = 10000;
@@ -67,145 +67,163 @@ int main (int argc, char *argv[])
   cmd.AddValue ("EDDRAdaptation", "ns3::EndDeviceLorawanMac::EnableEDDataRateAdaptation");
   cmd.AddValue ("ChangeTransmissionPower",
                 "ns3::AdrComponent::ChangeTransmissionPower");
-   cmd.AddValue ("AdrEnabled", "Whether to enable ADR", adrEnabled);
-   cmd.AddValue ("nDevices", "Number of devices to simulate", nDevices);
-   cmd.AddValue ("PeriodsToSimulate", "Number of periods to simulate", nPeriods);
-   cmd.AddValue ("MobileNodeProbability",
-                 "Probability of a node being a mobile node",
-                 mobileNodeProbability);
-   cmd.AddValue ("sideLength",
-                 "Length of the side of the rectangle nodes will be placed in",
-                 sideLength);
-   cmd.AddValue ("maxRandomLoss",
-                 "Maximum amount in dB of the random loss component",
-                 maxRandomLoss);
-   cmd.AddValue ("gatewayDistance",
-                 "Distance between gateways",
-                 gatewayDistance);
-   cmd.AddValue ("initializeSF",
-                 "Whether to initialize the SFs",
-                 initializeSF);
-   cmd.AddValue ("MinSpeed",
-                 "Minimum speed for mobile devices",
-                 minSpeed);
-   cmd.AddValue ("MaxSpeed",
-                 "Maximum speed for mobile devices",
-                 maxSpeed);
-   cmd.AddValue ("MaxTransmissions",
-                 "ns3::EndDeviceLorawanMac::MaxTransmissions");
-   cmd.Parse (argc, argv);
+  cmd.AddValue ("AdrEnabled", "Whether to enable ADR", adrEnabled);
+  cmd.AddValue ("nDevices", "Number of devices to simulate", nDevices);
+  cmd.AddValue ("PeriodsToSimulate", "Number of periods to simulate", nPeriods);
+  cmd.AddValue ("MobileNodeProbability",
+                "Probability of a node being a mobile node",
+                mobileNodeProbability);
+  cmd.AddValue ("sideLength",
+                "Length of the side of the rectangle nodes will be placed in",
+                sideLength);
+  cmd.AddValue ("maxRandomLoss",
+                "Maximum amount in dB of the random loss component",
+                maxRandomLoss);
+  cmd.AddValue ("gatewayDistance",
+                "Distance between gateways",
+                gatewayDistance);
+  cmd.AddValue ("initializeSF",
+                "Whether to initialize the SFs",
+                initializeSF);
+  cmd.AddValue ("MinSpeed",
+                "Minimum speed for mobile devices",
+                minSpeed);
+  cmd.AddValue ("MaxSpeed",
+                "Maximum speed for mobile devices",
+                maxSpeed);
+  cmd.AddValue ("MaxTransmissions",
+                "ns3::EndDeviceLorawanMac::MaxTransmissions");
+  cmd.Parse (argc, argv);
 
-   //int gatewayRings = 2 + (std::sqrt(2) * sideLength) / (gatewayDistance);
-   //int nGateways = 3*gatewayRings*gatewayRings-3*gatewayRings+1;
 
-   // Logging
-   //////////
+  /////////////
+  // Logging //
+  /////////////
 
-   // LogComponentEnable ("AdrExample", LOG_LEVEL_ALL);
-   // LogComponentEnable ("LoraPacketTracker", LOG_LEVEL_ALL);
-   // LogComponentEnable ("NetworkServer", LOG_LEVEL_ALL);
-   // LogComponentEnable ("NetworkController", LOG_LEVEL_ALL);
-   // LogComponentEnable ("NetworkScheduler", LOG_LEVEL_ALL);
-   // LogComponentEnable ("NetworkStatus", LOG_LEVEL_ALL);
-   // LogComponentEnable ("EndDeviceStatus", LOG_LEVEL_ALL);
-   LogComponentEnable ("AdrComponent", LOG_LEVEL_ALL);
-   // LogComponentEnable("ClassAEndDeviceLorawanMac", LOG_LEVEL_ALL);
-   // LogComponentEnable ("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
-   // LogComponentEnable ("MacCommand", LOG_LEVEL_ALL);
-   // LogComponentEnable ("AdrExploraSf", LOG_LEVEL_ALL);
-   // LogComponentEnable ("AdrExploraAt", LOG_LEVEL_ALL);
-   // LogComponentEnable ("EndDeviceLorawanMac", LOG_LEVEL_ALL);
-   LogComponentEnableAll (LOG_PREFIX_FUNC);
-   LogComponentEnableAll (LOG_PREFIX_NODE);
-   LogComponentEnableAll (LOG_PREFIX_TIME);
+  // LogComponentEnable ("AdrExample", LOG_LEVEL_ALL);
+  // LogComponentEnable ("LoraPacketTracker", LOG_LEVEL_ALL);
+  // LogComponentEnable ("NetworkServer", LOG_LEVEL_ALL);
+  // LogComponentEnable ("NetworkController", LOG_LEVEL_ALL);
+  // LogComponentEnable ("NetworkScheduler", LOG_LEVEL_ALL);
+  // LogComponentEnable ("NetworkStatus", LOG_LEVEL_ALL);
+  // LogComponentEnable ("EndDeviceStatus", LOG_LEVEL_ALL);
+  LogComponentEnable ("AdrComponent", LOG_LEVEL_ALL);
+  // LogComponentEnable("ClassAEndDeviceLorawanMac", LOG_LEVEL_ALL);
+  // LogComponentEnable ("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
+  // LogComponentEnable ("MacCommand", LOG_LEVEL_ALL);
+  // LogComponentEnable ("AdrExploraSf", LOG_LEVEL_ALL);
+  // LogComponentEnable ("AdrExploraAt", LOG_LEVEL_ALL);
+  // LogComponentEnable ("EndDeviceLorawanMac", LOG_LEVEL_ALL);
+  LogComponentEnableAll (LOG_PREFIX_FUNC);
+  LogComponentEnableAll (LOG_PREFIX_NODE);
+  LogComponentEnableAll (LOG_PREFIX_TIME);
 
-   // Set the EDs to require Data Rate control from the NS
-   Config::SetDefault ("ns3::EndDeviceLorawanMac::DRControl", BooleanValue (true));
+  // Set the EDs to require Data Rate control from the NS
+  Config::SetDefault ("ns3::EndDeviceLorawanMac::DRControl", BooleanValue (true));
 
-   // Create a simple wireless channel
-   ///////////////////////////////////
+  //////////////////////////////////////
+  // Create a simple wireless channel //
+  //////////////////////////////////////
 
-   Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
-   loss->SetPathLossExponent (2.1);
-   loss->SetReference (1000, 130);
+  Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
+  loss->SetPathLossExponent (2.1);
+  loss->SetReference (1000, 130);
 
-   Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
-   x->SetAttribute ("Min", DoubleValue (0.0));
-   x->SetAttribute ("Max", DoubleValue (maxRandomLoss));
+  Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
+  x->SetAttribute ("Min", DoubleValue (0.0));
+  x->SetAttribute ("Max", DoubleValue (maxRandomLoss));
 
-   Ptr<RandomPropagationLossModel> randomLoss = CreateObject<RandomPropagationLossModel> ();
-   randomLoss->SetAttribute ("Variable", PointerValue (x));
+  Ptr<RandomPropagationLossModel> randomLoss = CreateObject<RandomPropagationLossModel> ();
+  randomLoss->SetAttribute ("Variable", PointerValue (x));
 
-   loss->SetNext (randomLoss);
+  loss->SetNext (randomLoss);
 
-   Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
+  Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
 
-   Ptr<LoraChannel> channel = CreateObject<LoraChannel> (loss, delay);
+  Ptr<LoraChannel> channel = CreateObject<LoraChannel> (loss, delay);
 
-   // Helpers
-   //////////
+  /////////////
+  // Helpers //
+  /////////////
 
-   // End Device mobility
-   MobilityHelper mobilityEd, mobilityGw;
-   mobilityEd.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-                                    "X", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
-                                                       ("Min", DoubleValue(-sideLength),
-                                                        "Max", DoubleValue(sideLength))),
-                                    "Y", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
-                                                       ("Min", DoubleValue(-sideLength),
-                                                        "Max", DoubleValue(sideLength))));
+  // End Device mobility
+  MobilityHelper mobilityEd, mobilityGw;
 
-   // // Gateway mobility
-   int nGateways = 5;
-   Ptr<ListPositionAllocator> positionAllocGw = CreateObject<ListPositionAllocator> ();
-   positionAllocGw->Add (Vector (0.0, 0.0, 15.0));
-   positionAllocGw->Add (Vector (-5000.0, -5000.0, 15.0));
-   positionAllocGw->Add (Vector (-5000.0, 5000.0, 15.0));
-   positionAllocGw->Add (Vector (5000.0, -5000.0, 15.0));
-   positionAllocGw->Add (Vector (5000.0, 5000.0, 15.0));
-   mobilityGw.SetPositionAllocator (positionAllocGw);
-   mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-   //Ptr<HexGridPositionAllocator> hexAllocator = CreateObject<HexGridPositionAllocator> (gatewayDistance / 2);
-   //mobilityGw.SetPositionAllocator (hexAllocator);
-   //mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
 
-   // Create the LoraPhyHelper
-   LoraPhyHelper phyHelper = LoraPhyHelper ();
-   phyHelper.SetChannel (channel);
+  // No exisiting end devices location file, then randomly generate locations and save it to the file
+  std::string file_name = "EdLocation_" + std::to_string(nDevices) + ".txt";
+  std::ifstream EdLocationFile(file_name);
+  if ( EdLocationFile.fail() ) { // no such file exists
+    mobilityEd.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
+                                      "X", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
+                                                         ("Min", DoubleValue(-sideLength),
+                                                          "Max", DoubleValue(sideLength))),
+                                      "Y", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
+                                                         ("Min", DoubleValue(-sideLength),
+                                                          "Max", DoubleValue(sideLength))));
+  }
+  else { // read from file
+    mobilityEd.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
+                                      "X", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
+                                                         ("Min", DoubleValue(-sideLength),
+                                                          "Max", DoubleValue(sideLength))),
+                                      "Y", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
+                                                         ("Min", DoubleValue(-sideLength),
+                                                          "Max", DoubleValue(sideLength))));
+  }
 
-   // Create the LorawanMacHelper
-   LorawanMacHelper macHelper = LorawanMacHelper ();
 
-   // Create the LoraHelper
-   LoraHelper helper = LoraHelper ();
-   helper.EnablePacketTracking ();
 
-   ////////////////
-   // Create GWs //
-   ////////////////
+  // // Gateway mobility
+  int nGateways = 5;
+  Ptr<ListPositionAllocator> positionAllocGw = CreateObject<ListPositionAllocator> ();
+  positionAllocGw->Add (Vector (0.0, 0.0, 15.0));
+  positionAllocGw->Add (Vector (-5000.0, -5000.0, 15.0));
+  positionAllocGw->Add (Vector (-5000.0, 5000.0, 15.0));
+  positionAllocGw->Add (Vector (5000.0, -5000.0, 15.0));
+  positionAllocGw->Add (Vector (5000.0, 5000.0, 15.0));
+  mobilityGw.SetPositionAllocator (positionAllocGw);
+  mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  //Ptr<HexGridPositionAllocator> hexAllocator = CreateObject<HexGridPositionAllocator> (gatewayDistance / 2);
+  //mobilityGw.SetPositionAllocator (hexAllocator);
+  //mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
 
-   NodeContainer gateways;
-   gateways.Create (nGateways);
-   mobilityGw.Install (gateways);
+  // Create the LoraPhyHelper
+  LoraPhyHelper phyHelper = LoraPhyHelper ();
+  phyHelper.SetChannel (channel);
 
-   // Create the LoraNetDevices of the gateways
-   phyHelper.SetDeviceType (LoraPhyHelper::GW);
-   macHelper.SetDeviceType (LorawanMacHelper::GW);
-   helper.Install (phyHelper, macHelper, gateways);
+  // Create the LorawanMacHelper
+  LorawanMacHelper macHelper = LorawanMacHelper ();
 
-   // Create EDs
-   /////////////
+  // Create the LoraHelper
+  LoraHelper helper = LoraHelper ();
+  helper.EnablePacketTracking ();
 
-   NodeContainer endDevices;
-   endDevices.Create (nDevices);
+  ////////////////
+  // Create GWs //
+  ////////////////
 
-   // Install mobility model on fixed nodes
-   mobilityEd.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-   int fixedPositionNodes = double (nDevices) * (1 - mobileNodeProbability);
-   for (int i = 0; i < fixedPositionNodes; ++i)
-    {
-      mobilityEd.Install (endDevices.Get (i));
-    }
+  NodeContainer gateways;
+  gateways.Create (nGateways);
+  mobilityGw.Install (gateways);
+
+  // Create the LoraNetDevices of the gateways
+  phyHelper.SetDeviceType (LoraPhyHelper::GW);
+  macHelper.SetDeviceType (LorawanMacHelper::GW);
+  helper.Install (phyHelper, macHelper, gateways);
+
+  ////////////////
+  // Create EDs //
+  ////////////////
+
+  NodeContainer endDevices;
+  endDevices.Create (nDevices);
+
+  // Install mobility model on fixed nodes
+  mobilityEd.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  for (int i = 0; i < nDevices; ++i) {
+    mobilityEd.Install (endDevices.Get (i));
+  }
   // Install mobility model on mobile nodes
   //mobilityEd.SetMobilityModel ("ns3::RandomWalk2dMobilityModel",
   //                             "Bounds", RectangleValue (Rectangle (-sideLength, sideLength,
@@ -238,10 +256,9 @@ int main (int argc, char *argv[])
   ApplicationContainer appContainer = appHelper.Install (endDevices);
 
   // Do not set spreading factors up: we will wait for the NS to do this
-  if (initializeSF)
-    {
-      macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
-    }
+  if (initializeSF) {
+    macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
+  }
 
   ////////////
   // Create NS
