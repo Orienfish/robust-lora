@@ -126,8 +126,8 @@ int main (int argc, char *argv[])
    ///////////////////////////////////
 
    Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
-   loss->SetPathLossExponent (3.76);
-   loss->SetReference (1, 7.7);
+   loss->SetPathLossExponent (2.1);
+   loss->SetReference (1000, 130);
 
    Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
    x->SetAttribute ("Min", DoubleValue (0.0));
