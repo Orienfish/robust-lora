@@ -73,6 +73,7 @@ int main (int argc, char *argv[])
   double sideLength = 10000;
   int gatewayDistance = 5000;
   double maxRandomLoss = 10;
+  int maxTransmissions = 8;
   std::string adrType = "ns3::AdrComponent";
 
   CommandLine cmd;
@@ -102,7 +103,8 @@ int main (int argc, char *argv[])
                 "Whether to initialize the SFs",
                 initializeSF);
   cmd.AddValue ("MaxTransmissions",
-                "ns3::EndDeviceLorawanMac::MaxTransmissions");
+                "Maximum number of retransmissions on end devices",
+                maxTransmissions);
   cmd.Parse (argc, argv);
 
 
@@ -119,11 +121,11 @@ int main (int argc, char *argv[])
   // LogComponentEnable ("EndDeviceStatus", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrComponent", LOG_LEVEL_ALL);
   // LogComponentEnable ("ClassAEndDeviceLorawanMac", LOG_LEVEL_ALL);
-  LogComponentEnable ("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
+  // LogComponentEnable ("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
   // LogComponentEnable ("MacCommand", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrExploraSf", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrExploraAt", LOG_LEVEL_ALL);
-  // LogComponentEnable ("EndDeviceLorawanMac", LOG_LEVEL_ALL);
+  LogComponentEnable ("EndDeviceLorawanMac", LOG_LEVEL_ALL);
   LogComponentEnableAll (LOG_PREFIX_FUNC);
   LogComponentEnableAll (LOG_PREFIX_NODE);
   LogComponentEnableAll (LOG_PREFIX_TIME);
