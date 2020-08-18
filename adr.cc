@@ -67,7 +67,7 @@ int main (int argc, char *argv[])
   bool verbose = false;
   bool adrEnabled = false;
   bool initializeSF = true;
-  int nDevices = 10;
+  int nDevices = 1;
   int nPeriods = 1;
   double mobileNodeProbability = 0;
   double sideLength = 10000;
@@ -113,7 +113,7 @@ int main (int argc, char *argv[])
   /////////////
 
   LogComponentEnable ("AdrExample", LOG_LEVEL_ALL);
-  // LogComponentEnable ("LoraPacketTracker", LOG_LEVEL_ALL);
+  LogComponentEnable ("LoraPacketTracker", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkServer", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkController", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkScheduler", LOG_LEVEL_ALL);
@@ -125,7 +125,7 @@ int main (int argc, char *argv[])
   // LogComponentEnable ("MacCommand", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrExploraSf", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrExploraAt", LOG_LEVEL_ALL);
-  LogComponentEnable ("EndDeviceLorawanMac", LOG_LEVEL_ALL);
+  // LogComponentEnable ("EndDeviceLorawanMac", LOG_LEVEL_ALL);
   LogComponentEnableAll (LOG_PREFIX_FUNC);
   LogComponentEnableAll (LOG_PREFIX_NODE);
   LogComponentEnableAll (LOG_PREFIX_TIME);
@@ -140,8 +140,8 @@ int main (int argc, char *argv[])
   //////////////////////////////////////
 
   Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
-  loss->SetPathLossExponent (2.1);
-  loss->SetReference (1000, 130);
+   loss->SetPathLossExponent (3.76);
+   loss->SetReference (1, 7.7);
 
   Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
   x->SetAttribute ("Min", DoubleValue (0.0));
@@ -167,9 +167,12 @@ int main (int argc, char *argv[])
 
   // End Device mobility
   MobilityHelper mobilityEd;
+  Ptr<ListPositionAllocator> positionAllocEd = CreateObject<ListPositionAllocator> ();
+  positionAllocEd->Add (Vector (100000.0, 100000.0, 0.0));
+  mobilityEd.Install (endDevices);
 
   // No exisiting end devices location file, then randomly generate locations and save it to the file
-  std::string file_name = "EdLocation_" + std::to_string(nDevices) + ".txt";
+  /*std::string file_name = "EdLocation_" + std::to_string(nDevices) + ".txt";
   std::ifstream EdLocationFile(file_name);
   if (EdLocationFile.fail()) // no such file exists
   {
@@ -208,7 +211,7 @@ int main (int argc, char *argv[])
     mobilityEd.SetPositionAllocator (positionAllocEd);
     mobilityEd.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
     mobilityEd.Install (endDevices);
-  }
+  }*/
 
   // Install mobility model on mobile nodes
   //mobilityEd.SetMobilityModel ("ns3::RandomWalk2dMobilityModel",
@@ -230,18 +233,18 @@ int main (int argc, char *argv[])
   ////////////////
 
   NodeContainer gateways;
-  int nGateways = 5;
+  int nGateways = 1;
   gateways.Create (nGateways);
 
   MobilityHelper mobilityGw;
   Ptr<ListPositionAllocator> positionAllocGw = CreateObject<ListPositionAllocator> ();
   positionAllocGw->Add (Vector (0.0, 0.0, 15.0));
-  positionAllocGw->Add (Vector (-5000.0, -5000.0, 15.0));
-  positionAllocGw->Add (Vector (-5000.0, 5000.0, 15.0));
-  positionAllocGw->Add (Vector (5000.0, -5000.0, 15.0));
-  positionAllocGw->Add (Vector (5000.0, 5000.0, 15.0));
-  mobilityGw.SetPositionAllocator (positionAllocGw);
-  mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  //positionAllocGw->Add (Vector (-5000.0, -5000.0, 15.0));
+  //positionAllocGw->Add (Vector (-5000.0, 5000.0, 15.0));
+  //positionAllocGw->Add (Vector (5000.0, -5000.0, 15.0));
+  //positionAllocGw->Add (Vector (5000.0, 5000.0, 15.0));
+  //mobilityGw.SetPositionAllocator (positionAllocGw);
+  //mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   //Ptr<HexGridPositionAllocator> hexAllocator = CreateObject<HexGridPositionAllocator> (gatewayDistance / 2);
   //mobilityGw.SetPositionAllocator (hexAllocator);
   //mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
@@ -373,6 +376,7 @@ int main (int argc, char *argv[])
 
   std::cout << tracker.CountMacPacketsGlobally (Seconds (0), simulationTime) << std::endl;
   std::cout << tracker.CountMacPacketsGloballyCpsr (Seconds (0), simulationTime) << std::endl;
+  std::cout << tracker.PrintPhyPacketsPerGw (Seconds (0), simulationTime, nDevices) << std::endl;
 
   return 0;
 }
