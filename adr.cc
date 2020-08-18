@@ -429,6 +429,8 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
   }
 
   Time currentTime = Simulator::Now();
+  
+  // print end devices' status
   for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
   {
     int n_index = j - endDevices.Begin();
@@ -450,7 +452,6 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
     double txPower = mac->GetTransmissionPower ();
 
     // Get energy
-    // Ptr<BasicEnergySource> SourcePtr = DynamicCast<BasicEnergySource>(sources.Get(n_index));
     Ptr<EnergySource> SourcePtr = sources.Get(n_index);
     NS_ASSERT (SourcePtr != 0);
     Ptr<DeviceEnergyModel> LoRaRadioModelPtr = SourcePtr->FindDeviceEnergyModels("ns3::LoraRadioEnergyModel").Get(0);
@@ -463,6 +464,8 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
                << unsigned(txPower) << " "
                << energy_consumption << std::endl;
   }
+
+  // print gateways' status
   for (NodeContainer::Iterator j = gateways.Begin (); j != gateways.End (); ++j)
   {
     Ptr<Node> object = *j;
