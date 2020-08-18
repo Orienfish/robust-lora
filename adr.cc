@@ -23,7 +23,8 @@
 #include "ns3/random-variable-stream.h"
 #include "ns3/config.h"
 #include "ns3/rectangle.h"
-#include "ns3/hex-grid-position-allocator.h"
+#include "ns3/basic-energy-source-helper.h"
+#include "ns3/lora-radio-energy-model-helper.h"
 
 using namespace ns3;
 using namespace lorawan;
@@ -132,6 +133,8 @@ int main (int argc, char *argv[])
   // Set the EDs to require Data Rate control from the NS
   Config::SetDefault ("ns3::EndDeviceLorawanMac::DRControl", BooleanValue (true));
 
+
+
   //////////////////////////////////////
   // Create a simple wireless channel //
   //////////////////////////////////////
@@ -153,9 +156,12 @@ int main (int argc, char *argv[])
 
   Ptr<LoraChannel> channel = CreateObject<LoraChannel> (loss, delay);
 
+
+
   ////////////////
   // Create EDs //
   ////////////////
+
   NodeContainer endDevices;
   endDevices.Create (nDevices);
 
@@ -218,9 +224,11 @@ int main (int argc, char *argv[])
   //  }
 
 
+
   ////////////////
   // Create GWs //
   ////////////////
+
   NodeContainer gateways;
   int nGateways = 5;
   gateways.Create (nGateways);
@@ -239,12 +247,14 @@ int main (int argc, char *argv[])
   //mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobilityGw.Install (gateways);
 
+
+
   /////////////////////////////
   // Create the LoRa Helpers //
   /////////////////////////////
+
   LoraPhyHelper phyHelper = LoraPhyHelper ();
   phyHelper.SetChannel (channel);
-
 
   // Create the LorawanMacHelper
   LorawanMacHelper macHelper = LorawanMacHelper ();
@@ -268,20 +278,26 @@ int main (int argc, char *argv[])
   macHelper.SetDeviceType (LorawanMacHelper::ED_A);
   macHelper.SetAddressGenerator (addrGen);
   macHelper.SetRegion (LorawanMacHelper::EU);
-  helper.Install (phyHelper, macHelper, endDevices);
+  NetDeviceContainer endDevicesNetDevices = helper.Install (phyHelper, macHelper, endDevices);
+
+
 
   /////////////////////////////////
   // Install applications in EDs //
   /////////////////////////////////
+
   int appPeriodSeconds = 1200;      // One packet every 20 minutes
   PeriodicSenderHelper appHelper = PeriodicSenderHelper ();
   appHelper.SetPeriod (Seconds (appPeriodSeconds));
   ApplicationContainer appContainer = appHelper.Install (endDevices);
 
   // Do not set spreading factors up: we will wait for the NS to do this
-  if (initializeSF) {
+  if (initializeSF) 
+  {
     macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
   }
+
+
 
   ///////////////
   // Create NS //
@@ -301,6 +317,35 @@ int main (int argc, char *argv[])
   // Install the Forwarder application on the gateways
   ForwarderHelper forwarderHelper;
   forwarderHelper.Install (gateways);
+
+  //////////////////////////
+  // Install Energy Model //
+  //////////////////////////
+
+  BasicEnergySourceHelper basicSourceHelper;
+  LoraRadioEnergyModelHelper radioEnergyHelper;
+
+  // configure energy source
+  basicSourceHelper.Set ("BasicEnergySourceInitialEnergyJ", DoubleValue (10000)); // Energy in J
+  basicSourceHelper.Set ("BasicEnergySupplyVoltageV", DoubleValue (3.3));
+
+  radioEnergyHelper.Set ("StandbyCurrentA", DoubleValue (0.0014));
+  radioEnergyHelper.Set ("TxCurrentA", DoubleValue (0.028));
+  radioEnergyHelper.Set ("SleepCurrentA", DoubleValue (0.0000015));
+  radioEnergyHelper.Set ("RxCurrentA", DoubleValue (0.0112));
+
+  radioEnergyHelper.SetTxCurrentModel ("ns3::ConstantLoraTxCurrentModel",
+                                       "TxCurrent", DoubleValue (0.028));
+
+  // install source on EDs' nodes
+  EnergySourceContainer sources = basicSourceHelper.Install (endDevices);
+  Names::Add ("/Names/EnergySource", sources.Get (0));
+
+  // install device model
+  DeviceEnergyModelContainer deviceModels = radioEnergyHelper.Install
+      (endDevicesNetDevices, sources);
+
+
 
   /////////////
   // Tracing //
@@ -392,10 +437,12 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
     int dr = int(mac->GetDataRate ());
     double txPower = mac->GetTransmissionPower ();
     Vector pos = position->GetPosition ();
+    //double energy_consumption = object->GetObject<LoraRadioEnergyModel> ()->GetTotalEnergyConsumption();
     outputFile << currentTime.GetSeconds () << " "
                << object->GetId () <<  " "
                << pos.x << " " << pos.y << " " << dr << " "
-               << unsigned(txPower) << std::endl;
+               << unsigned(txPower) << " " << std::endl;
+    //           << energy_consumption << std::endl;
   }
   for (NodeContainer::Iterator j = gateways.Begin (); j != gateways.End (); ++j)
   {
