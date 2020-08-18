@@ -45,10 +45,12 @@ void OnTxPowerChange (double oldTxPower, double newTxPower)
 std::vector < std::string > split(std::string const & str, const char delim);
 void EnablePeriodicDeviceStatusPrinting (NodeContainer endDevices,
                                          NodeContainer gateways,
+                                         EnergySourceContainer sources,
                                          std::string filename,
                                          Time interval);
 void DoPrintDeviceStatus (NodeContainer endDevices,
                           NodeContainer gateways,
+                          EnergySourceContainer sources,
                           std::string filename);
 
 
@@ -358,7 +360,7 @@ int main (int argc, char *argv[])
 
   // Activate printing of ED MAC parameters
   Time stateSamplePeriod = Seconds (1200);
-  EnablePeriodicDeviceStatusPrinting (endDevices, gateways, "nodeData.txt", stateSamplePeriod);
+  EnablePeriodicDeviceStatusPrinting (endDevices, gateways, sources, "nodeData.txt", stateSamplePeriod);
   helper.EnablePeriodicPhyPerformancePrinting (gateways, "phyPerformance.txt", stateSamplePeriod);
   helper.EnablePeriodicGlobalPerformancePrinting ("globalPerformance.txt", stateSamplePeriod);
 
@@ -395,20 +397,22 @@ std::vector < std::string > split(std::string const & str, const char delim)
 // Schedule periodic end devices' status printing - including energy
 void EnablePeriodicDeviceStatusPrinting (NodeContainer endDevices,
                                          NodeContainer gateways,
+                                         EnergySourceContainer sources,
                                          std::string filename,
                                          Time interval)
 {
-  DoPrintDeviceStatus (endDevices, gateways, filename);
+  DoPrintDeviceStatus (endDevices, gateways, sources, filename);
 
   // Schedule periodic printing
   Simulator::Schedule (interval,
                        &EnablePeriodicDeviceStatusPrinting,
-                       endDevices, gateways, filename, interval);
+                       endDevices, gateways, sources, filename, interval);
 }
 
 // Event function of printing end devices' status - including energy
 void DoPrintDeviceStatus (NodeContainer endDevices,
                           NodeContainer gateways,
+                          EnergySourceContainer sources,
                           std::string filename)
 {
   const char * c = filename.c_str ();
@@ -427,22 +431,37 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
   Time currentTime = Simulator::Now();
   for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
   {
+    int n_index = j - endDevices.Begin();
     Ptr<Node> object = *j;
+
+    // Get position
     Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
     NS_ASSERT (position != 0);
+    Vector pos = position->GetPosition ();
+
+    // Get netDevice
     Ptr<NetDevice> netDevice = object->GetDevice (0);
     Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
     NS_ASSERT (loraNetDevice != 0);
+
+    // Get mac parameters
     Ptr<ClassAEndDeviceLorawanMac> mac = loraNetDevice->GetMac ()->GetObject<ClassAEndDeviceLorawanMac> ();
     int dr = int(mac->GetDataRate ());
     double txPower = mac->GetTransmissionPower ();
-    Vector pos = position->GetPosition ();
-    //double energy_consumption = object->GetObject<LoraRadioEnergyModel> ()->GetTotalEnergyConsumption();
+
+    // Get energy
+    // Ptr<BasicEnergySource> SourcePtr = DynamicCast<BasicEnergySource>(sources.Get(n_index));
+    Ptr<EnergySource> SourcePtr = sources.Get(n_index);
+    NS_ASSERT (SourcePtr != 0);
+    Ptr<DeviceEnergyModel> LoRaRadioModelPtr = SourcePtr->FindDeviceEnergyModels("ns3::LoraRadioEnergyModel").Get(0);
+    NS_ASSERT (LoRaRadioModelPtr != 0);
+    double energy_consumption = LoRaRadioModelPtr->GetTotalEnergyConsumption();
+    
     outputFile << currentTime.GetSeconds () << " "
                << object->GetId () <<  " "
                << pos.x << " " << pos.y << " " << dr << " "
-               << unsigned(txPower) << " " << std::endl;
-    //           << energy_consumption << std::endl;
+               << unsigned(txPower) << " "
+               << energy_consumption << std::endl;
   }
   for (NodeContainer::Iterator j = gateways.Begin (); j != gateways.End (); ++j)
   {
@@ -451,7 +470,7 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
     Vector pos = position->GetPosition ();
     outputFile << currentTime.GetSeconds () << " "
                << object->GetId () <<  " "
-               << pos.x << " " << pos.y << " " << "-1 -1" << std::endl;
+               << pos.x << " " << pos.y << " " << "-1 -1 -1" << std::endl;
   }
   outputFile.close ();
 }
