@@ -52,6 +52,13 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
                           NodeContainer gateways,
                           EnergySourceContainer sources,
                           std::string filename);
+void CalObjectiveValue (NodeContainer endDevices,
+                        NodeContainer gateways,
+                        EnergySourceContainer sources,
+                        std::string filename);
+double CalEnergyEfficiency (NodeContainer endDevices,
+                            EnergySourceContainer sources,
+                            std::string filename);
 
 
 int main (int argc, char *argv[])
@@ -61,13 +68,11 @@ int main (int argc, char *argv[])
   bool adrEnabled = false;
   bool initializeSF = true;
   int nDevices = 10;
-  int nPeriods = 2;
+  int nPeriods = 1;
   double mobileNodeProbability = 0;
   double sideLength = 10000;
   int gatewayDistance = 5000;
   double maxRandomLoss = 10;
-  double minSpeed = 2;
-  double maxSpeed = 16;
   std::string adrType = "ns3::AdrComponent";
 
   CommandLine cmd;
@@ -84,9 +89,6 @@ int main (int argc, char *argv[])
   cmd.AddValue ("AdrEnabled", "Whether to enable ADR", adrEnabled);
   cmd.AddValue ("nDevices", "Number of devices to simulate", nDevices);
   cmd.AddValue ("PeriodsToSimulate", "Number of periods to simulate", nPeriods);
-  cmd.AddValue ("MobileNodeProbability",
-                "Probability of a node being a mobile node",
-                mobileNodeProbability);
   cmd.AddValue ("sideLength",
                 "Length of the side of the rectangle nodes will be placed in",
                 sideLength);
@@ -99,12 +101,6 @@ int main (int argc, char *argv[])
   cmd.AddValue ("initializeSF",
                 "Whether to initialize the SFs",
                 initializeSF);
-  cmd.AddValue ("MinSpeed",
-                "Minimum speed for mobile devices",
-                minSpeed);
-  cmd.AddValue ("MaxSpeed",
-                "Maximum speed for mobile devices",
-                maxSpeed);
   cmd.AddValue ("MaxTransmissions",
                 "ns3::EndDeviceLorawanMac::MaxTransmissions");
   cmd.Parse (argc, argv);
@@ -114,16 +110,16 @@ int main (int argc, char *argv[])
   // Logging //
   /////////////
 
-  // LogComponentEnable ("AdrExample", LOG_LEVEL_ALL);
-  LogComponentEnable ("LoraPacketTracker", LOG_LEVEL_ALL);
+  LogComponentEnable ("AdrExample", LOG_LEVEL_ALL);
+  // LogComponentEnable ("LoraPacketTracker", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkServer", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkController", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkScheduler", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkStatus", LOG_LEVEL_ALL);
-  LogComponentEnable ("EndDeviceStatus", LOG_LEVEL_ALL);
+  // LogComponentEnable ("EndDeviceStatus", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrComponent", LOG_LEVEL_ALL);
-  // LogComponentEnable("ClassAEndDeviceLorawanMac", LOG_LEVEL_ALL);
-  // LogComponentEnable ("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
+  // LogComponentEnable ("ClassAEndDeviceLorawanMac", LOG_LEVEL_ALL);
+  LogComponentEnable ("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
   // LogComponentEnable ("MacCommand", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrExploraSf", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrExploraAt", LOG_LEVEL_ALL);
@@ -175,7 +171,7 @@ int main (int argc, char *argv[])
   std::ifstream EdLocationFile(file_name);
   if (EdLocationFile.fail()) // no such file exists
   {
-    std::cout << "Randomly generate ed device locations and save to file." << std::endl;
+    NS_LOG_DEBUG ("Randomly generate ed device locations and save to file.");
     mobilityEd.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
                                       "X", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
                                                          ("Min", DoubleValue(-sideLength),
@@ -196,7 +192,7 @@ int main (int argc, char *argv[])
   }
   else // read from file
   {
-    std::cout << "Read from existing ed device location file." << std::endl;
+    NS_LOG_DEBUG ("Read from existing ed device location file.");
     std::string line;
     Ptr<ListPositionAllocator> positionAllocEd = CreateObject<ListPositionAllocator> ();
     while (std::getline(EdLocationFile, line)) {
@@ -364,6 +360,7 @@ int main (int argc, char *argv[])
   helper.EnablePeriodicPhyPerformancePrinting (gateways, "phyPerformance.txt", stateSamplePeriod);
   helper.EnablePeriodicGlobalPerformancePrinting ("globalPerformance.txt", stateSamplePeriod);
 
+  // Activate packet tracker
   LoraPacketTracker& tracker = helper.GetPacketTracker ();
 
   // Start simulation
@@ -372,8 +369,8 @@ int main (int argc, char *argv[])
   Simulator::Run ();
   Simulator::Destroy ();
 
-  std::cout << tracker.CountMacPacketsGlobally(Seconds (1200 * (nPeriods - 2)),
-                                               Seconds (1200 * (nPeriods - 1))) << std::endl;
+  std::cout << tracker.CountMacPacketsGlobally (Seconds (0), simulationTime) << std::endl;
+  std::cout << tracker.CountMacPacketsGloballyCpsr (Seconds (0), simulationTime) << std::endl;
 
   return 0;
 }
@@ -476,4 +473,37 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
                << pos.x << " " << pos.y << " " << "-1 -1 -1" << std::endl;
   }
   outputFile.close ();
+}
+
+// Calculate the objective value in the ICIOT paper
+void CalObjectiveValue (NodeContainer endDevices,
+                        NodeContainer gateways,
+                        EnergySourceContainer sources,
+                        std::string filename)
+{
+  double EE = CalEnergyEfficiency(endDevices, sources, filename);
+
+}
+
+// Calculate the sum of energy efficiency across all end devices
+double CalEnergyEfficiency (NodeContainer endDevices,
+                            EnergySourceContainer sources,
+                            std::string filename)
+{
+  // iterative through all end devices
+  for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
+  {
+    int n_index = j - endDevices.Begin();
+    Ptr<Node> object = *j;
+
+    // Get energy
+    Ptr<EnergySource> SourcePtr = sources.Get(n_index);
+    NS_ASSERT (SourcePtr != 0);
+    Ptr<DeviceEnergyModel> LoRaRadioModelPtr = SourcePtr->FindDeviceEnergyModels("ns3::LoraRadioEnergyModel").Get(0);
+    NS_ASSERT (LoRaRadioModelPtr != 0);
+    double energy_consumption = LoRaRadioModelPtr->GetTotalEnergyConsumption();
+
+    // Get packet delivery ratio
+
+  }
 }
