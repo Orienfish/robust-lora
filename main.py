@@ -17,12 +17,13 @@ L = 50000			# Edge of analysis area
 #G_y = math.floor(N_y * Unit_sr / Unit_gw)
 G_x = 6				# Number of gw potential locations on x coordinate
 G_y = 6				# Number of gw potential locations on y coordinate
-gw_cnt = G_x * G_y   # Number of gw potential locations
+gw_cnt = G_x * G_y  # Number of gw potential locations
 Unit_gw = math.floor(L / G_x) # Unit length between gw grid points
 print(Unit_gw)
 
 T = 1200			# Sampling period in s
 Ptx_max = 23		# Maximum allowed transmission power in dBm
+alpha = 0.05			# weight in objective value calculation
 
 # Spreading factors
 SF = ['SF7', 'SF8', 'SF9', 'SF10']
@@ -48,14 +49,16 @@ for p in range(G_x):
 	for q in range(G_y):
 		new_loc = [p * Unit_gw, q * Unit_gw, 1]
 		G.append(new_loc)
+G = np.array(G)
 
 # Randomly generate sensor positions
-sr_cnt = 50000		# Number of sensors
+sr_cnt = 100 #50000		# Number of sensors
 sr_info = []		# [x, y, SF, Ptx]
 for i in range(sr_cnt):	
 	k = random.randint(0, len(SF)-1)
-	new_loc = [random.random() * L, random.random() * L, SF[k], Ptx_max]
+	new_loc = [random.random() * L, random.random() * L, k, Ptx_max]
 	sr_info.append(new_loc)
+sr_info = np.array(sr_info)
 # print(sr_loc)
 
 
@@ -115,9 +118,12 @@ GetRSSI.Grx = 0 # Reception antenna gain
 
 # Test and tune path loss model's parameter
 #d = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
-#loss = [LogDistancePathLossModel(di) for di in d]
-#Prx = [GetRSSI(20, lossi) for lossi in loss]
-#plt.plot(d, Prx)
+#loss_log = [LogDistancePathLossModel(di) for di in d]
+#Prx_log = [GetRSSI(20, lossi) for lossi in loss_log]
+#loss_friis = [FreeSpacePathLossModel(di, 868) for di in d]
+#Prx_friis = [GetRSSI(20, lossi) for lossi in loss_friis]
+#plt.figure()
+#plt.plot(d, Prx_log, d, Prx_friis)
 #plt.show()
 
 def GetCij(sr_info, G, PL):
@@ -133,17 +139,17 @@ def GetCij(sr_info, G, PL):
 		Cij: notation of whether the connection between sensor i and 
 			gateway j is connectable
 	'''
-	sr_cnt = len(sr_info)
-	gw_cnt = len(G)
+	sr_cnt = sr_info.shape[0]
+	gw_cnt = G.shape[0]
 	Cij = np.zeros((sr_cnt, gw_cnt))
 	for j in range(gw_cnt):
-		if not G[j][2]: # no gateway is placed at j
+		if not G[j, 2]: # no gateway is placed at j
 			continue
 		# a gateway is placed at j
 		for i in range(sr_cnt):
-			Prx = GetRSSI(sr_info[i][3], PL[i][j])
-			if Prx > RSSI_k[sr_info[i][2]]: # can be received
-				Cij[i][j] = 1
+			Prx = GetRSSI(sr_info[i, 3], PL[i, j])
+			if Prx > RSSI_k[SF[int(sr_info[i, 2])]]: # can be received
+				Cij[i, j] = 1
 
 	return Cij
 
@@ -159,8 +165,8 @@ def GetPDR(sr_info, G, Cij):
 	Return:
 		PDR: a vector shows the PDR at each sensor i
 	'''
-	sr_cnt = len(sr_info)
-	gw_cnt = len(G)
+	sr_cnt = sr_info.shape[0]
+	gw_cnt = G.shape[0]
 	SF_cnt = len(SF)
 	
 	# Calculate traffic load between sensor i and gw j, lambda_ij
@@ -170,13 +176,13 @@ def GetPDR(sr_info, G, Cij):
 	for j in range(gw_cnt):
 		# Update number of nodes that might collide
 		for i in range(sr_cnt):
-			k = SF.index(sr_info[i][2]) # get the SF used by sensor i
-			N_jk[j][k] += Cij[i][j]
+			k = int(sr_info[i, 2]) # get SFk at sensor i
+			N_jk[j, k] += Cij[i, j]
 		# Calculate traffic load 
 		for i in range(sr_cnt):
-			k = SF.index(sr_info[i][2]) # get the SF used by sensor i
-			lambda_ij[i][j] = N_jk[j][k] * AirTime_k[SF[k]] / T
-		# print(j, N_jk[j][:])
+			k = int(sr_info[i, 2]) # get SFk at sensor i
+			lambda_ij[i, j] = N_jk[j, k] * AirTime_k[SF[k]] / T
+		print(j, N_jk[j, :])
 
 	# Calculate packet delivery ratio between sensor i and gw j, pi_ij
 	pi_ij = np.multiply(Cij, np.exp(-2 * lambda_ij))
@@ -187,6 +193,24 @@ def GetPDR(sr_info, G, Cij):
 	
 	return PDR
 
+def GetEnergyPerPacket(sr_info):
+	'''
+	Calculate the energy consuming in sending one packet
+
+	Args:
+		sr_info: sensor placement and configuration
+
+	Return:
+		ei: energy consumption per packet at sensor i in mJ = mW * s
+	'''
+	sr_cnt = len(sr_info)
+	pi_mW = 10 ** (sr_info[:, 3] / 10)
+	AirTime_i = [AirTime_k[SF[int(sr_info[i, 2])]] for i in range(sr_cnt)]
+	AirTime_i = np.array(AirTime_i)
+	ei = np.multiply(pi_mW, AirTime_i)
+	return np.array(ei)
+
+
 
 ########################################
 # Main Process
@@ -195,16 +219,31 @@ def GetPDR(sr_info, G, Cij):
 PL = np.zeros((sr_cnt, gw_cnt))
 for i in range(sr_cnt):
 	for j in range(gw_cnt):
-		loc1 = np.array(sr_info[i][:2])
-		loc2 = np.array(G[j][:2])
+		loc1 = sr_info[i, :2]
+		loc2 = G[j, :2]
 		dist = np.sqrt(np.sum((loc1 - loc2)**2))
 		PL[i][j] = LogDistancePathLossModel(dist)
 # print(PL)
 
-# Calculate Cij
+# Calculate Cij from each sensor i to gw j
 Cij = GetCij(sr_info, G, PL)
 # print(Cij)
 
-# Calculate PDR
+# Calculate PDR at each sensor i
 PDR = GetPDR(sr_info, G, Cij)
-print(PDR)
+print('PDR:', PDR)
+
+# Calculate energy per packet at each sensor i
+ei = GetEnergyPerPacket(sr_info)
+print('ei:', ei)
+
+# Calculate energy efficiency
+EE = np.divide(PDR, ei)
+print('EE:', EE)
+
+# Calculate objective value
+gw_place = G[:, 2] # a binary vector indicating gw placement
+obj = np.sum(EE) / sr_cnt + alpha * np.sum(gw_place) / gw_cnt
+print('obj1:', np.sum(EE) / sr_cnt)
+print('obj2:', alpha * np.sum(gw_place) / gw_cnt)
+print('obj:', obj)
