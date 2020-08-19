@@ -15,7 +15,8 @@ def FreeSpacePathLossModel(d, f):
 	Return:
 		path loss in dB at d
 	'''
-	return 20 * math.log10(d) + 20 * math.log10(f) - 27.55
+	PL = 20 * math.log10(d) + 20 * math.log10(f) - 27.55
+	return PL
 
 def LogDistancePathLossModel(d):
 	'''
@@ -27,8 +28,9 @@ def LogDistancePathLossModel(d):
 	Return:
 		path loss in dB at d
 	'''
-	return LogDistancePathLossModel.PL0 + 10 * LogDistancePathLossModel.delta * \
+	PL = LogDistancePathLossModel.PL0 + 10 * LogDistancePathLossModel.delta * \
 		math.log10(d / LogDistancePathLossModel.d0)
+	return PL
 
 # Settings in the ICIOT paper
 LogDistancePathLossModel.d0 = 1000 # Reference distance in m
@@ -39,6 +41,22 @@ LogDistancePathLossModel.delta = 2.1 # Path loss exponent
 #LogDistancePathLossModel.PL0 = 127.41 # Reference path loss in dB
 #LogDistancePathLossModel.delta = 3.57 # Path loss exponent
 
+def GetRSSI(Ptx, PL):
+	'''
+	Calculate the RSSI at the receiver
+
+	Args:
+		Ptx: transmission power in dBm
+		PL: path loss in dB
+
+	Return:
+		Prx: receiving power in dBm
+	'''
+	Prx = Ptx + GetRSSI.Gtx + GetRSSI.Grx - PL
+	return Prx
+
+GetRSSI.Gtx = 0 # Transmission antenna gain
+GetRSSI.Grx = 0 # Reception antenna gain
 
 # Important parameters
 #N_x = 1000
