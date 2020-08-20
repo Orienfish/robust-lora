@@ -20,6 +20,7 @@ G_y = 6				# Number of gw potential locations on y coordinate
 gw_cnt = G_x * G_y  # Number of gw potential locations
 Unit_gw = math.floor(L / G_x) # Unit length between gw grid points
 print(Unit_gw)
+desired_gw_cnt = 10 # Desired gateways to place
 
 T = 1200			# Sampling period in s
 Ptx_max = 23		# Maximum allowed transmission power in dBm
@@ -265,7 +266,7 @@ def DeviceConfiguration(sr_info, G, PL, Ptx_max):
 			sr_info[sr_index, 3] = pi
 			continue
 		# if transmission power violates the upperbound
-		print('tx violate')
+		# print('tx violate')
 		RSSI_max = Ptx_max - PL[sr_index][gw_index]
 		try: # try to assign the minimum possible SF
 			newSFk = list(filter(lambda k: k <= RSSI_max, RSSI_k))[0]
@@ -291,29 +292,53 @@ for i in range(sr_cnt):
 		PL[i][j] = LogDistancePathLossModel(dist)
 # print(PL)
 
-# Calculate Cij from each sensor i to gw j
-Cij = GetCij(sr_info, G, PL)
-# print(Cij)
+# Start the greedy gateway placement algorithm
+for rounds in range(desired_gw_cnt):
+	obj_old = -np.inf
+	next_idx = -1
+	for idx in range(gw_cnt):
+		if G[idx, 2]: # a gateway has been placed at this location
+			continue
+		# try to place gateway at this location
+		G[idx, 2] = 1
 
-# Calculate PDR at each sensor i
-PDR = GetPDR(sr_info, G, Cij)
-#print('PDR:', PDR)
+		# assign powers and SFs
+		sr_info = DeviceConfiguration(sr_info, G, PL, Ptx_max)
 
-# Calculate energy per packet at each sensor i
-ei = GetEnergyPerPacket(sr_info)
-#print('ei:', ei)
+		# Calculate Cij from each sensor i to gw j
+		Cij = GetCij(sr_info, G, PL)
+		# print(Cij)
 
-# Calculate energy efficiency
-EE = np.divide(PDR, ei)
-#print('EE:', EE)
+		# Calculate PDR at each sensor i
+		PDR = GetPDR(sr_info, G, Cij)
+		#print('PDR:', PDR)
 
-# Calculate objective value
-gw_place = G[:, 2] # a binary vector indicating gw placement
-obj = np.sum(EE) / sr_cnt + alpha * np.sum(gw_place) / gw_cnt
-#print('obj1:', np.sum(EE) / sr_cnt)
-#print('obj2:', alpha * np.sum(gw_place) / gw_cnt)
-#print('obj:', obj)
+		# Calculate energy per packet at each sensor i
+		ei = GetEnergyPerPacket(sr_info)
+		#print('ei:', ei)
 
-G[1, 2] = 1
-G[5, 2] = 1
-sr_info = DeviceConfiguration(sr_info, G, PL, Ptx_max)
+		# Calculate energy efficiency
+		EE = np.divide(PDR, ei)
+		#print('EE:', EE)
+
+		# Calculate objective value
+		gw_place = G[:, 2] # a binary vector indicating gw placement
+		obj = np.sum(EE) / sr_cnt + alpha * np.sum(gw_place) / gw_cnt
+		#print('obj1:', np.sum(EE) / sr_cnt)
+		#print('obj2:', alpha * np.sum(gw_place) / gw_cnt)
+		#print('obj:', obj)
+
+		# update objective value if necessary
+		if obj > obj_old:
+			obj_old = obj
+			next_idx = idx
+
+		# reset
+		G[idx, 2] = 0
+
+	# place a gateway at next_idx with the max new objective value
+	G[next_idx, 2] = 1
+	print('Placed a gateway at ', next_idx, G[next_idx, :2])
+
+gw_place = G[:, 2]
+print(gw_place)
