@@ -29,10 +29,10 @@ alpha = 0.05			# weight in objective value calculation
 SF = ['SF7', 'SF8', 'SF9', 'SF10']
 # RSSI threshold of SF7, 8, 9, 10 in dBm
 # Copied from ICIOT paper and ICDCS paper
-RSSI_k = {'SF7': -123, 'SF8': -126, 'SF9': -129, 'SF10': -132}
+RSSI_k = [-123, -126, -129, -132]
 # Air time of SF7, 8, 9, 10 in s
 # Copied from ICIOT paper under 50 Bytes payload
-AirTime_k = {'SF7': 0.098, 'SF8': 0.175, 'SF9': 0.329, 'SF10': 0.616}
+AirTime_k = [0.098, 0.175, 0.329, 0.616]
 
 ########################################
 # Preparation
@@ -47,7 +47,7 @@ G = []				# [x, y, placed or not]
 #		N.append(new_loc)
 for p in range(G_x):
 	for q in range(G_y):
-		new_loc = [p * Unit_gw, q * Unit_gw, 1]
+		new_loc = [p * Unit_gw, q * Unit_gw, 0]
 		G.append(new_loc)
 G = np.array(G)
 
@@ -148,7 +148,7 @@ def GetCij(sr_info, G, PL):
 		# a gateway is placed at j
 		for i in range(sr_cnt):
 			Prx = GetRSSI(sr_info[i, 3], PL[i, j])
-			if Prx > RSSI_k[SF[int(sr_info[i, 2])]]: # can be received
+			if Prx > RSSI_k[int(sr_info[i, 2])]: # can be received
 				Cij[i, j] = 1
 
 	return Cij
@@ -181,7 +181,7 @@ def GetPDR(sr_info, G, Cij):
 		# Calculate traffic load 
 		for i in range(sr_cnt):
 			k = int(sr_info[i, 2]) # get SFk at sensor i
-			lambda_ij[i, j] = N_jk[j, k] * AirTime_k[SF[k]] / T
+			lambda_ij[i, j] = N_jk[j, k] * AirTime_k[k] / T
 		print(j, N_jk[j, :])
 
 	# Calculate packet delivery ratio between sensor i and gw j, pi_ij
@@ -205,12 +205,78 @@ def GetEnergyPerPacket(sr_info):
 	'''
 	sr_cnt = len(sr_info)
 	pi_mW = 10 ** (sr_info[:, 3] / 10)
-	AirTime_i = [AirTime_k[SF[int(sr_info[i, 2])]] for i in range(sr_cnt)]
+	AirTime_i = [AirTime_k[int(sr_info[i, 2])] for i in range(sr_cnt)]
 	AirTime_i = np.array(AirTime_i)
 	ei = np.multiply(pi_mW, AirTime_i)
 	return np.array(ei)
 
+def DeviceConfiguration(sr_info, G, PL, Ptx_max):
+	'''
+	The hybrid algorithm in the ICIOT paper to configure SF and transmission
+	power of each end device
 
+	Args:
+		sr_info: sensor placement and configuration
+		G: gateway placement
+		PL: path loss matrix between sensors and potential gateways
+		Ptx_max: maximum allowed transmission power setting
+
+	Return:
+		sr_info_new: new device configuration
+	'''
+	# Calculate the number of end devices using each SF
+	sr_cnt = sr_info.shape[0]
+	N_k = sr_cnt / np.sum(1 / np.array(AirTime_k)) / AirTime_k
+	N_k = np.rint(N_k)
+	print(N_k)
+	# Note the sum of N_k might not equal to sr_cnt, but this is fine
+
+	min_dist = np.ones((sr_cnt, 1)) * np.inf # the min distance of each 
+											 # end device to any deployed gateway
+	gw_link = np.empty((sr_cnt, 1)) # associated gateway with each end device
+	# only keep the deployed gateways' row/column in G and PL
+	PL = PL[:, G[:, 2] == 1]
+	G = G[G[:, 2] == 1, :] 
+	gw_cnt = G.shape[0]	# number of deployed gateway
+	for i in range(sr_cnt):
+		for j in range(gw_cnt):
+			loc1 = sr_info[i, :2]
+			loc2 = G[j, :2]
+			cur_dist = np.sqrt(np.sum((loc1 - loc2)**2))
+			if cur_dist < min_dist[i]:
+				min_dist[i] = cur_dist
+				gw_link[i] = j
+
+	# Get the index of distance sorting
+	min_index = np.argsort(min_dist, axis=0)
+	print(min_index)
+
+	# Assign SFs using EquiP strategy from the closest gateway
+	k = 0 # SFk
+	for i in range(sr_cnt):
+		if N_k[k] <= 0:
+			k += 1
+		N_k[k] -= 1
+		sr_index = int(min_index[i])
+		gw_index = int(gw_link[sr_index])
+		sr_info[sr_index, 2] = k
+		pi = RSSI_k[k] + PL[sr_index][gw_index]
+		if pi <= Ptx_max: # if transmission power does not violate
+			sr_info[sr_index, 3] = pi
+			continue
+		# if transmission power violates the upperbound
+		print('tx violate')
+		RSSI_max = Ptx_max - PL[sr_index][gw_index]
+		try: # try to assign the minimum possible SF
+			newSFk = list(filter(lambda k: k <= RSSI_max, RSSI_k))[0]
+			pi = RSSI_k[newSFk] + PL[sr_index][gw_index]
+			sr_info[sr_index, 2] = k
+			sr_info[sr_index, 3] = pi
+		except: # if no SF could work, assign the largest SF
+			sr_info[sr_index, 2] = len(SF) - 1
+			sr_info[sr_index, 3] = Ptx_max
+
+	return sr_info
 
 ########################################
 # Main Process
@@ -231,19 +297,23 @@ Cij = GetCij(sr_info, G, PL)
 
 # Calculate PDR at each sensor i
 PDR = GetPDR(sr_info, G, Cij)
-print('PDR:', PDR)
+#print('PDR:', PDR)
 
 # Calculate energy per packet at each sensor i
 ei = GetEnergyPerPacket(sr_info)
-print('ei:', ei)
+#print('ei:', ei)
 
 # Calculate energy efficiency
 EE = np.divide(PDR, ei)
-print('EE:', EE)
+#print('EE:', EE)
 
 # Calculate objective value
 gw_place = G[:, 2] # a binary vector indicating gw placement
 obj = np.sum(EE) / sr_cnt + alpha * np.sum(gw_place) / gw_cnt
-print('obj1:', np.sum(EE) / sr_cnt)
-print('obj2:', alpha * np.sum(gw_place) / gw_cnt)
-print('obj:', obj)
+#print('obj1:', np.sum(EE) / sr_cnt)
+#print('obj2:', alpha * np.sum(gw_place) / gw_cnt)
+#print('obj:', obj)
+
+G[1, 2] = 1
+G[5, 2] = 1
+sr_info = DeviceConfiguration(sr_info, G, PL, Ptx_max)
