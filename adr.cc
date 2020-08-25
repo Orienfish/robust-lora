@@ -113,6 +113,9 @@ int main (int argc, char *argv[])
   /////////////
 
   LogComponentEnable ("AdrExample", LOG_LEVEL_ALL);
+  LogComponentEnable ("SimpleEndDeviceLoraPhy", LOG_LEVEL_ALL);
+  LogComponentEnable ("LoraChannel", LOG_LEVEL_ALL); 
+  LogComponentEnable ("PropagationLossModel", LOG_LEVEL_ALL);
   LogComponentEnable ("LoraPacketTracker", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkServer", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkController", LOG_LEVEL_ALL);
@@ -140,17 +143,17 @@ int main (int argc, char *argv[])
   //////////////////////////////////////
 
   Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
-   loss->SetPathLossExponent (3.76);
-   loss->SetReference (1, 7.7);
+  loss->SetPathLossExponent (2.1);
+  loss->SetReference (1000, 130);
 
   Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
   x->SetAttribute ("Min", DoubleValue (0.0));
   x->SetAttribute ("Max", DoubleValue (maxRandomLoss));
 
-  Ptr<RandomPropagationLossModel> randomLoss = CreateObject<RandomPropagationLossModel> ();
-  randomLoss->SetAttribute ("Variable", PointerValue (x));
+  //Ptr<RandomPropagationLossModel> randomLoss = CreateObject<RandomPropagationLossModel> ();
+  //randomLoss->SetAttribute ("Variable", PointerValue (x));
 
-  loss->SetNext (randomLoss);
+  //loss->SetNext (randomLoss);
 
   Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
 
@@ -168,7 +171,9 @@ int main (int argc, char *argv[])
   // End Device mobility
   MobilityHelper mobilityEd;
   Ptr<ListPositionAllocator> positionAllocEd = CreateObject<ListPositionAllocator> ();
-  positionAllocEd->Add (Vector (100000.0, 100000.0, 0.0));
+  positionAllocEd->Add (Vector (0.0, 100000.0, 0.0));
+  mobilityEd.SetPositionAllocator (positionAllocEd);
+  mobilityEd.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobilityEd.Install (endDevices);
 
   // No exisiting end devices location file, then randomly generate locations and save it to the file
@@ -243,8 +248,8 @@ int main (int argc, char *argv[])
   //positionAllocGw->Add (Vector (-5000.0, 5000.0, 15.0));
   //positionAllocGw->Add (Vector (5000.0, -5000.0, 15.0));
   //positionAllocGw->Add (Vector (5000.0, 5000.0, 15.0));
-  //mobilityGw.SetPositionAllocator (positionAllocGw);
-  //mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobilityGw.SetPositionAllocator (positionAllocGw);
+  mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   //Ptr<HexGridPositionAllocator> hexAllocator = CreateObject<HexGridPositionAllocator> (gatewayDistance / 2);
   //mobilityGw.SetPositionAllocator (hexAllocator);
   //mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
@@ -463,8 +468,8 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
     
     outputFile << currentTime.GetSeconds () << " "
                << object->GetId () <<  " "
-               << pos.x << " " << pos.y << " " << dr << " "
-               << unsigned(txPower) << " "
+               << pos.x << " " << pos.y << " " << pos.y << " "
+               << dr << " " << unsigned(txPower) << " "
                << energy_consumption << std::endl;
   }
 
@@ -476,7 +481,8 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
     Vector pos = position->GetPosition ();
     outputFile << currentTime.GetSeconds () << " "
                << object->GetId () <<  " "
-               << pos.x << " " << pos.y << " " << "-1 -1 -1" << std::endl;
+               << pos.x << " " << pos.y << " " << pos.z << " "
+               << "-1 -1 -1" << std::endl;
   }
   outputFile.close ();
 }
