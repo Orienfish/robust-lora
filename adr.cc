@@ -65,7 +65,8 @@ std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
 int M = 1;                     // number of gateway candidate locations
 double alpha = 0.5;            // weight
 std::vector<double> energyVec; // a vector to store total energy consumption at each end device
-std::string srlocFile = "sr_loc.txt";
+std::string srlocFile = "sr_loc.txt"; // sensor location file
+std::string gwlocFile = "gw_loc.txt"; // gateway location file
 
 int main (int argc, char *argv[])
 {
@@ -74,7 +75,7 @@ int main (int argc, char *argv[])
   bool adrEnabled = false;
   bool initializeSF = true;
   int nDevices = 0;
-  int nGateways = 1;
+  int nGateways = 0;
   int nPeriods = 2;
   double mobileNodeProbability = 0;
   double sideLength = 10000;
@@ -177,7 +178,7 @@ int main (int argc, char *argv[])
   MobilityHelper mobilityEd;
   Ptr<ListPositionAllocator> positionAllocEd = CreateObject<ListPositionAllocator> ();
 
-  // No exisiting end devices location file, then randomly generate locations and save it to the file
+  // Read sensor locations from text file
   std::ifstream EdLocationFile(srlocFile);
   if (EdLocationFile.is_open())
   {
@@ -224,20 +225,35 @@ int main (int argc, char *argv[])
   ////////////////
 
   NodeContainer gateways;
-  gateways.Create (nGateways);
 
   MobilityHelper mobilityGw;
   Ptr<ListPositionAllocator> positionAllocGw = CreateObject<ListPositionAllocator> ();
-  positionAllocGw->Add (Vector (0.0, 0.0, 15.0));
-  //positionAllocGw->Add (Vector (-5000.0, -5000.0, 15.0));
-  //positionAllocGw->Add (Vector (-5000.0, 5000.0, 15.0));
-  //positionAllocGw->Add (Vector (5000.0, -5000.0, 15.0));
-  //positionAllocGw->Add (Vector (5000.0, 5000.0, 15.0));
-  mobilityGw.SetPositionAllocator (positionAllocGw);
-  mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-  //Ptr<HexGridPositionAllocator> hexAllocator = CreateObject<HexGridPositionAllocator> (gatewayDistance / 2);
-  //mobilityGw.SetPositionAllocator (hexAllocator);
-  //mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+
+  // Read gateway locations from text file
+  std::ifstream GwLocationFile(gwlocFile);
+  if (GwLocationFile.is_open())
+  {
+    NS_LOG_DEBUG ("Read from existing gw device location file.");
+    std::string line;
+    while (std::getline(GwLocationFile, line)) {
+        if (line.size() > 0) {
+            std::vector < std::string > coordinates = split(line, ' ');
+            double x = atof(coordinates.at(0).c_str());
+            double y = atof(coordinates.at(1).c_str());            
+            positionAllocGw->Add (Vector (x, y, 15.0) );
+            nGateways ++;
+        }
+    }
+    mobilityGw.SetPositionAllocator (positionAllocGw);
+    mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  }
+  else
+  {
+    NS_LOG_ERROR ("Unable to open file " << gwlocFile);
+    return -1;
+  }
+
+  gateways.Create (nGateways);
   mobilityGw.Install (gateways);
 
 
