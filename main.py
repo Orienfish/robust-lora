@@ -3,7 +3,8 @@ import numpy as np
 import math
 import random
 import matplotlib.pyplot as plt
-
+import logging
+logging.basicConfig(level=logging.INFO)
 
 ########################################
 # Important parameters
@@ -17,7 +18,6 @@ L = 50000			# Edge of analysis area
 #G_y = math.floor(N_y * Unit_sr / Unit_gw)
 G_x = 6				# Number of gw potential locations on x coordinate
 G_y = 6				# Number of gw potential locations on y coordinate
-gw_cnt = G_x * G_y  # Number of gw potential locations
 Unit_gw = math.floor(L / G_x) # Unit length between gw grid points
 print(Unit_gw)
 
@@ -238,19 +238,24 @@ def DeviceConfiguration(sr_info, G, PL, Ptx_max):
 		sr_info[sr_index, 2] = k
 		pi = RSSI_k[k] + PL[sr_index][gw_index]
 		if pi <= Ptx_max: # if transmission power does not violate
-			sr_info[sr_index, 3] = pi
+			sr_info[sr_index, 3] = max(pi, 0.0)
 			continue
 		# if transmission power violates the upperbound
 		# print('tx violate')
 		RSSI_max = Ptx_max - PL[sr_index][gw_index]
 		try: # try to assign the minimum possible SF
-			newSFk = list(filter(lambda k: k <= RSSI_max, RSSI_k))[0]
-			pi = RSSI_k[newSFk] + PL[sr_index][gw_index]
-			sr_info[sr_index, 2] = k
+			newRSSI = list(filter(lambda k: k <= RSSI_max, RSSI_k))[0]
+			newSFk = RSSI_k.index(newRSSI)
+			newpi = RSSI_k[newSFk] + PL[sr_index][gw_index]
+			logging.debug("Reassign for tx pow violation: \
+				old SF:{} pow:{} new SF:{} pow:{}".format( \
+				k, pi, newSFk, newpi))
+			sr_info[sr_index, 2] = newSFk
 			sr_info[sr_index, 3] = pi
 		except: # if no SF could work, assign the largest SF
 			sr_info[sr_index, 2] = len(SF) - 1
 			sr_info[sr_index, 3] = Ptx_max
+			logging.debug("Reassign failed, RSSI_max: {}".format(RSSI_max))
 
 	return sr_info
 
@@ -268,6 +273,7 @@ def ICIOTAlg(sr_info, G, PL, desired_gw_cnt):
 		gw_place: a binary vector of gateway placement decision
 	'''
 	sr_cnt = sr_info.shape[0]
+	gw_cnt = G.shape[0]
 	# Start the greedy gateway placement algorithm
 	for rounds in range(desired_gw_cnt):
 		obj_old = -np.inf
@@ -314,7 +320,8 @@ def ICIOTAlg(sr_info, G, PL, desired_gw_cnt):
 
 		# place a gateway at next_idx with the max new objective value
 		G[next_idx, 2] = 1
-		print('Placed a gateway at ', next_idx, G[next_idx, :2])
+		print("Placed gateway #{} at grid {} [{},{}]".format( \
+			rounds, next_idx, G[next_idx, 0], G[next_idx, 1]))
 
 	gw_place = G[:, 2]
 	return gw_place
@@ -337,6 +344,7 @@ def main():
 			new_loc = [p * Unit_gw, q * Unit_gw, 0]
 			G.append(new_loc)
 	G = np.array(G)
+	gw_cnt = G_x * G_y  # Number of gw potential locations
 
 	# Randomly generate sensor positions
 	sr_cnt = 100 #50000		# Number of sensors
@@ -361,6 +369,21 @@ def main():
 	desired_gw_cnt = 10 # Desired gateways to place
 	gw_place = ICIOTAlg(sr_info, G, PL, desired_gw_cnt)
 	print(gw_place)
+
+	# Write sensor and gateway information to file
+	with open ('sr_loc.txt', 'w') as out:
+		for i in range(sr_cnt):
+			out.write(str(round(sr_info[i, 0], 2)) + ' ' + \
+				str(round(sr_info[i, 1], 2)) + ' ' + \
+				str(int(sr_info[i, 2])) + ' ' + \
+				str(round(sr_info[i, 3])) + '\n')
+	with open ('gw_loc.txt', 'w') as out:
+		gw_cnt = G.shape[0]
+		for i in range(gw_cnt):
+			if G[i, 2]:
+				out.write(str(round(G[i, 0], 2)) + ' ' + \
+					str(round(G[i, 1], 2)) + '\n')
+
 
 if __name__ == '__main__':
 	main()
