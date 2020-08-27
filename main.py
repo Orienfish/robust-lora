@@ -20,11 +20,10 @@ G_y = 6				# Number of gw potential locations on y coordinate
 gw_cnt = G_x * G_y  # Number of gw potential locations
 Unit_gw = math.floor(L / G_x) # Unit length between gw grid points
 print(Unit_gw)
-desired_gw_cnt = 10 # Desired gateways to place
 
 T = 1200			# Sampling period in s
 Ptx_max = 23		# Maximum allowed transmission power in dBm
-alpha = 0.05			# weight in objective value calculation
+alpha = 0.05		# weight in objective value calculation
 
 # Spreading factors
 SF = ['SF7', 'SF8', 'SF9', 'SF10']
@@ -34,33 +33,6 @@ RSSI_k = [-123, -126, -129, -132]
 # Air time of SF7, 8, 9, 10 in s
 # Copied from ICIOT paper under 50 Bytes payload
 AirTime_k = [0.098, 0.175, 0.329, 0.616]
-
-########################################
-# Preparation
-########################################
-# Generate the grid candidate set N and G with their x, y coordinates
-# N for sensor placement and G for gateway placement
-# N = []
-G = []				# [x, y, placed or not]
-#for i in range(N_x):
-#	for j in range(N_y):
-#		new_loc = [i * Unit_sr, j * Unit_sr]
-#		N.append(new_loc)
-for p in range(G_x):
-	for q in range(G_y):
-		new_loc = [p * Unit_gw, q * Unit_gw, 0]
-		G.append(new_loc)
-G = np.array(G)
-
-# Randomly generate sensor positions
-sr_cnt = 100 #50000		# Number of sensors
-sr_info = []		# [x, y, SF, Ptx]
-for i in range(sr_cnt):	
-	k = random.randint(0, len(SF)-1)
-	new_loc = [random.random() * L, random.random() * L, k, Ptx_max]
-	sr_info.append(new_loc)
-sr_info = np.array(sr_info)
-# print(sr_loc)
 
 
 def FreeSpacePathLossModel(d, f):
@@ -127,6 +99,9 @@ GetRSSI.Grx = 0 # Reception antenna gain
 #plt.plot(d, Prx_log, d, Prx_friis)
 #plt.show()
 
+########################################
+# ICIOT Alg
+########################################
 def GetCij(sr_info, G, PL):
 	'''
 	Get important notation Cij in the ICIOT paper showing the connection
@@ -183,7 +158,7 @@ def GetPDR(sr_info, G, Cij):
 		for i in range(sr_cnt):
 			k = int(sr_info[i, 2]) # get SFk at sensor i
 			lambda_ij[i, j] = N_jk[j, k] * AirTime_k[k] / T
-		print(j, N_jk[j, :])
+		# print(j, N_jk[j, :])
 
 	# Calculate packet delivery ratio between sensor i and gw j, pi_ij
 	pi_ij = np.multiply(Cij, np.exp(-2 * lambda_ij))
@@ -229,7 +204,7 @@ def DeviceConfiguration(sr_info, G, PL, Ptx_max):
 	sr_cnt = sr_info.shape[0]
 	N_k = sr_cnt / np.sum(1 / np.array(AirTime_k)) / AirTime_k
 	N_k = np.rint(N_k)
-	print(N_k)
+	# print(N_k)
 	# Note the sum of N_k might not equal to sr_cnt, but this is fine
 
 	min_dist = np.ones((sr_cnt, 1)) * np.inf # the min distance of each 
@@ -250,7 +225,7 @@ def DeviceConfiguration(sr_info, G, PL, Ptx_max):
 
 	# Get the index of distance sorting
 	min_index = np.argsort(min_dist, axis=0)
-	print(min_index)
+	# print(min_index)
 
 	# Assign SFs using EquiP strategy from the closest gateway
 	k = 0 # SFk
@@ -279,66 +254,113 @@ def DeviceConfiguration(sr_info, G, PL, Ptx_max):
 
 	return sr_info
 
+def ICIOTAlg(sr_info, G, PL, desired_gw_cnt):
+	'''
+	Call the ICIOT gateway placement algorithm
+
+	Args:
+		sr_info: sensor placement and configuration
+		G: gateway placement
+		PL: path loss matrix between sensors and potential gateways
+		desired_gw_cnt: desired number of gateways to place
+
+	Returns:
+		gw_place: a binary vector of gateway placement decision
+	'''
+	sr_cnt = sr_info.shape[0]
+	# Start the greedy gateway placement algorithm
+	for rounds in range(desired_gw_cnt):
+		obj_old = -np.inf
+		next_idx = -1
+		for idx in range(gw_cnt):
+			if G[idx, 2]: # a gateway has been placed at this location
+				continue
+			# try to place gateway at this location
+			G[idx, 2] = 1
+
+			# assign powers and SFs
+			sr_info = DeviceConfiguration(sr_info, G, PL, Ptx_max)
+
+			# Calculate Cij from each sensor i to gw j
+			Cij = GetCij(sr_info, G, PL)
+			# print(Cij)
+
+			# Calculate PDR at each sensor i
+			PDR = GetPDR(sr_info, G, Cij)
+			#print('PDR:', PDR)
+
+			# Calculate energy per packet at each sensor i
+			ei = GetEnergyPerPacket(sr_info)
+			#print('ei:', ei)
+
+			# Calculate energy efficiency
+			EE = np.divide(PDR, ei)
+			#print('EE:', EE)
+
+			# Calculate objective value
+			gw_place = G[:, 2] # a binary vector indicating gw placement
+			obj = np.sum(EE) / sr_cnt + alpha * np.sum(gw_place) / gw_cnt
+			#print('obj1:', np.sum(EE) / sr_cnt)
+			#print('obj2:', alpha * np.sum(gw_place) / gw_cnt)
+			#print('obj:', obj)
+
+			# update objective value if necessary
+			if obj > obj_old:
+				obj_old = obj
+				next_idx = idx
+
+			# reset
+			G[idx, 2] = 0
+
+		# place a gateway at next_idx with the max new objective value
+		G[next_idx, 2] = 1
+		print('Placed a gateway at ', next_idx, G[next_idx, :2])
+
+	gw_place = G[:, 2]
+	return gw_place
+
 ########################################
 # Main Process
 ########################################
-# Generate path loss matrix PL between sensor i and gateway j at (p,q)
-PL = np.zeros((sr_cnt, gw_cnt))
-for i in range(sr_cnt):
-	for j in range(gw_cnt):
-		loc1 = sr_info[i, :2]
-		loc2 = G[j, :2]
-		dist = np.sqrt(np.sum((loc1 - loc2)**2))
-		PL[i][j] = LogDistancePathLossModel(dist)
-# print(PL)
+def main():
+	# Preparation
+	# Generate the grid candidate set N and G with their x, y coordinates
+	# N for sensor placement and G for gateway placement
+	# N = []
+	G = []				# [x, y, placed or not]
+	#for i in range(N_x):
+	#	for j in range(N_y):
+	#		new_loc = [i * Unit_sr, j * Unit_sr]
+	#		N.append(new_loc)
+	for p in range(G_x):
+		for q in range(G_y):
+			new_loc = [p * Unit_gw, q * Unit_gw, 0]
+			G.append(new_loc)
+	G = np.array(G)
 
-# Start the greedy gateway placement algorithm
-for rounds in range(desired_gw_cnt):
-	obj_old = -np.inf
-	next_idx = -1
-	for idx in range(gw_cnt):
-		if G[idx, 2]: # a gateway has been placed at this location
-			continue
-		# try to place gateway at this location
-		G[idx, 2] = 1
+	# Randomly generate sensor positions
+	sr_cnt = 100 #50000		# Number of sensors
+	sr_info = []		# [x, y, SF, Ptx]
+	for i in range(sr_cnt):	
+		k = random.randint(0, len(SF)-1)
+		new_loc = [random.random() * L, random.random() * L, k, Ptx_max]
+		sr_info.append(new_loc)
+	sr_info = np.array(sr_info)
+	# print(sr_info)
 
-		# assign powers and SFs
-		sr_info = DeviceConfiguration(sr_info, G, PL, Ptx_max)
+	# Generate path loss matrix PL between sensor i and gateway j at (p,q)
+	PL = np.zeros((sr_cnt, gw_cnt))
+	for i in range(sr_cnt):
+		for j in range(gw_cnt):
+			loc1 = sr_info[i, :2]
+			loc2 = G[j, :2]
+			dist = np.sqrt(np.sum((loc1 - loc2)**2))
+			PL[i][j] = LogDistancePathLossModel(dist)
+	# print(PL)
 
-		# Calculate Cij from each sensor i to gw j
-		Cij = GetCij(sr_info, G, PL)
-		# print(Cij)
+	desired_gw_cnt = 10 # Desired gateways to place
+	gw_place = ICIOTAlg(sr_info, G, PL, desired_gw_cnt)
+	print(gw_place)
 
-		# Calculate PDR at each sensor i
-		PDR = GetPDR(sr_info, G, Cij)
-		#print('PDR:', PDR)
-
-		# Calculate energy per packet at each sensor i
-		ei = GetEnergyPerPacket(sr_info)
-		#print('ei:', ei)
-
-		# Calculate energy efficiency
-		EE = np.divide(PDR, ei)
-		#print('EE:', EE)
-
-		# Calculate objective value
-		gw_place = G[:, 2] # a binary vector indicating gw placement
-		obj = np.sum(EE) / sr_cnt + alpha * np.sum(gw_place) / gw_cnt
-		#print('obj1:', np.sum(EE) / sr_cnt)
-		#print('obj2:', alpha * np.sum(gw_place) / gw_cnt)
-		#print('obj:', obj)
-
-		# update objective value if necessary
-		if obj > obj_old:
-			obj_old = obj
-			next_idx = idx
-
-		# reset
-		G[idx, 2] = 0
-
-	# place a gateway at next_idx with the max new objective value
-	G[next_idx, 2] = 1
-	print('Placed a gateway at ', next_idx, G[next_idx, :2])
-
-gw_place = G[:, 2]
-print(gw_place)
+if __name__ == '__main__':
+	main()
