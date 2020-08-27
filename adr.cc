@@ -65,6 +65,7 @@ std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
 int M = 1;                     // number of gateway candidate locations
 double alpha = 0.5;            // weight
 std::vector<double> energyVec; // a vector to store total energy consumption at each end device
+std::string srlocFile = "sr_loc.txt";
 
 int main (int argc, char *argv[])
 {
@@ -72,8 +73,9 @@ int main (int argc, char *argv[])
   bool verbose = false;
   bool adrEnabled = false;
   bool initializeSF = true;
-  int nDevices = 1;
-  int nPeriods = 1;
+  int nDevices = 0;
+  int nGateways = 1;
+  int nPeriods = 2;
   double mobileNodeProbability = 0;
   double sideLength = 10000;
   int gatewayDistance = 5000;
@@ -94,6 +96,7 @@ int main (int argc, char *argv[])
                 "ns3::AdrComponent::ChangeTransmissionPower");
   cmd.AddValue ("AdrEnabled", "Whether to enable ADR", adrEnabled);
   cmd.AddValue ("nDevices", "Number of devices to simulate", nDevices);
+  cmd.AddValue ("nGateways", "Number of gateways to simulate", nDevices);
   cmd.AddValue ("PeriodsToSimulate", "Number of periods to simulate", nPeriods);
   cmd.AddValue ("sideLength",
                 "Length of the side of the rectangle nodes will be placed in",
@@ -118,10 +121,10 @@ int main (int argc, char *argv[])
   /////////////
 
   LogComponentEnable ("AdrExample", LOG_LEVEL_ALL);
-  LogComponentEnable ("SimpleEndDeviceLoraPhy", LOG_LEVEL_ALL);
-  LogComponentEnable ("LoraChannel", LOG_LEVEL_ALL); 
-  LogComponentEnable ("PropagationLossModel", LOG_LEVEL_ALL);
-  LogComponentEnable ("LoraPacketTracker", LOG_LEVEL_ALL);
+  // LogComponentEnable ("SimpleEndDeviceLoraPhy", LOG_LEVEL_ALL);
+  // LogComponentEnable ("LoraChannel", LOG_LEVEL_ALL); 
+  // LogComponentEnable ("PropagationLossModel", LOG_LEVEL_ALL);
+  // LogComponentEnable ("LoraPacketTracker", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkServer", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkController", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkScheduler", LOG_LEVEL_ALL);
@@ -171,58 +174,36 @@ int main (int argc, char *argv[])
   ////////////////
 
   NodeContainer endDevices;
-  endDevices.Create (nDevices);
-
-  // End Device mobility
   MobilityHelper mobilityEd;
   Ptr<ListPositionAllocator> positionAllocEd = CreateObject<ListPositionAllocator> ();
-  positionAllocEd->Add (Vector (0.0, 100000.0, 0.0));
-  mobilityEd.SetPositionAllocator (positionAllocEd);
-  mobilityEd.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-  mobilityEd.Install (endDevices);
 
   // No exisiting end devices location file, then randomly generate locations and save it to the file
-  /*std::string file_name = "EdLocation_" + std::to_string(nDevices) + ".txt";
-  std::ifstream EdLocationFile(file_name);
-  if (EdLocationFile.fail()) // no such file exists
-  {
-    NS_LOG_DEBUG ("Randomly generate ed device locations and save to file.");
-    mobilityEd.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-                                      "X", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
-                                                         ("Min", DoubleValue(-sideLength),
-                                                          "Max", DoubleValue(sideLength))),
-                                      "Y", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
-                                                         ("Min", DoubleValue(-sideLength),
-                                                          "Max", DoubleValue(sideLength))));
-    // Install mobility model on fixed nodes and output location
-    mobilityEd.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-    std::ofstream OutputFile(file_name);
-    for (int i = 0; i < nDevices; ++i) {
-      mobilityEd.Install (endDevices.Get (i));
-      Ptr<MobilityModel> position = endDevices.Get (i) -> GetObject<MobilityModel> ();
-      Vector pos = position->GetPosition ();
-      OutputFile << pos.x << " " << pos.y << std::endl;
-    }
-    OutputFile.close();   
-  }
-  else // read from file
+  std::ifstream EdLocationFile(srlocFile);
+  if (EdLocationFile.is_open())
   {
     NS_LOG_DEBUG ("Read from existing ed device location file.");
     std::string line;
-    Ptr<ListPositionAllocator> positionAllocEd = CreateObject<ListPositionAllocator> ();
     while (std::getline(EdLocationFile, line)) {
         if (line.size() > 0) {
             std::vector < std::string > coordinates = split(line, ' ');
             double x = atof(coordinates.at(0).c_str());
-            double y = atof(coordinates.at(1).c_str());
+            double y = atof(coordinates.at(1).c_str());            
             positionAllocEd->Add (Vector (x, y, 0.0) );
+            nDevices ++;
         }
     }
     mobilityEd.SetPositionAllocator (positionAllocEd);
     mobilityEd.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-    mobilityEd.Install (endDevices);
-  }*/
-
+  }
+  else
+  {
+    NS_LOG_ERROR ("Unable to open file " << srlocFile);
+    return -1;
+  }
+  
+  endDevices.Create (nDevices);
+  mobilityEd.Install (endDevices);
+  
   // Install mobility model on mobile nodes
   //mobilityEd.SetMobilityModel ("ns3::RandomWalk2dMobilityModel",
   //                             "Bounds", RectangleValue (Rectangle (-sideLength, sideLength,
@@ -243,7 +224,6 @@ int main (int argc, char *argv[])
   ////////////////
 
   NodeContainer gateways;
-  int nGateways = 1;
   gateways.Create (nGateways);
 
   MobilityHelper mobilityGw;
@@ -545,7 +525,7 @@ std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
 
     // Get packet delivery ratio
     std::vector<int> packetEd = tracker.CountPhyPacketsPerEd (startTime, stopTime, edId);
-    double pdr = packetEd.at (1) / packetEd.at (0);
+    double pdr = (double) packetEd.at (1) / packetEd.at (0);
     NS_LOG_DEBUG ("Packet statistics: sent " << packetEd.at(0) << " received " << packetEd.at(1));
     NS_LOG_DEBUG ("Packet delivery ratio " << pdr);
 
