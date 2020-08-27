@@ -53,17 +53,18 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
                           NodeContainer gateways,
                           EnergySourceContainer sources,
                           std::string filename);
-void CalObjectiveValue (NodeContainer endDevices,
+void RecordTotalEnergyConsumption (NodeContainer endDevices,
+                                   EnergySourceContainer sources);
+double CalObjectiveValue (NodeContainer endDevices,
                           NodeContainer gateways, 
-                          EnergySourceContainer sources,
                           LoraPacketTracker& tracker, Time startTime, Time stopTime);
 std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
-                            EnergySourceContainer sources,
                             LoraPacketTracker& tracker, Time startTime, Time stopTime);
 
 // parameters in calculating the objective value
-int M = 1;          // number of gateway candidate locations
-double alpha = 0.5; // weight
+int M = 1;                     // number of gateway candidate locations
+double alpha = 0.5;            // weight
+std::vector<double> energyVec; // a vector to store total energy consumption at each end device
 
 int main (int argc, char *argv[])
 {
@@ -378,9 +379,8 @@ int main (int argc, char *argv[])
 
   Time simulationTime = Seconds (1200 * nPeriods);
 
-  // Calculate the overall objective value
-  Simulator::Schedule (simulationTime, &CalObjectiveValue, endDevices, gateways, sources, 
-                       tracker, Seconds (0), simulationTime);
+  // Schedule an event at the end of simulation to record energy consumpton at each end device
+  Simulator::Schedule (simulationTime, &RecordTotalEnergyConsumption, endDevices, sources);
   Simulator::Stop (simulationTime);
   Simulator::Run ();
   Simulator::Destroy ();
@@ -388,6 +388,7 @@ int main (int argc, char *argv[])
   std::cout << tracker.CountMacPacketsGlobally (Seconds (0), simulationTime) << std::endl;
   std::cout << tracker.CountMacPacketsGloballyCpsr (Seconds (0), simulationTime) << std::endl;
   std::cout << tracker.PrintPhyPacketsPerGw (Seconds (0), simulationTime, nDevices) << std::endl;
+  std::cout << CalObjectiveValue (endDevices, gateways, tracker, Seconds (0), simulationTime) << std::endl;
 
   return 0;
 }
@@ -444,7 +445,7 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
 
   Time currentTime = Simulator::Now();
   
-  // print end devices' status
+  // Iterate through all end devices
   for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
   {
     Ptr<Node> object = *j;
@@ -479,7 +480,7 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
                << energy_consumption << std::endl;
   }
 
-  // print gateways' status
+  // Print gateways' status
   for (NodeContainer::Iterator j = gateways.Begin (); j != gateways.End (); ++j)
   {
     Ptr<Node> object = *j;
@@ -493,29 +494,49 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
   outputFile.close ();
 }
 
-// Calculate the objective value in the ICIOT paper
-void CalObjectiveValue (NodeContainer endDevices,
-                        NodeContainer gateways,
-                        EnergySourceContainer sources,
-                        LoraPacketTracker& tracker, Time startTime, Time stopTime)
+// Record the total energy consumption at each end device in the global vector energyVec
+void RecordTotalEnergyConsumption (NodeContainer endDevices,
+                                   EnergySourceContainer sources)
 {
-  std::vector<double> vecEE = CalEnergyEfficiency(endDevices, sources, tracker, startTime, stopTime);
+  // Iterative through all end devices
+  for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
+  {
+    Ptr<Node> object = *j;
+    int nodeId = object->GetId();
+
+    // Get energy
+    Ptr<EnergySource> SourcePtr = sources.Get(nodeId);
+    NS_ASSERT (SourcePtr != 0);
+    Ptr<DeviceEnergyModel> LoRaRadioModelPtr = SourcePtr->FindDeviceEnergyModels("ns3::LoraRadioEnergyModel").Get(0);
+    NS_ASSERT (LoRaRadioModelPtr != 0);
+    double energy_consumption = LoRaRadioModelPtr->GetTotalEnergyConsumption();
+
+    NS_LOG_DEBUG ("Energy consumption at end device " << nodeId << " : " << energy_consumption << "J");
+    energyVec.push_back(energy_consumption);
+  }
+}
+
+// Calculate the objective value in the ICIOT paper
+double CalObjectiveValue (NodeContainer endDevices,
+                          NodeContainer gateways,
+                          LoraPacketTracker& tracker, Time startTime, Time stopTime)
+{
+  std::vector<double> EEVec = CalEnergyEfficiency(endDevices, tracker, startTime, stopTime);
   int edCnt = endDevices.GetN();
-  double EE = std::accumulate(vecEE.begin(), vecEE.end(), 0) / edCnt;
+  double EE = std::accumulate(EEVec.begin(), EEVec.end(), 0) / edCnt;
 
   int gwCnt = gateways.GetN();
   double objVal = EE - alpha / M * gwCnt;
-  std::cout << "objective value: " << objVal << std::endl;
+  return objVal;
 }
 
 // Calculate the energy efficiency across all end devices
 std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
-                            EnergySourceContainer sources,
                             LoraPacketTracker& tracker, Time startTime, Time stopTime)
 {
-  std::vector<double> vecEE;
+  std::vector<double> EEVec;
 
-  // iterative through all end devices
+  // Iterative through all end devices
   for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
   {
     Ptr<Node> object = *j;
@@ -528,21 +549,15 @@ std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
     NS_LOG_DEBUG ("Packet statistics: sent " << packetEd.at(0) << " received " << packetEd.at(1));
     NS_LOG_DEBUG ("Packet delivery ratio " << pdr);
 
-    // Get energy
-    Ptr<EnergySource> SourcePtr = sources.Get(edId);
-    NS_ASSERT (SourcePtr != 0);
-    // (SourcePtr);
-    //std::cout << SourcePtr->FindDeviceEnergyModels("ns3::LoraRadioEnergyModel") << std::endl;
-    Ptr<DeviceEnergyModel> LoRaRadioModelPtr = SourcePtr->FindDeviceEnergyModels("ns3::LoraRadioEnergyModel").Get(0);
-    NS_ASSERT (LoRaRadioModelPtr != 0);
-    double energyPerPkt = LoRaRadioModelPtr->GetTotalEnergyConsumption() / packetEd.at (0);
+    // Get energy consumption per sent packet
+    double energyPerPkt = energyVec.at (edId) / packetEd.at (0);
     NS_LOG_DEBUG ("Energy consumption per sent packet: " << energyPerPkt);
 
     // Push back energy efficiency
     double nodeEE = pdr / energyPerPkt;
     NS_LOG_DEBUG ("Energy efficiency: " << nodeEE);
-    vecEE.push_back (nodeEE);
+    EEVec.push_back (nodeEE);
   }
 
-  return vecEE;
+  return EEVec;
 }
