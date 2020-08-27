@@ -56,10 +56,12 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
 void RecordTotalEnergyConsumption (NodeContainer endDevices,
                                    EnergySourceContainer sources);
 double CalObjectiveValue (NodeContainer endDevices,
-                          NodeContainer gateways, 
-                          LoraPacketTracker& tracker, Time startTime, Time stopTime);
+                          NodeContainer gateways,
+                          LoraPacketTracker& tracker, 
+                          Time startTime, Time stopTime, std::string filename);
 std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
-                            LoraPacketTracker& tracker, Time startTime, Time stopTime);
+                                         LoraPacketTracker& tracker, 
+                                         Time startTime, Time stopTime, std::string filename);
 
 // parameters in calculating the objective value
 int M = 1;                     // number of gateway candidate locations
@@ -384,7 +386,7 @@ int main (int argc, char *argv[])
   std::cout << tracker.CountMacPacketsGlobally (Seconds (0), simulationTime) << std::endl;
   std::cout << tracker.CountMacPacketsGloballyCpsr (Seconds (0), simulationTime) << std::endl;
   std::cout << tracker.PrintPhyPacketsPerGw (Seconds (0), simulationTime, nDevices) << std::endl;
-  std::cout << CalObjectiveValue (endDevices, gateways, tracker, Seconds (0), simulationTime) << std::endl;
+  std::cout << CalObjectiveValue (endDevices, gateways, tracker, Seconds (0), simulationTime, "nodeEE.txt") << std::endl;
 
   return 0;
 }
@@ -515,9 +517,10 @@ void RecordTotalEnergyConsumption (NodeContainer endDevices,
 // Calculate the objective value in the ICIOT paper
 double CalObjectiveValue (NodeContainer endDevices,
                           NodeContainer gateways,
-                          LoraPacketTracker& tracker, Time startTime, Time stopTime)
+                          LoraPacketTracker& tracker, 
+                          Time startTime, Time stopTime, std::string filename)
 {
-  std::vector<double> EEVec = CalEnergyEfficiency(endDevices, tracker, startTime, stopTime);
+  std::vector<double> EEVec = CalEnergyEfficiency(endDevices, tracker, startTime, stopTime, filename);
   int edCnt = endDevices.GetN();
   double EE = std::accumulate(EEVec.begin(), EEVec.end(), 0) / edCnt;
 
@@ -528,9 +531,14 @@ double CalObjectiveValue (NodeContainer endDevices,
 
 // Calculate the energy efficiency across all end devices
 std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
-                            LoraPacketTracker& tracker, Time startTime, Time stopTime)
+                                         LoraPacketTracker& tracker, 
+                                         Time startTime, Time stopTime, std::string filename)
 {
   std::vector<double> EEVec;
+  const char * c = filename.c_str ();
+  std::ofstream outputFile;
+  // Delete contents of the file as it is opened
+  outputFile.open (c, std::ofstream::out | std::ofstream::trunc);
 
   // Iterative through all end devices
   for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
@@ -553,6 +561,10 @@ std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
     double nodeEE = pdr / energyPerPkt;
     NS_LOG_DEBUG ("Energy efficiency: " << nodeEE);
     EEVec.push_back (nodeEE);
+
+    outputFile << object->GetId () <<  " "
+               << pdr << " " << energyPerPkt << " " 
+               << nodeEE << std::endl;
   }
 
   return EEVec;
