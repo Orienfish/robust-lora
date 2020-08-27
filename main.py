@@ -251,7 +251,7 @@ def DeviceConfiguration(sr_info, G, PL, Ptx_max):
 				old SF:{} pow:{} new SF:{} pow:{}".format( \
 				k, pi, newSFk, newpi))
 			sr_info[sr_index, 2] = newSFk
-			sr_info[sr_index, 3] = pi
+			sr_info[sr_index, 3] = newpi
 		except: # if no SF could work, assign the largest SF
 			sr_info[sr_index, 2] = len(SF) - 1
 			sr_info[sr_index, 3] = Ptx_max
