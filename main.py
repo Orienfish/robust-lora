@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 #N_y = 1000
 #N_cnt = N_x * N_y
 #Unit_sr = 50
-L = 50000			# Edge of analysis area
+L = 10000			# Edge of analysis area
 #G_x = math.floor(N_x * Unit_sr / Unit_gw)
 #G_y = math.floor(N_y * Unit_sr / Unit_gw)
 G_x = 6				# Number of gw potential locations on x coordinate
@@ -90,14 +90,15 @@ GetRSSI.Gtx = 0 # Transmission antenna gain
 GetRSSI.Grx = 0 # Reception antenna gain
 
 # Test and tune path loss model's parameter
-#d = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
-#loss_log = [LogDistancePathLossModel(di) for di in d]
-#Prx_log = [GetRSSI(20, lossi) for lossi in loss_log]
-#loss_friis = [FreeSpacePathLossModel(di, 868) for di in d]
-#Prx_friis = [GetRSSI(20, lossi) for lossi in loss_friis]
-#plt.figure()
-#plt.plot(d, Prx_log, d, Prx_friis)
-#plt.show()
+d = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
+loss_log = [LogDistancePathLossModel(di) for di in d]
+Prx_log = [GetRSSI(20, lossi) for lossi in loss_log]
+loss_friis = [FreeSpacePathLossModel(di, 868) for di in d]
+Prx_friis = [GetRSSI(20, lossi) for lossi in loss_friis]
+plt.figure()
+plt.plot(d, Prx_log, d, Prx_friis)
+plt.savefig('loss.png')
+plt.show()
 
 ########################################
 # ICIOT Alg
@@ -291,26 +292,28 @@ def ICIOTAlg(sr_info, G, PL, desired_gw_cnt):
 
 			# Calculate Cij from each sensor i to gw j
 			Cij = GetCij(sr_info, G, PL)
-			# print(Cij)
+			print(Cij)
 
 			# Calculate PDR at each sensor i
 			PDR = GetPDR(sr_info, G, Cij)
-			#print('PDR:', PDR)
+			print('PDR:', PDR)
 
 			# Calculate energy per packet at each sensor i
 			ei = GetEnergyPerPacket(sr_info)
-			#print('ei:', ei)
+			print('ei:', ei)
 
 			# Calculate energy efficiency
 			EE = np.divide(PDR, ei)
-			#print('EE:', EE)
+			print('EE:', EE)
 
 			# Calculate objective value
 			gw_place = G[:, 2] # a binary vector indicating gw placement
 			obj = np.sum(EE) / sr_cnt - alpha * np.sum(gw_place) / desired_gw_cnt
-			#print('obj1:', np.sum(EE) / sr_cnt)
-			#print('obj2:', alpha * np.sum(gw_place) / gw_cnt)
-			#print('obj:', obj)
+			print('obj1:', np.sum(EE) / sr_cnt)
+			print('obj2:', alpha * np.sum(gw_place) / gw_cnt)
+			print('obj:', obj)
+
+			plot(sr_info, G)
 
 			# update objective value if necessary
 			if obj > obj_old:
@@ -329,6 +332,21 @@ def ICIOTAlg(sr_info, G, PL, desired_gw_cnt):
 
 	gw_place = G[:, 2]
 	return gw_place, sr_info
+
+def plot(sr_info, G):
+	# Visualize the placement and device configuration
+	# sr_cnt = sr_info.shape[0]
+	gw_cnt = G.shape[0]
+	plt.figure()
+	colorList = ['b', 'g', 'y', 'm', 'w', 'r', 'k', 'c']
+	color = [colorList[int(i)] for i in list(sr_info[:, 2])]
+	plt.scatter(sr_info[:, 0], sr_info[:, 1], c=color , s=5)
+	color = ['r' for i in range(gw_cnt)]
+	plt.scatter(G[:, 0], G[:, 1], s=G[:, 2]*50, c=color, marker='^')
+	plt.xlabel('X (m)'); plt.ylabel('Y (m)');
+	# plt.legend()
+	plt.savefig('vis.png')
+	plt.show()
 
 ########################################
 # Main Process
@@ -351,7 +369,7 @@ def main():
 	gw_cnt = G_x * G_y  # Number of gw potential locations
 
 	# Randomly generate sensor positions
-	sr_cnt = 1000 #50000		# Number of sensors
+	sr_cnt = 20 #50000		# Number of sensors
 	sr_info = []		# [x, y, SF, Ptx]
 	for i in range(sr_cnt):	
 		k = random.randint(0, len(SF)-1)
@@ -370,7 +388,7 @@ def main():
 			PL[i][j] = LogDistancePathLossModel(dist)
 	# print(PL)
 
-	desired_gw_cnt = 10 # Desired gateways to place
+	desired_gw_cnt = 5 # Desired gateways to place
 	gw_place, sr_info = ICIOTAlg(sr_info, G, PL, desired_gw_cnt)
 	print(gw_place)
 
@@ -388,16 +406,7 @@ def main():
 				out.write(str(round(G[i, 0], 2)) + ' ' + \
 					str(round(G[i, 1], 2)) + '\n')
 
-	# Visualize the placement and device configuration
-	plt.figure()
-	colorList = ['b', 'g', 'y', 'm', 'w', 'r', 'k', 'c']
-	color = [colorList[int(i)] for i in list(sr_info[:, 2])]
-	plt.scatter(sr_info[:, 0], sr_info[:, 1], c=color , s=5)
-	color = ['r' for i in range(gw_cnt)]
-	plt.scatter(G[:, 0], G[:, 1], s=G[:, 2]*50, c=color, marker='^')
-	plt.xlabel('X (m)'); plt.ylabel('Y (m)');
-	# plt.legend()
-	plt.show()
+	plot(sr_info, G)
 
 
 if __name__ == '__main__':
