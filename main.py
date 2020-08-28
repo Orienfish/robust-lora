@@ -19,7 +19,7 @@ L = 50000			# Edge of analysis area
 G_x = 6				# Number of gw potential locations on x coordinate
 G_y = 6				# Number of gw potential locations on y coordinate
 Unit_gw = math.floor(L / G_x) # Unit length between gw grid points
-print(Unit_gw)
+# print(Unit_gw)
 
 T = 1200			# Sampling period in s
 Ptx_max = 23		# Maximum allowed transmission power in dBm
@@ -271,6 +271,7 @@ def ICIOTAlg(sr_info, G, PL, desired_gw_cnt):
 
 	Returns:
 		gw_place: a binary vector of gateway placement decision
+		sr_info: sensor configuration
 	'''
 	sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
@@ -278,6 +279,7 @@ def ICIOTAlg(sr_info, G, PL, desired_gw_cnt):
 	for rounds in range(desired_gw_cnt):
 		obj_old = -np.inf
 		next_idx = -1
+		next_sr_info = None
 		for idx in range(gw_cnt):
 			if G[idx, 2]: # a gateway has been placed at this location
 				continue
@@ -305,7 +307,7 @@ def ICIOTAlg(sr_info, G, PL, desired_gw_cnt):
 
 			# Calculate objective value
 			gw_place = G[:, 2] # a binary vector indicating gw placement
-			obj = np.sum(EE) / sr_cnt + alpha * np.sum(gw_place) / gw_cnt
+			obj = np.sum(EE) / sr_cnt - alpha * np.sum(gw_place) / desired_gw_cnt
 			#print('obj1:', np.sum(EE) / sr_cnt)
 			#print('obj2:', alpha * np.sum(gw_place) / gw_cnt)
 			#print('obj:', obj)
@@ -314,17 +316,19 @@ def ICIOTAlg(sr_info, G, PL, desired_gw_cnt):
 			if obj > obj_old:
 				obj_old = obj
 				next_idx = idx
+				next_sr_info = sr_info
 
 			# reset
 			G[idx, 2] = 0
 
 		# place a gateway at next_idx with the max new objective value
 		G[next_idx, 2] = 1
+		sr_info = next_sr_info
 		print("Placed gateway #{} at grid {} [{},{}]".format( \
 			rounds, next_idx, G[next_idx, 0], G[next_idx, 1]))
 
 	gw_place = G[:, 2]
-	return gw_place
+	return gw_place, sr_info
 
 ########################################
 # Main Process
@@ -347,7 +351,7 @@ def main():
 	gw_cnt = G_x * G_y  # Number of gw potential locations
 
 	# Randomly generate sensor positions
-	sr_cnt = 100 #50000		# Number of sensors
+	sr_cnt = 1000 #50000		# Number of sensors
 	sr_info = []		# [x, y, SF, Ptx]
 	for i in range(sr_cnt):	
 		k = random.randint(0, len(SF)-1)
@@ -367,7 +371,7 @@ def main():
 	# print(PL)
 
 	desired_gw_cnt = 10 # Desired gateways to place
-	gw_place = ICIOTAlg(sr_info, G, PL, desired_gw_cnt)
+	gw_place, sr_info = ICIOTAlg(sr_info, G, PL, desired_gw_cnt)
 	print(gw_place)
 
 	# Write sensor and gateway information to file
@@ -383,6 +387,17 @@ def main():
 			if G[i, 2]:
 				out.write(str(round(G[i, 0], 2)) + ' ' + \
 					str(round(G[i, 1], 2)) + '\n')
+
+	# Visualize the placement and device configuration
+	plt.figure()
+	colorList = ['b', 'g', 'y', 'm', 'w', 'r', 'k', 'c']
+	color = [colorList[int(i)] for i in list(sr_info[:, 2])]
+	plt.scatter(sr_info[:, 0], sr_info[:, 1], c=color , s=5)
+	color = ['r' for i in range(gw_cnt)]
+	plt.scatter(G[:, 0], G[:, 1], s=G[:, 2]*50, c=color, marker='^')
+	plt.xlabel('X (m)'); plt.ylabel('Y (m)');
+	# plt.legend()
+	plt.show()
 
 
 if __name__ == '__main__':
