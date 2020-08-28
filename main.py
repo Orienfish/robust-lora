@@ -13,11 +13,11 @@ logging.basicConfig(level=logging.INFO)
 #N_y = 1000
 #N_cnt = N_x * N_y
 #Unit_sr = 50
-L = 10000			# Edge of analysis area
+L = 50000			# Edge of analysis area
 #G_x = math.floor(N_x * Unit_sr / Unit_gw)
 #G_y = math.floor(N_y * Unit_sr / Unit_gw)
-G_x = 6				# Number of gw potential locations on x coordinate
-G_y = 6				# Number of gw potential locations on y coordinate
+G_x = 36     		# Number of gw potential locations on x coordinate
+G_y = 36			# Number of gw potential locations on y coordinate
 Unit_gw = math.floor(L / G_x) # Unit length between gw grid points
 # print(Unit_gw)
 
@@ -90,6 +90,7 @@ GetRSSI.Gtx = 0 # Transmission antenna gain
 GetRSSI.Grx = 0 # Reception antenna gain
 
 # Test and tune path loss model's parameter
+'''
 d = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
 loss_log = [LogDistancePathLossModel(di) for di in d]
 Prx_log = [GetRSSI(20, lossi) for lossi in loss_log]
@@ -99,6 +100,7 @@ plt.figure()
 plt.plot(d, Prx_log, d, Prx_friis)
 plt.savefig('loss.png')
 plt.show()
+'''
 
 ########################################
 # ICIOT Alg
@@ -125,7 +127,7 @@ def GetCij(sr_info, G, PL):
 		# a gateway is placed at j
 		for i in range(sr_cnt):
 			Prx = GetRSSI(sr_info[i, 3], PL[i, j])
-			if Prx > RSSI_k[int(sr_info[i, 2])]: # can be received
+			if Prx >= RSSI_k[int(sr_info[i, 2])]: # can be received
 				Cij[i, j] = 1
 
 	return Cij
@@ -292,41 +294,41 @@ def ICIOTAlg(sr_info, G, PL, desired_gw_cnt):
 
 			# Calculate Cij from each sensor i to gw j
 			Cij = GetCij(sr_info, G, PL)
-			print(Cij)
+			logging.debug("Cij: {}".format(Cij))
 
 			# Calculate PDR at each sensor i
 			PDR = GetPDR(sr_info, G, Cij)
-			print('PDR:', PDR)
+			logging.debug("PDR: {}".format(PDR))
 
 			# Calculate energy per packet at each sensor i
 			ei = GetEnergyPerPacket(sr_info)
-			print('ei:', ei)
+			logging.debug("ei: {}".format(ei))
 
 			# Calculate energy efficiency
 			EE = np.divide(PDR, ei)
-			print('EE:', EE)
+			logging.debug("EE: {}".format(EE))
 
 			# Calculate objective value
 			gw_place = G[:, 2] # a binary vector indicating gw placement
 			obj = np.sum(EE) / sr_cnt - alpha * np.sum(gw_place) / desired_gw_cnt
-			print('obj1:', np.sum(EE) / sr_cnt)
-			print('obj2:', alpha * np.sum(gw_place) / gw_cnt)
-			print('obj:', obj)
+			logging.debug("obj1: {}".format(np.sum(EE) / sr_cnt))
+			logging.debug("obj2: {}".format(alpha * np.sum(gw_place) / gw_cnt))
+			logging.debug("obj: {}".format(obj))
 
-			plot(sr_info, G)
+			# plot(sr_info, G)
 
 			# update objective value if necessary
 			if obj > obj_old:
 				obj_old = obj
 				next_idx = idx
-				next_sr_info = sr_info
+				next_sr_info = np.copy(sr_info)
 
 			# reset
 			G[idx, 2] = 0
 
 		# place a gateway at next_idx with the max new objective value
 		G[next_idx, 2] = 1
-		sr_info = next_sr_info
+		sr_info = np.copy(next_sr_info)
 		print("Placed gateway #{} at grid {} [{},{}]".format( \
 			rounds, next_idx, G[next_idx, 0], G[next_idx, 1]))
 
@@ -369,7 +371,7 @@ def main():
 	gw_cnt = G_x * G_y  # Number of gw potential locations
 
 	# Randomly generate sensor positions
-	sr_cnt = 20 #50000		# Number of sensors
+	sr_cnt = 1000 #50000		# Number of sensors
 	sr_info = []		# [x, y, SF, Ptx]
 	for i in range(sr_cnt):	
 		k = random.randint(0, len(SF)-1)
@@ -388,7 +390,7 @@ def main():
 			PL[i][j] = LogDistancePathLossModel(dist)
 	# print(PL)
 
-	desired_gw_cnt = 5 # Desired gateways to place
+	desired_gw_cnt = 10 # Desired gateways to place
 	gw_place, sr_info = ICIOTAlg(sr_info, G, PL, desired_gw_cnt)
 	print(gw_place)
 
