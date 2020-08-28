@@ -16,8 +16,8 @@ logging.basicConfig(level=logging.INFO)
 L = 50000			# Edge of analysis area
 #G_x = math.floor(N_x * Unit_sr / Unit_gw)
 #G_y = math.floor(N_y * Unit_sr / Unit_gw)
-G_x = 36     		# Number of gw potential locations on x coordinate
-G_y = 36			# Number of gw potential locations on y coordinate
+G_x = 6     		# Number of gw potential locations on x coordinate
+G_y = 6			# Number of gw potential locations on y coordinate
 Unit_gw = math.floor(L / G_x) # Unit length between gw grid points
 # print(Unit_gw)
 
@@ -155,17 +155,20 @@ def GetPDR(sr_info, G, Cij):
 	for j in range(gw_cnt):
 		# Update number of nodes that might collide
 		for i in range(sr_cnt):
-			k = int(sr_info[i, 2]) # get SFk at sensor i
+			if not Cij[i, j]: # Save computation since Cij is sparse
+				continue
+			k = int(sr_info[i, 2]) # Get SFk at sensor i
 			N_jk[j, k] += Cij[i, j]
 		# Calculate traffic load 
 		for i in range(sr_cnt):
-			k = int(sr_info[i, 2]) # get SFk at sensor i
+			if not Cij[i, j]:
+				continue
+			k = int(sr_info[i, 2]) # Get SFk at sensor i
 			lambda_ij[i, j] = N_jk[j, k] * AirTime_k[k] / T
 		# print(j, N_jk[j, :])
 
 	# Calculate packet delivery ratio between sensor i and gw j, pi_ij
 	pi_ij = np.multiply(Cij, np.exp(-2 * lambda_ij))
-	# print(pi_ij.shape)
 
 	# Calculate total PDR at sensor i
 	PDR = 1 - np.prod(1 - pi_ij, axis=1)
@@ -287,6 +290,7 @@ def ICIOTAlg(sr_info, G, PL, desired_gw_cnt):
 			if G[idx, 2]: # a gateway has been placed at this location
 				continue
 			# try to place gateway at this location
+			logging.debug("Try to place a gateway at {}".format(idx))
 			G[idx, 2] = 1
 
 			# assign powers and SFs
@@ -329,7 +333,7 @@ def ICIOTAlg(sr_info, G, PL, desired_gw_cnt):
 		# place a gateway at next_idx with the max new objective value
 		G[next_idx, 2] = 1
 		sr_info = np.copy(next_sr_info)
-		print("Placed gateway #{} at grid {} [{},{}]".format( \
+		logging.info("Placed gateway #{} at grid {} [{},{}]".format( \
 			rounds, next_idx, G[next_idx, 0], G[next_idx, 1]))
 
 	gw_place = G[:, 2]
