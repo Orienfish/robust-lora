@@ -16,13 +16,13 @@ import propagation
 ########################################
 class params:
 	L = 50000			# Edge of analysis area
-	N_x = 500
-	N_y = 500
+	N_x = 1000			# Number of sensor potential locations on x coordinate
+	N_y = 1000			# Number of sensor potential locations on y coordinate
 	Unit_sr = math.floor(L / N_x) # Unit length between gw grid points
 	#G_x = math.floor(N_x * Unit_sr / Unit_gw)
 	#G_y = math.floor(N_y * Unit_sr / Unit_gw)
-	G_x = 6     	 	# Number of gw potential locations on x coordinate
-	G_y = 6				# Number of gw potential locations on y coordinate
+	G_x = 6     	 	# Number of gateway potential locations on x coordinate
+	G_y = 6				# Number of gateway potential locations on y coordinate
 	Unit_gw = math.floor(L / G_x) # Unit length between gw grid points
 	desired_gw_cnt = 10 # Desired gateways to place
 
@@ -40,6 +40,7 @@ class params:
 
 	# Redundancy level
 	K = 2   			# Coverage level
+	R_cov = 100			# Binary coverage radius in m
 	M = 2				# Connectivity level
 
 def GetDist(propFunc, params):
@@ -76,6 +77,47 @@ def GetDist(propFunc, params):
 GetDist.d_min = 0.0      # lower distance bound in m in the binary search
 GetDist.d_max = 20000.0  # upper distance bound in m in the binary search
 GetDist.epsilon = 50.0   # stop granularity in m in the binary search
+
+def GetCoverage(grid, grid_y, Unit_grid, target, R, L):
+	'''
+	Get a binary coverage matrix, where (i,j) indicates whether grid point 
+	i covers target j
+
+	Args:
+		grid: list of candidate grid locations
+		grid_y: number of sensor potential locations on y coordinate
+		Unit_grid: unit of grid points
+		target: list of target locations to cover
+		R: coverage radius
+		L: range of the field
+
+	Return:
+		cov: a N_grid x N_target matrix indicating coverage situation
+	'''
+	N_grid = grid.shape[0]
+	N_target = target.shape[0]
+	cov = np.zeros((N_grid, N_target))
+
+	for j in range(N_target):
+		target_loc = target[j, :]
+		x_min = max(0.0, target_loc[0] - R)
+		x_idx_min = math.ceil(x_min / Unit_grid)
+		x_max = min(L, target_loc[0] + R)
+		x_idx_max = math.floor(x_max / Unit_grid)
+		y_min = max(0.0, target_loc[1] - R)
+		y_idx_min = math.ceil(y_min / Unit_grid)
+		y_max = min(L, target_loc[1] + R)
+		y_idx_max = math.floor(y_max / Unit_grid)
+
+		# Start searching in the small rectangle
+		for x_idx in range(x_idx_min, x_idx_max+1):
+			for y_idx in range(y_idx_min, y_idx_max+1):
+				idx = x_idx * grid_y + y_idx
+				grid_loc = grid[idx, :]
+				dist = np.sqrt(np.sum((grid_loc - target_loc)**2))
+				if dist <= R:
+					cov[idx, j] = 1
+	return cov
 
 
 def plot(sr_info, G):
@@ -140,6 +182,7 @@ def main():
 	filename = "PL_{}_{}.txt".format(N_cnt, G_cnt)
 	if os.path.exists(filename): 	# Read from existing file
 		PL = np.loadtxt(filename)
+		logging.info("Read PL from {}".format(filename))
 	else:							# Generate and save to file
 		PL = np.zeros((N_cnt, G_cnt))
 		for i in range(N_cnt):
@@ -149,10 +192,15 @@ def main():
 				dist = np.sqrt(np.sum((loc1 - loc2)**2))
 				PL[i][j] = propagation.LogDistancePathLossModel(d=dist)
 		np.savetxt(filename, PL)
+		logging.info("Calculate PL and save to {}".format(filename))
 	print(PL)
 
 	maxDist = GetDist(propagation.LogDistancePathLossModel, params)
 	print(maxDist)
+
+	cov = GetCoverage(N, params.N_y, params.Unit_sr, tgt_info, params.R_cov, \
+		params.L)
+	print(cov)
 
 '''
 	gw_place, sr_info = ICIOT.ICIOTAlg(sr_info, G, PL, params)
