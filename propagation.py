@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import logging
 logging.basicConfig(level=logging.INFO)
 
-def FreeSpacePathLossModel(d, f):
+def FreeSpacePathLossModel(**kwargs):
 	'''
 	Free Space Path Loss Model
 
@@ -16,10 +16,10 @@ def FreeSpacePathLossModel(d, f):
 	Return:
 		path loss in dB at d
 	'''
-	PL = 20 * math.log10(d) + 20 * math.log10(f) - 27.55
+	PL = 20 * math.log10(kwargs['d']) + 20 * math.log10(kwargs['f']) - 27.55
 	return PL
 
-def LogDistancePathLossModel(d):
+def LogDistancePathLossModel(**kwargs):
 	'''
 	Log Distance Path Loss Model
 
@@ -30,7 +30,7 @@ def LogDistancePathLossModel(d):
 		path loss in dB at d
 	'''
 	PL = LogDistancePathLossModel.PL0 + 10 * LogDistancePathLossModel.delta * \
-		math.log10(d / LogDistancePathLossModel.d0)
+		math.log10(kwargs['d'] / LogDistancePathLossModel.d0)
 	return PL
 
 # Settings in the ICIOT paper
@@ -60,14 +60,14 @@ GetRSSI.Gtx = 0 # Transmission antenna gain
 GetRSSI.Grx = 0 # Reception antenna gain
 
 # Test and tune path loss model's parameter
-'''
+
 d = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
-loss_log = [LogDistancePathLossModel(di) for di in d]
+loss_log = [LogDistancePathLossModel(d=di) for di in d]
 Prx_log = [GetRSSI(20, lossi) for lossi in loss_log]
-loss_friis = [FreeSpacePathLossModel(di, 868) for di in d]
+loss_friis = [FreeSpacePathLossModel(d=di, f=868) for di in d]
 Prx_friis = [GetRSSI(20, lossi) for lossi in loss_friis]
 plt.figure()
 plt.plot(d, Prx_log, d, Prx_friis)
 plt.savefig('loss.png')
 plt.show()
-'''
+
