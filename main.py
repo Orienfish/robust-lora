@@ -4,6 +4,7 @@ import math
 import random
 import matplotlib.pyplot as plt
 import logging
+import os
 logging.basicConfig(level=logging.INFO)
 
 import ICIOT
@@ -14,15 +15,14 @@ import propagation
 # Important parameters
 ########################################
 class params:
-	#N_x = 1000
-	#N_y = 1000
-	#N_cnt = N_x * N_y
-	#Unit_sr = 50
 	L = 50000			# Edge of analysis area
+	N_x = 500
+	N_y = 500
+	Unit_sr = math.floor(L / N_x) # Unit length between gw grid points
 	#G_x = math.floor(N_x * Unit_sr / Unit_gw)
 	#G_y = math.floor(N_y * Unit_sr / Unit_gw)
-	G_x = 6     		# Number of gw potential locations on x coordinate
-	G_y = 6			# Number of gw potential locations on y coordinate
+	G_x = 6     	 	# Number of gw potential locations on x coordinate
+	G_y = 6				# Number of gw potential locations on y coordinate
 	Unit_gw = math.floor(L / G_x) # Unit length between gw grid points
 	desired_gw_cnt = 10 # Desired gateways to place
 
@@ -37,6 +37,10 @@ class params:
 	# Air time of SF7, 8, 9, 10 in s
 	# Copied from ICIOT paper under 50 Bytes payload
 	AirTime_k = [0.098, 0.175, 0.329, 0.616]
+
+	# Redundancy level
+	K = 2   			# Coverage level
+	M = 2				# Connectivity level
 
 def GetDist(propFunc, params):
 	'''
@@ -96,19 +100,22 @@ def main():
 	# Preparation
 	# Generate the grid candidate set N and G with their x, y coordinates
 	# N for sensor placement and G for gateway placement
-	# N = []
+	N = []
 	G = []				# [x, y, placed or not]
-	#for i in range(N_x):
-	#	for j in range(N_y):
-	#		new_loc = [i * Unit_sr, j * Unit_sr]
-	#		N.append(new_loc)
+	for i in range(params.N_x):
+		for j in range(params.N_y):
+			new_loc = [i * params.Unit_sr, j * params.Unit_sr]
+			N.append(new_loc)
+	N = np.array(N)
+	N_cnt = params.N_x * params.N_y
 	for p in range(params.G_x):
 		for q in range(params.G_y):
 			new_loc = [p * params.Unit_gw, q * params.Unit_gw, 0]
 			G.append(new_loc)
 	G = np.array(G)
-	gw_cnt = params.G_x * params.G_y  # Number of gw potential locations
+	G_cnt = params.G_x * params.G_y  # Number of gw potential locations
 
+	'''
 	# Randomly generate sensor positions
 	sr_cnt = 1000 #50000		# Number of sensors
 	sr_info = []		# [x, y, SF, Ptx]
@@ -119,20 +126,35 @@ def main():
 		sr_info.append(new_loc)
 	sr_info = np.array(sr_info)
 	# print(sr_info)
+	'''
+
+	# Randomly generate target positions
+	tgt_cnt = 50		# number of targets
+	tgt_info = []
+	for i in range(tgt_cnt):
+		new_tgt = [random.random() * params.L, random.random() * params.L]
+		tgt_info.append(new_tgt)
+	tgt_info = np.array(tgt_info)
 
 	# Generate path loss matrix PL between sensor i and gateway j at (p,q)
-	PL = np.zeros((sr_cnt, gw_cnt))
-	for i in range(sr_cnt):
-		for j in range(gw_cnt):
-			loc1 = sr_info[i, :2]
-			loc2 = G[j, :2]
-			dist = np.sqrt(np.sum((loc1 - loc2)**2))
-			PL[i][j] = propagation.LogDistancePathLossModel(d=dist)
-	# print(PL)
+	filename = "PL_{}_{}.txt".format(N_cnt, G_cnt)
+	if os.path.exists(filename): 	# Read from existing file
+		PL = np.loadtxt(filename)
+	else:							# Generate and save to file
+		PL = np.zeros((N_cnt, G_cnt))
+		for i in range(N_cnt):
+			for j in range(G_cnt):
+				loc1 = N[i, :2]
+				loc2 = G[j, :2]
+				dist = np.sqrt(np.sum((loc1 - loc2)**2))
+				PL[i][j] = propagation.LogDistancePathLossModel(d=dist)
+		np.savetxt(filename, PL)
+	print(PL)
 
 	maxDist = GetDist(propagation.LogDistancePathLossModel, params)
 	print(maxDist)
 
+'''
 	gw_place, sr_info = ICIOT.ICIOTAlg(sr_info, G, PL, params)
 	print(gw_place)
 
@@ -151,7 +173,7 @@ def main():
 					str(round(G[i, 1], 2)) + '\n')
 
 	plot(sr_info, G)
-
+'''
 
 if __name__ == '__main__':
 	main()

@@ -29,6 +29,8 @@ def LogDistancePathLossModel(**kwargs):
 	Return:
 		path loss in dB at d
 	'''
+	if kwargs['d'] <= LogDistancePathLossModel.d0:
+		return LogDistancePathLossModel.PL0
 	PL = LogDistancePathLossModel.PL0 + 10 * LogDistancePathLossModel.delta * \
 		math.log10(kwargs['d'] / LogDistancePathLossModel.d0)
 	return PL
