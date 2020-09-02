@@ -27,7 +27,7 @@ class params:
 	desired_gw_cnt = 10 # Desired gateways to place
 
 	T = 1200			# Sampling period in s
-	Ptx_max = 23		# Maximum allowed transmission power in dBm
+	Ptx_max = 20		# Maximum allowed transmission power in dBm
 
 	# Spreading factors
 	SF = ['SF7', 'SF8', 'SF9', 'SF10']
@@ -37,6 +37,41 @@ class params:
 	# Air time of SF7, 8, 9, 10 in s
 	# Copied from ICIOT paper under 50 Bytes payload
 	AirTime_k = [0.098, 0.175, 0.329, 0.616]
+
+def GetDist(propFunc, params):
+	'''
+	Get the transmission distance for each SF under maximum transmission power
+	using binary search
+
+	Args:
+		propFunc: selected propagation function model
+		params: important parameters
+
+	Return:
+		maxDist: the max reachable distance for each SF, in m
+	'''
+	maxDist = []
+	for i in range(len(params.SF)):
+		minRSSI = params.RSSI_k[i]
+		d_min = GetDist.d_min
+		d_max = GetDist.d_max
+
+		# start the binary search loop
+		while d_max - d_min > GetDist.epsilon:
+			d_mid = 0.5 * (d_min + d_max)
+			PL = propFunc(d=d_mid, f=868)
+			RSSI = propagation.GetRSSI(params.Ptx_max, PL)
+			if RSSI > minRSSI: # distance is not long enough
+				d_min = d_mid
+			else:			   # distance is too long
+				d_max = d_mid
+
+		maxDist.append(0.5 * (d_min + d_max))
+	return maxDist
+
+GetDist.d_min = 0.0      # lower distance bound in m in the binary search
+GetDist.d_max = 20000.0  # upper distance bound in m in the binary search
+GetDist.epsilon = 50.0   # stop granularity in m in the binary search
 
 
 def plot(sr_info, G):
@@ -92,8 +127,11 @@ def main():
 			loc1 = sr_info[i, :2]
 			loc2 = G[j, :2]
 			dist = np.sqrt(np.sum((loc1 - loc2)**2))
-			PL[i][j] = propagation.LogDistancePathLossModel(dist)
+			PL[i][j] = propagation.LogDistancePathLossModel(d=dist)
 	# print(PL)
+
+	maxDist = GetDist(propagation.LogDistancePathLossModel, params)
+	print(maxDist)
 
 	gw_place, sr_info = ICIOT.ICIOTAlg(sr_info, G, PL, params)
 	print(gw_place)

@@ -60,7 +60,7 @@ GetRSSI.Gtx = 0 # Transmission antenna gain
 GetRSSI.Grx = 0 # Reception antenna gain
 
 # Test and tune path loss model's parameter
-
+'''
 d = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
 loss_log = [LogDistancePathLossModel(d=di) for di in d]
 Prx_log = [GetRSSI(20, lossi) for lossi in loss_log]
@@ -70,4 +70,4 @@ plt.figure()
 plt.plot(d, Prx_log, d, Prx_friis)
 plt.savefig('loss.png')
 plt.show()
-
+'''
