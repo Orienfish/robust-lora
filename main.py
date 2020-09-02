@@ -18,12 +18,12 @@ class params:
 	L = 50000			# Edge of analysis area
 	N_x = 1000			# Number of sensor potential locations on x coordinate
 	N_y = 1000			# Number of sensor potential locations on y coordinate
-	Unit_sr = math.floor(L / N_x) # Unit length between gw grid points
+	Unit_sr = math.floor(L / (N_x-1)) # Unit length between gw grid points
 	#G_x = math.floor(N_x * Unit_sr / Unit_gw)
 	#G_y = math.floor(N_y * Unit_sr / Unit_gw)
 	G_x = 6     	 	# Number of gateway potential locations on x coordinate
 	G_y = 6				# Number of gateway potential locations on y coordinate
-	Unit_gw = math.floor(L / G_x) # Unit length between gw grid points
+	Unit_gw = math.floor(L / (G_x-1)) # Unit length between gw grid points
 	desired_gw_cnt = 10 # Desired gateways to place
 
 	T = 1200			# Sampling period in s
@@ -40,8 +40,11 @@ class params:
 
 	# Redundancy level
 	K = 2   			# Coverage level
-	R_cov = 100			# Binary coverage radius in m
 	M = 2				# Connectivity level
+
+# which algorithm to run
+class run:
+	ICIOT = False
 
 def GetDist(propFunc, params):
 	'''
@@ -142,14 +145,7 @@ def main():
 	# Preparation
 	# Generate the grid candidate set N and G with their x, y coordinates
 	# N for sensor placement and G for gateway placement
-	N = []
 	G = []				# [x, y, placed or not]
-	for i in range(params.N_x):
-		for j in range(params.N_y):
-			new_loc = [i * params.Unit_sr, j * params.Unit_sr]
-			N.append(new_loc)
-	N = np.array(N)
-	N_cnt = params.N_x * params.N_y
 	for p in range(params.G_x):
 		for q in range(params.G_y):
 			new_loc = [p * params.Unit_gw, q * params.Unit_gw, 0]
@@ -157,7 +153,6 @@ def main():
 	G = np.array(G)
 	G_cnt = params.G_x * params.G_y  # Number of gw potential locations
 
-	'''
 	# Randomly generate sensor positions
 	sr_cnt = 1000 #50000		# Number of sensors
 	sr_info = []		# [x, y, SF, Ptx]
@@ -168,60 +163,58 @@ def main():
 		sr_info.append(new_loc)
 	sr_info = np.array(sr_info)
 	# print(sr_info)
-	'''
 
-	# Randomly generate target positions
-	tgt_cnt = 50		# number of targets
-	tgt_info = []
-	for i in range(tgt_cnt):
-		new_tgt = [random.random() * params.L, random.random() * params.L]
-		tgt_info.append(new_tgt)
-	tgt_info = np.array(tgt_info)
 
 	# Generate path loss matrix PL between sensor i and gateway j at (p,q)
-	filename = "PL_{}_{}.txt".format(N_cnt, G_cnt)
-	if os.path.exists(filename): 	# Read from existing file
-		PL = np.loadtxt(filename)
-		logging.info("Read PL from {}".format(filename))
-	else:							# Generate and save to file
-		PL = np.zeros((N_cnt, G_cnt))
-		for i in range(N_cnt):
-			for j in range(G_cnt):
-				loc1 = N[i, :2]
-				loc2 = G[j, :2]
-				dist = np.sqrt(np.sum((loc1 - loc2)**2))
-				PL[i][j] = propagation.LogDistancePathLossModel(d=dist)
-		np.savetxt(filename, PL)
-		logging.info("Calculate PL and save to {}".format(filename))
+	PL = np.zeros((sr_cnt, G_cnt))
+	for i in range(sr_cnt):
+		for j in range(G_cnt):
+			loc1 = sr_info[i, :2]
+			loc2 = G[j, :2]
+			dist = np.sqrt(np.sum((loc1 - loc2)**2))
+			PL[i][j] = propagation.LogDistancePathLossModel(d=dist)
 	print(PL)
+	
 
 	maxDist = GetDist(propagation.LogDistancePathLossModel, params)
 	print(maxDist)
 
-	cov = GetCoverage(N, params.N_y, params.Unit_sr, tgt_info, params.R_cov, \
-		params.L)
-	print(cov)
 
-'''
-	gw_place, sr_info = ICIOT.ICIOTAlg(sr_info, G, PL, params)
-	print(gw_place)
+	cov_gw_sr = GetCoverage(G[:, :2], params.G_y, params.Unit_gw, sr_info[:, :2], \
+				 maxDist[len(params.SF)-1], params.L)
+	print(cov_gw_sr)
 
-	# Write sensor and gateway information to file
-	with open ('sr_loc.txt', 'w') as out:
-		for i in range(sr_cnt):
-			out.write(str(round(sr_info[i, 0], 2)) + ' ' + \
-				str(round(sr_info[i, 1], 2)) + ' ' + \
-				str(int(sr_info[i, 2])) + ' ' + \
-				str(round(sr_info[i, 3])) + '\n')
-	with open ('gw_loc.txt', 'w') as out:
-		gw_cnt = G.shape[0]
-		for i in range(gw_cnt):
-			if G[i, 2]:
-				out.write(str(round(G[i, 0], 2)) + ' ' + \
-					str(round(G[i, 1], 2)) + '\n')
+	# Start greedily place gateway
+	#while True:
+	#	sr_info = []
+	#	for idx in range(gw_cnt):
+			# Try to place gateway at gateway location idx and configure the sensor
+	#		new_sr = []
 
-	plot(sr_info, G)
-'''
+
+
+
+	if run.ICIOT:
+		gw_place, sr_info = ICIOT.ICIOTAlg(sr_info, G, PL, params)
+		print(gw_place)
+
+		# Write sensor and gateway information to file
+		with open ('sr_loc.txt', 'w') as out:
+			for i in range(sr_cnt):
+				out.write(str(round(sr_info[i, 0], 2)) + ' ' + \
+					str(round(sr_info[i, 1], 2)) + ' ' + \
+					str(int(sr_info[i, 2])) + ' ' + \
+					str(round(sr_info[i, 3])) + '\n')
+		with open ('gw_loc.txt', 'w') as out:
+			gw_cnt = G.shape[0]
+			for i in range(gw_cnt):
+				if G[i, 2]:
+					out.write(str(round(G[i, 0], 2)) + ' ' + \
+						str(round(G[i, 1], 2)) + '\n')
+
+		# Plot result
+		plot(sr_info, G)
+
 
 if __name__ == '__main__':
 	main()

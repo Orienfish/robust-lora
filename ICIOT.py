@@ -9,6 +9,8 @@ import propagation
 ########################################
 # ICIOT Alg
 ########################################
+alpha = 0.05       # Weight parameter in the objective function
+
 def GetCij(sr_info, G, PL, params):
 	'''
 	Get important notation Cij in the ICIOT paper showing the connection
@@ -194,13 +196,13 @@ def ICIOTAlg(sr_info, G, PL, params):
 		next_idx = -1
 		next_sr_info = None
 		for idx in range(gw_cnt):
-			if G[idx, 2]: # a gateway has been placed at this location
+			if G[idx, 2]: # A gateway has been placed at this location
 				continue
-			# try to place gateway at this location
+			# Try to place gateway at this location
 			logging.debug("Try to place a gateway at {}".format(idx))
 			G[idx, 2] = 1
 
-			# assign powers and SFs
+			# Assign powers and SFs
 			sr_info = DeviceConfiguration(sr_info, G, PL, params)
 
 			# Calculate Cij from each sensor i to gw j
@@ -220,8 +222,7 @@ def ICIOTAlg(sr_info, G, PL, params):
 			logging.debug("EE: {}".format(EE))
 
 			# Calculate objective value
-			gw_place = G[:, 2] # a binary vector indicating gw placement
-			alpha = 0.05       # weight parameter
+			gw_place = G[:, 2] # A binary vector indicating gw placement
 			obj = np.sum(EE) / sr_cnt - alpha * np.sum(gw_place) / params.desired_gw_cnt
 			logging.debug("obj1: {}".format(np.sum(EE) / sr_cnt))
 			logging.debug("obj2: {}".format(alpha * np.sum(gw_place) / gw_cnt))
