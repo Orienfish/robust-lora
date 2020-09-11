@@ -27,9 +27,8 @@ class params:
 	desired_gw_cnt = 10 # Desired gateways to place
 
 	T = 1200			# Sampling period in s
-	Ptx_max = 20		# Maximum allowed transmission power in dBm
-
-	# Spreading factors
+	
+	# Spreading Factors options
 	SF = ['SF7', 'SF8', 'SF9', 'SF10']
 	# RSSI threshold of SF7, 8, 9, 10 in dBm
 	# Copied from ICIOT paper and ICDCS paper
@@ -38,9 +37,25 @@ class params:
 	# Copied from ICIOT paper under 50 Bytes payload
 	AirTime_k = [0.098, 0.175, 0.329, 0.616]
 
+	# Transmission power options in dBm
+	Ptx = [2, 5, 8, 11, 14, 17, 20]
+	Ptx_max = 20		# Maximum allowed transmission power in dBm
+	# Power consumption using each transmission power options in W
+	# Copied from the TOSN paper (Liando 2019) for SX1276 chipset
+	PowerTx = [0.12, 0.15, 0.2, 0.25, 0.3, 0.4, 0.4]
+
 	# Redundancy level
 	K = 2   			# Coverage level
 	M = 2				# Connectivity level
+
+	# Battery
+	bat_cap = 2 		# Battery capacity in Ah
+	bat_volt = 3.3		# Battery supply voltage in V
+
+	# Power of MCU
+	P_MCU_off = 174.65e-6 # Power of MCU (Arduino Uno) in deep sleep in mW
+	P_MCU_on = 23.48e-3 # Power of MCU (Arduino Uno) on in mW
+	P_R_off = 1e-4		# Power of radio in deep sleep in W
 
 # which algorithm to run
 class run:
@@ -103,6 +118,8 @@ def GetCoverage(grid, grid_y, Unit_grid, target, R, L):
 
 	for j in range(N_target):
 		target_loc = target[j, :]
+
+		# only search in the surrounding grid space to save time
 		x_min = max(0.0, target_loc[0] - R)
 		x_idx_min = math.ceil(x_min / Unit_grid)
 		x_max = min(L, target_loc[0] + R)
@@ -121,6 +138,30 @@ def GetCoverage(grid, grid_y, Unit_grid, target, R, L):
 				if dist <= R:
 					cov[idx, j] = 1
 	return cov
+
+def GetLifetime(SF, Ptx, params):
+	'''
+	Calculate the lifetime of node using SF and Ptx using the formula in 
+	the TOSN paper (Liando 2019) for SX1276 chip
+
+	Args:
+		SF: index of Spreading Factor used by the node in 'SF7' - 'SF10'
+		Ptx: transmission power used by the node in dBm
+		params: important parameters
+
+	Return:
+		Lifetime: estimated lifetime in years
+	'''
+
+	Ttx = params.AirTime_k[params.SF.index(SF)]
+	PowerTx = params.PowerTx[params.Ptx.index(Ptx)]
+	P_R_TX = (params.T - Ttx) * (params.P_MCU_off + params.P_R_off) + \
+			 Ttx * (params.P_MCU_on + PowerTx)
+	P_R_TX = P_R_TX / params.T               # Average power in W
+	E_bat = params.bat_cap * params.bat_volt # Total energy of battery in W*h
+	Lifetime = E_bat / P_R_TX                # Lifetime in h
+	return Lifetime / 24 / 365				 # Lifetime in year
+
 
 
 def plot(sr_info, G):
@@ -187,24 +228,24 @@ def main():
 	print(cov_gw_sr)
 
 	# Start greedily place gateway
-	while True:
-		obj_old = -np.inf
-		next_idx = -1
-		next_sr_info = None
-		for gw_idx in range(gw_cnt):
-			if G[gw_idx, 2]: # A gateway has been placed at this location
-				continue
+	#while True:
+	#	obj_old = -np.inf
+	#	next_idx = -1
+	#	next_sr_info = None
+	#	for gw_idx in range(gw_cnt):
+	#		if G[gw_idx, 2]: # A gateway has been placed at this location
+	#			continue
 			# Try to place gateway at gateway location idx and configure the sensor
-			dist_idx = dist[:, gw_idx] # distance to gateway idx
-			sort_idx = np.argsort(min_dist, axis=0) # index of distance sorting
-			for i in range(sr_cnt):
-				sr_idx = int(sort_idx[i])
-				if dist[sr_idx, gw_idx] > maxDist[len(params.SF)-1]:
+	#		dist_idx = dist[:, gw_idx] # distance to gateway idx
+	#		sort_idx = np.argsort(min_dist, axis=0) # index of distance sorting
+	#		for i in range(sr_cnt):
+	#			sr_idx = int(sort_idx[i])
+	#			if dist[sr_idx, gw_idx] > maxDist[len(params.SF)-1]:
 					# the following sensors exceed the maximum communication range
 					# therefore we do not need to consider them
-					break
+	#				break
 
-
+	print(GetLifetime('SF7', 11, params))
 
 
 
