@@ -155,25 +155,27 @@ def main():
 
 	# Randomly generate sensor positions
 	sr_cnt = 1000 #50000		# Number of sensors
-	sr_info = []		# [x, y, SF, Ptx]
+	sr_info = []		# [x, y, SF, Ptx, CH]
 	for i in range(sr_cnt):	
-		k = random.randint(0, len(params.SF)-1)
+		k = random.randint(0, len(params.SF)-1) # SFk
+		q = random.randint(0, len(params.SF)-1) # Channel q
 		new_loc = [random.random() * params.L, random.random() * params.L, \
-			k, params.Ptx_max]
+			k, params.Ptx_max, q]
 		sr_info.append(new_loc)
 	sr_info = np.array(sr_info)
 	# print(sr_info)
 
 
-	# Generate path loss matrix PL between sensor i and gateway j at (p,q)
+	# Generate path loss and distance matrix between sensor i and gateway j
 	PL = np.zeros((sr_cnt, G_cnt))
+	dist = np.zeros((sr_cnt, G_cnt))
 	for i in range(sr_cnt):
 		for j in range(G_cnt):
 			loc1 = sr_info[i, :2]
 			loc2 = G[j, :2]
-			dist = np.sqrt(np.sum((loc1 - loc2)**2))
-			PL[i][j] = propagation.LogDistancePathLossModel(d=dist)
-	print(PL)
+			dist[i, j] = np.sqrt(np.sum((loc1 - loc2)**2))
+			PL[i, j] = propagation.LogDistancePathLossModel(d=dist[i, j])
+	# print(PL)
 	
 
 	maxDist = GetDist(propagation.LogDistancePathLossModel, params)
@@ -185,11 +187,23 @@ def main():
 	print(cov_gw_sr)
 
 	# Start greedily place gateway
-	#while True:
-	#	sr_info = []
-	#	for idx in range(gw_cnt):
+	while True:
+		obj_old = -np.inf
+		next_idx = -1
+		next_sr_info = None
+		for gw_idx in range(gw_cnt):
+			if G[gw_idx, 2]: # A gateway has been placed at this location
+				continue
 			# Try to place gateway at gateway location idx and configure the sensor
-	#		new_sr = []
+			dist_idx = dist[:, gw_idx] # distance to gateway idx
+			sort_idx = np.argsort(min_dist, axis=0) # index of distance sorting
+			for i in range(sr_cnt):
+				sr_idx = int(sort_idx[i])
+				if dist[sr_idx, gw_idx] > maxDist[len(params.SF)-1]:
+					# the following sensors exceed the maximum communication range
+					# therefore we do not need to consider them
+					break
+
 
 
 
