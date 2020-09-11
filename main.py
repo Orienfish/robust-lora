@@ -26,6 +26,9 @@ class params:
 	Unit_gw = math.floor(L / (G_x-1)) # Unit length between gw grid points
 	desired_gw_cnt = 10 # Desired gateways to place
 
+	# Version of log propagation model
+	LogPropVer = 'Dongare'
+
 	T = 1200			# Sampling period in s
 	
 	# Spreading Factors options
@@ -59,7 +62,7 @@ class params:
 
 # which algorithm to run
 class run:
-	ICIOT = False
+	ICIOT = True
 
 def GetDist(propFunc, params):
 	'''
@@ -82,7 +85,7 @@ def GetDist(propFunc, params):
 		# start the binary search loop
 		while d_max - d_min > GetDist.epsilon:
 			d_mid = 0.5 * (d_min + d_max)
-			PL = propFunc(d=d_mid, f=868)
+			PL = propFunc(d=d_mid, f=868, ver=params.LogPropVer)
 			RSSI = propagation.GetRSSI(params.Ptx_max, PL)
 			if RSSI > minRSSI: # distance is not long enough
 				d_min = d_mid
@@ -162,6 +165,20 @@ def GetLifetime(SF, Ptx, params):
 	Lifetime = E_bat / P_R_TX                # Lifetime in h
 	return Lifetime / 24 / 365				 # Lifetime in year
 
+def GetPDR(sr_info, G, params):
+	'''
+	Get packet delivery ratio based on the aloha scheme
+	
+	Args:
+		sr_info: sensor placement and configuration
+		G: gateway placement
+		Cij: connection indicator
+		params: important parameters
+
+	Return:
+		PDR: a vector shows the PDR at each sensor i
+	'''
+
 
 
 def plot(sr_info, G):
@@ -215,7 +232,8 @@ def main():
 			loc1 = sr_info[i, :2]
 			loc2 = G[j, :2]
 			dist[i, j] = np.sqrt(np.sum((loc1 - loc2)**2))
-			PL[i, j] = propagation.LogDistancePathLossModel(d=dist[i, j])
+			PL[i, j] = propagation.LogDistancePathLossModel(d=dist[i, j], \
+				ver=params.LogPropVer)
 	# print(PL)
 	
 
