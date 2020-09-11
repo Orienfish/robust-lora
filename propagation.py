@@ -31,25 +31,28 @@ def LogDistancePathLossModel(**kwargs):
 	'''
 	if kwargs['ver'] == 'ICIOT':
 		# Settings in the ICIOT paper
-		d0 = 1000 # Reference distance in m
-		PL0 = 130 # Reference path loss in dB
-		delta = 2.1 # Path loss exponent
+		LogDistancePathLossModel.d0 = 1000 # Reference distance in m
+		LogDistancePathLossModel.PL0 = 130 # Reference path loss in dB
+		LogDistancePathLossModel.gamma = 2.1 # Path loss exponent
 	elif kwargs['ver'] == 'Bor':
 		# Settings in the paper (Bor 2016) for indoor building
-		d0 = 40 # Reference distance in m
-		PL0 = 127.41 # Reference path loss in dB
-		delta = 3.57 # Path loss exponent
+		LogDistancePathLossModel.d0 = 40 # Reference distance in m
+		LogDistancePathLossModel.PL0 = 127.41 # Reference path loss in dB
+		LogDistancePathLossModel.gamma = 2.08 # Path loss exponent
+		LogDistancePathLossModel.sigma = 3.57 # Standard deviation
 	elif kwargs['ver'] == 'Dongare':
 		# Settings in Dongare's thesis based on CMU campus measurements
-		d0 = 140 # Reference distance in m
-		PL0 = 105.5729 # Reference path loss in dB
-		delta = 2.1495 # Path loss exponent
+		LogDistancePathLossModel.d0 = 140 # Reference distance in m
+		LogDistancePathLossModel.PL0 = 105.5729 # Reference path loss in dB
+		LogDistancePathLossModel.gamma = 2.1495 # Path loss exponent
+		LogDistancePathLossModel.sigma = 10.0 # Standard deviation
 	else:
 		logging.error('Non-supported log propagation model!')
 		return
-	if kwargs['d'] <= d0:
-		return PL0
-	PL = PL0 + 10 * delta * math.log10(kwargs['d'] / d0)
+	if kwargs['d'] <= LogDistancePathLossModel.d0:
+		return LogDistancePathLossModel.PL0
+	PL = LogDistancePathLossModel.PL0 + 10 * LogDistancePathLossModel.gamma * \
+		math.log10(kwargs['d'] / LogDistancePathLossModel.d0)
 	return PL
 
 

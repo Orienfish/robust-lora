@@ -62,7 +62,7 @@ class params:
 
 # which algorithm to run
 class run:
-	ICIOT = True
+	ICIOT = False
 
 def GetDist(propFunc, params):
 	'''
@@ -165,20 +165,29 @@ def GetLifetime(SF, Ptx, params):
 	Lifetime = E_bat / P_R_TX                # Lifetime in h
 	return Lifetime / 24 / 365				 # Lifetime in year
 
-def GetPDR(sr_info, G, params):
+def GetPDR(sr_info_i, G, PL_i, noise, params):
 	'''
-	Get packet delivery ratio based on the aloha scheme
+	Get packet delivery ratio based on sensitivity and SNR of the certain sensor
 	
 	Args:
-		sr_info: sensor placement and configuration
+		sr_info_i: sensor placement and configuration of sensor i
 		G: gateway placement
-		Cij: connection indicator
+		PL: path loss matrix between sensor i and potential gateways
+		noise: total noise level at gateway j using SFk and channel q
 		params: important parameters
 
 	Return:
 		PDR: a vector shows the PDR at each sensor i
 	'''
+	gw_cnt = G.shape[0]
 
+	for j in range(gw_cnt):
+		# Get the probability that the sensitivity requirement is satisfied
+		Prx = propagation.GetRSSI(sr_info_i[3], PL_i[j]) # Expected reception power
+		RSSI_th = params.RSSI_k[int(sr_info_i[2])]     # Sensitivity threshold
+		Prob_ss = 0.5 * (1 + math.erf((Prx - RSSI_th) / \
+			(propagation.LogDistancePathLossModel.sigma * math.sqrt(2))))
+		# print(sr_info_i[3], PL_i[j], Prob_ss, RSSI_th - Prx)
 
 
 def plot(sr_info, G):
@@ -264,7 +273,12 @@ def main():
 	#				break
 
 	print(GetLifetime('SF7', 11, params))
-
+	GetPDR(sr_info[0, :], G, PL[0, :], 0, params)
+	plt.figure()
+	plt.scatter(sr_info[0, 0], sr_info[0, 1])
+	plt.scatter(G[:, 0], G[:, 1], marker='^')
+	plt.xlabel('X (m)'); plt.ylabel('Y (m)');
+	plt.show()
 
 
 	if run.ICIOT:
