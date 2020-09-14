@@ -67,7 +67,7 @@ class params:
 	P_R_off = 1e-4		# Power of radio in deep sleep in W
 
 	# Power of additive white Gaussian noise with zero-mean
-	N0 = 10
+	N0 = 0
 
 # which algorithm to run
 class run:
@@ -195,13 +195,13 @@ def GetPDR(sr_info, G, PL, noise, params):
 
 	# Use a dictionary to record the list of nodes using the SFk and channel q
 	N_kq = {}
-	for SFk in params.SF:
-		for CHq in params.CH:
-			N_kq[SFk + '_' + str(CHq)] = []
+	for k in range(SF_cnt):
+		for q in range(CH_cnt):
+			N_kq[str(k) + '_' + str(q)] = []
 	for i in range(sr_cnt):
-		SFk = params.SF[int(sr_info[i, 2])]
-		CHq = params.CH[int(sr_info[i, 4])]
-		N_kq[SFk + '_' + str(CHq)].append(i)
+		k = int(sr_info[i, 2])
+		q = int(sr_info[i, 4])
+		N_kq[str(k) + '_' + str(q)].append(i)
 
 	for j in range(gw_cnt):
 		if not G[j, 2]: # No gateway is placed at the current location
@@ -214,27 +214,32 @@ def GetPDR(sr_info, G, PL, noise, params):
 			RSSI_th = params.RSSI_k[int(sr_info[i, 2])]     # Sensitivity threshold
 			Prob_ss = 0.5 * (1 + math.erf((Prx - RSSI_th) / \
 				(propagation.LogDistancePathLossModel.sigma * math.sqrt(2))))
-			print('Prob_ss', sr_info[i, 3], PL[i, j], Prob_ss, RSSI_th - Prx)
+			print('Prob_ss', Prob_ss, 'Ptx', sr_info[i, 3], 'PL[i,j]', PL[i, j], \
+				'RSSI_th - Prx', RSSI_th - Prx)
 
 			# Get the probability that the SNR requirement is satisfied
-			SFk = params.SF[int(sr_info[i, 2])]
-			CHq = params.CH[int(sr_info[i, 4])]
+			k = int(sr_info[i, 2])
+			q = int(sr_info[i, 4])
 			# Count the number of end nodes using the same SFk and channel q
-			Cnt_kq = len(N_kq[SFk + '_' + str(CHq)])
+			Cnt_kq = len(N_kq[str(k) + '_' + str(q)])
 			# Sum of the expected reception power at gateway j of all nodes using
 			# the same SFk and channel q
 			Prx_list = list(map(lambda idx: \
 				propagation.GetRSSI(sr_info[idx, 3], PL[idx, j]), \
-				N_kq[SFk + '_' + str(CHq)]))
+				N_kq[str(k) + '_' + str(q)]))
 			Prx_sum = sum(Prx_list)
+			print(Prx_list)
+			print('Prx_sum', Prx_sum)
 			# Left hand side
-			temp = params.SNR_k[k] * (1 - math.exp(-2 * Cnt_kq * params.AirTime_k[k] / params.T))
-			LHS = Prx - params.SNR_k[k] * params.N0 - temp * (Prx_sum - Prx)
+			coll = 1 - math.exp(-2 * Cnt_kq * params.AirTime_k[k] / params.T)
+			val = Prx - coll * (Prx_sum - Prx) - params.N0 - params.SNR_k[k]
+			print('val', val, 'coll', coll, 'coll*Prxj', coll * (Prx_sum - Prx))
 			# Converted sigma
-			Sigma_new = propagation.LogDistancePathLossModel.sigma * \
-				math.sqrt(temp ** 2 * Cnt_kq + 1)
-			Prob_snr = 0.5 * (1 + math.erf(LHS / (Sigma_new * math.sqrt(2))))
-			print('Prob_snr', Prob_snr, LHS, Sigma_new)
+			sigma_new = propagation.LogDistancePathLossModel.sigma * \
+				math.sqrt(coll ** 2 * Cnt_kq + 1)
+			print('sigma_new', sigma_new)
+			Prob_snr = 0.5 * (1 + math.erf(val / (sigma_new * math.sqrt(2))))
+			print('Prob_snr', Prob_snr)
 
 
 def plot(sr_info, G):
@@ -262,7 +267,7 @@ def main():
 	G = []				# [x, y, placed or not]
 	for p in range(params.G_x):
 		for q in range(params.G_y):
-			new_loc = [p * params.Unit_gw, q * params.Unit_gw, 0]
+			new_loc = [p * params.Unit_gw, q * params.Unit_gw, 1]
 			G.append(new_loc)
 	G = np.array(G)
 	gw_cnt = params.G_x * params.G_y  # Number of gw potential locations
@@ -294,8 +299,8 @@ def main():
 				ver=params.LogPropVer)
 
 			# Update the expected noise level at each gateway
-			Prx = propagation.GetRSSI(sr_info[i, 3], PL[i, j]) # Expected reception power
-			noise[j, SF.index(sr_info[i, 2]), CH.index(sr_info[i, 3])] += Prx
+			#Prx = propagation.GetRSSI(sr_info[i, 3], PL[i, j]) # Expected reception power
+			#noise[j, int(sr_info[i, 2]), int(sr_info[i, 3])] += Prx
 	# print(PL)
 	
 
@@ -326,12 +331,12 @@ def main():
 	#				break
 
 	print(GetLifetime('SF7', 11, params))
-	GetPDR(sr_info[0, :], G, PL[0, :], 0, params)
-	plt.figure()
-	plt.scatter(sr_info[0, 0], sr_info[0, 1])
-	plt.scatter(G[:, 0], G[:, 1], marker='^')
-	plt.xlabel('X (m)'); plt.ylabel('Y (m)');
-	plt.show()
+	GetPDR(sr_info, G, PL, 0, params)
+	#plt.figure()
+	#plt.scatter(sr_info[0, 0], sr_info[0, 1])
+	#plt.scatter(G[:, 0], G[:, 1], marker='^')
+	#plt.xlabel('X (m)'); plt.ylabel('Y (m)');
+	#plt.show()
 
 
 	if run.ICIOT:
