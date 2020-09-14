@@ -214,7 +214,7 @@ def GetPDR(sr_info, G, PL, noise, params):
 			RSSI_th = params.RSSI_k[int(sr_info[i, 2])]     # Sensitivity threshold
 			Prob_ss = 0.5 * (1 + math.erf((Prx - RSSI_th) / \
 				(propagation.LogDistancePathLossModel.sigma * math.sqrt(2))))
-			# print(sr_info_i[3], PL_i[j], Prob_ss, RSSI_th - Prx)
+			print('Prob_ss', sr_info[i, 3], PL[i, j], Prob_ss, RSSI_th - Prx)
 
 			# Get the probability that the SNR requirement is satisfied
 			SFk = params.SF[int(sr_info[i, 2])]
@@ -234,6 +234,7 @@ def GetPDR(sr_info, G, PL, noise, params):
 			Sigma_new = propagation.LogDistancePathLossModel.sigma * \
 				math.sqrt(temp ** 2 * Cnt_kq + 1)
 			Prob_snr = 0.5 * (1 + math.erf(LHS / (Sigma_new * math.sqrt(2))))
+			print('Prob_snr', Prob_snr, LHS, Sigma_new)
 
 
 def plot(sr_info, G):
