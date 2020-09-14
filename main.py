@@ -39,6 +39,9 @@ class params:
 	# Air time of SF7, 8, 9, 10 in s
 	# Copied from ICIOT paper under 50 Bytes payload
 	AirTime_k = [0.098, 0.175, 0.329, 0.616]
+	# SNR threshold of SF7, 8, 9, 10 in dB
+	# Copied from ICDCS paper
+	SNR_k = [-6, -9, -12, -15]
 
 	# Transmission power options in dBm
 	Ptx = [2, 5, 8, 11, 14, 17, 20]
@@ -46,6 +49,9 @@ class params:
 	# Power consumption using each transmission power options in W
 	# Copied from the TOSN paper (Liando 2019) for SX1276 chipset
 	PowerTx = [0.12, 0.15, 0.2, 0.25, 0.3, 0.4, 0.4]
+
+	# Channel options
+	CH = [0, 1, 2, 3, 4, 5, 6, 7]
 
 	# Redundancy level
 	K = 2   			# Coverage level
@@ -59,6 +65,9 @@ class params:
 	P_MCU_off = 174.65e-6 # Power of MCU (Arduino Uno) in deep sleep in mW
 	P_MCU_on = 23.48e-3 # Power of MCU (Arduino Uno) on in mW
 	P_R_off = 1e-4		# Power of radio in deep sleep in W
+
+	# Power of additive white Gaussian noise with zero-mean
+	N0 = 10
 
 # which algorithm to run
 class run:
@@ -165,12 +174,12 @@ def GetLifetime(SF, Ptx, params):
 	Lifetime = E_bat / P_R_TX                # Lifetime in h
 	return Lifetime / 24 / 365				 # Lifetime in year
 
-def GetPDR(sr_info_i, G, PL_i, noise, params):
+def GetPDR(sr_info, G, PL, noise, params):
 	'''
-	Get packet delivery ratio based on sensitivity and SNR of the certain sensor
-	
+	Get packet delivery ratio based on sensitivity and SNR
+
 	Args:
-		sr_info_i: sensor placement and configuration of sensor i
+		sr_info: sensor placement and configuration
 		G: gateway placement
 		PL: path loss matrix between sensor i and potential gateways
 		noise: total noise level at gateway j using SFk and channel q
@@ -179,15 +188,52 @@ def GetPDR(sr_info_i, G, PL_i, noise, params):
 	Return:
 		PDR: a vector shows the PDR at each sensor i
 	'''
+	sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
+	SF_cnt = len(params.SF)
+	CH_cnt = len(params.CH)
+
+	# Use a dictionary to record the list of nodes using the SFk and channel q
+	N_kq = {}
+	for SFk in params.SF:
+		for CHq in params.CH:
+			N_kq[SFk + '_' + str(CHq)] = []
+	for i in range(sr_cnt):
+		SFk = params.SF[int(sr_info[i, 2])]
+		CHq = params.CH[int(sr_info[i, 4])]
+		N_kq[SFk + '_' + str(CHq)].append(i)
 
 	for j in range(gw_cnt):
-		# Get the probability that the sensitivity requirement is satisfied
-		Prx = propagation.GetRSSI(sr_info_i[3], PL_i[j]) # Expected reception power
-		RSSI_th = params.RSSI_k[int(sr_info_i[2])]     # Sensitivity threshold
-		Prob_ss = 0.5 * (1 + math.erf((Prx - RSSI_th) / \
-			(propagation.LogDistancePathLossModel.sigma * math.sqrt(2))))
-		# print(sr_info_i[3], PL_i[j], Prob_ss, RSSI_th - Prx)
+		if not G[j, 2]: # No gateway is placed at the current location
+			continue
+
+		# Evaluate the PDR between sensor i and gateway j
+		for i in range(sr_cnt):
+			# Get the probability that the sensitivity requirement is satisfied
+			Prx = propagation.GetRSSI(sr_info[i, 3], PL[i, j])
+			RSSI_th = params.RSSI_k[int(sr_info[i, 2])]     # Sensitivity threshold
+			Prob_ss = 0.5 * (1 + math.erf((Prx - RSSI_th) / \
+				(propagation.LogDistancePathLossModel.sigma * math.sqrt(2))))
+			# print(sr_info_i[3], PL_i[j], Prob_ss, RSSI_th - Prx)
+
+			# Get the probability that the SNR requirement is satisfied
+			SFk = params.SF[int(sr_info[i, 2])]
+			CHq = params.CH[int(sr_info[i, 4])]
+			# Count the number of end nodes using the same SFk and channel q
+			Cnt_kq = len(N_kq[SFk + '_' + str(CHq)])
+			# Sum of the expected reception power at gateway j of all nodes using
+			# the same SFk and channel q
+			Prx_list = list(map(lambda idx: \
+				propagation.GetRSSI(sr_info[idx, 3], PL[idx, j]), \
+				N_kq[SFk + '_' + str(CHq)]))
+			Prx_sum = sum(Prx_list)
+			# Left hand side
+			temp = params.SNR_k[k] * (1 - math.exp(-2 * Cnt_kq * params.AirTime_k[k] / params.T))
+			LHS = Prx - params.SNR_k[k] * params.N0 - temp * (Prx_sum - Prx)
+			# Converted sigma
+			Sigma_new = propagation.LogDistancePathLossModel.sigma * \
+				math.sqrt(temp ** 2 * Cnt_kq + 1)
+			Prob_snr = 0.5 * (1 + math.erf(LHS / (Sigma_new * math.sqrt(2))))
 
 
 def plot(sr_info, G):
@@ -218,31 +264,37 @@ def main():
 			new_loc = [p * params.Unit_gw, q * params.Unit_gw, 0]
 			G.append(new_loc)
 	G = np.array(G)
-	G_cnt = params.G_x * params.G_y  # Number of gw potential locations
+	gw_cnt = params.G_x * params.G_y  # Number of gw potential locations
+
+	# Sum of expected RSSI at gateway j using SFk and channel q, as noise
+	noise = np.zeros((gw_cnt, len(params.SF), len(params.CH)))
 
 	# Randomly generate sensor positions
 	sr_cnt = 1000 #50000		# Number of sensors
 	sr_info = []		# [x, y, SF, Ptx, CH]
 	for i in range(sr_cnt):	
 		k = random.randint(0, len(params.SF)-1) # SFk
-		q = random.randint(0, len(params.SF)-1) # Channel q
+		q = random.randint(0, len(params.CH)-1) # Channel q
 		new_loc = [random.random() * params.L, random.random() * params.L, \
 			k, params.Ptx_max, q]
 		sr_info.append(new_loc)
 	sr_info = np.array(sr_info)
 	# print(sr_info)
 
-
 	# Generate path loss and distance matrix between sensor i and gateway j
-	PL = np.zeros((sr_cnt, G_cnt))
-	dist = np.zeros((sr_cnt, G_cnt))
+	PL = np.zeros((sr_cnt, gw_cnt))
+	dist = np.zeros((sr_cnt, gw_cnt))
 	for i in range(sr_cnt):
-		for j in range(G_cnt):
+		for j in range(gw_cnt):
 			loc1 = sr_info[i, :2]
 			loc2 = G[j, :2]
 			dist[i, j] = np.sqrt(np.sum((loc1 - loc2)**2))
 			PL[i, j] = propagation.LogDistancePathLossModel(d=dist[i, j], \
 				ver=params.LogPropVer)
+
+			# Update the expected noise level at each gateway
+			Prx = propagation.GetRSSI(sr_info[i, 3], PL[i, j]) # Expected reception power
+			noise[j, SF.index(sr_info[i, 2]), CH.index(sr_info[i, 3])] += Prx
 	# print(PL)
 	
 
