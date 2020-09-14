@@ -67,7 +67,7 @@ class params:
 	P_R_off = 1e-4		# Power of radio in deep sleep in W
 
 	# Power of additive white Gaussian noise with zero-mean
-	N0 = 0
+	N0 = 10 * math.log10(1.2) # Convert from W to dB
 
 # which algorithm to run
 class run:
@@ -214,32 +214,33 @@ def GetPDR(sr_info, G, PL, noise, params):
 			RSSI_th = params.RSSI_k[int(sr_info[i, 2])]     # Sensitivity threshold
 			Prob_ss = 0.5 * (1 + math.erf((Prx - RSSI_th) / \
 				(propagation.LogDistancePathLossModel.sigma * math.sqrt(2))))
-			print('Prob_ss', Prob_ss, 'Ptx', sr_info[i, 3], 'PL[i,j]', PL[i, j], \
+			logging.debug('Prob_ss', Prob_ss, 'Ptx', sr_info[i, 3], 'PL[i,j]', PL[i, j], \
 				'RSSI_th - Prx', RSSI_th - Prx)
 
-			# Get the probability that the SNR requirement is satisfied
+			# Count the number of end nodes using the same SFk and channel q
 			k = int(sr_info[i, 2])
 			q = int(sr_info[i, 4])
-			# Count the number of end nodes using the same SFk and channel q
 			Cnt_kq = len(N_kq[str(k) + '_' + str(q)])
 			# Sum of the expected reception power at gateway j of all nodes using
 			# the same SFk and channel q
-			Prx_list = list(map(lambda idx: \
-				propagation.GetRSSI(sr_info[idx, 3], PL[idx, j]), \
-				N_kq[str(k) + '_' + str(q)]))
-			Prx_sum = sum(Prx_list)
-			print(Prx_list)
-			print('Prx_sum', Prx_sum)
-			# Left hand side
-			coll = 1 - math.exp(-2 * Cnt_kq * params.AirTime_k[k] / params.T)
-			val = Prx - coll * (Prx_sum - Prx) - params.N0 - params.SNR_k[k]
-			print('val', val, 'coll', coll, 'coll*Prxj', coll * (Prx_sum - Prx))
+			Noise_node_idx = N_kq[str(k) + '_' + str(q)].copy()
+			Noise_node_idx.remove(i)
+			Coll = 1 - math.exp(-2 * Cnt_kq * params.AirTime_k[k] / params.T)
+			Prx_dB_list = list(map(lambda idx: \
+				propagation.GetRSSI(sr_info[idx, 3], PL[idx, j]), Noise_node_idx))
+			Prx_W_list = list(map(lambda Prx_dB: 10 ** (Prx_dB / 10), Prx_dB_list))
+			Prx_W_sum = sum(Prx_W_list)
+			Prx_W_Coll = Coll * Prx_W_sum
+			Prx_dB_Coll = 10 * math.log10(Prx_W_Coll)
+
+			# Get the probability that the SNR requirement is satisfied	
+			Val = Prx - Prx_dB_Coll - params.N0 - params.SNR_k[k]
+			logging.debug('Val', Val, 'Coll', Coll, 'Prx_dB_Coll', Prx_dB_Coll)
 			# Converted sigma
-			sigma_new = propagation.LogDistancePathLossModel.sigma * \
-				math.sqrt(coll ** 2 * Cnt_kq + 1)
-			print('sigma_new', sigma_new)
-			Prob_snr = 0.5 * (1 + math.erf(val / (sigma_new * math.sqrt(2))))
-			print('Prob_snr', Prob_snr)
+			Sigma_new = propagation.LogDistancePathLossModel.sigma * \
+				math.sqrt(Coll ** 2 * (Cnt_kq - 1) + 1)
+			Prob_snr = 0.5 * (1 + math.erf(Val / (Sigma_new * math.sqrt(2))))
+			logging.debug('Prob_snr', Prob_snr, 'sigma_new', Sigma_new)
 
 
 def plot(sr_info, G):
