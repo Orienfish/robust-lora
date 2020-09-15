@@ -154,7 +154,7 @@ def GetCoverage(grid, grid_y, Unit_grid, target, R, L):
 					cov[idx, j] = 1
 	return cov
 
-def GetLifetime(SFk, Ptx, params):
+def GetLifetime(SFk, Ptx, PDR, params):
 	'''
 	Calculate the lifetime of node using SF and Ptx using the formula in 
 	the TOSN paper (Liando 2019) for SX1276 chip
@@ -162,13 +162,14 @@ def GetLifetime(SFk, Ptx, params):
 	Args:
 		SFk: index of Spreading Factor used by the node
 		Ptx: transmission power used by the node in dBm
+		PDR: packet delivery ratio at the node
 		params: important parameters
 
 	Return:
 		Lifetime: estimated lifetime in years
 	'''
 
-	Ttx = params.AirTime_k[SFk]
+	Ttx = params.AirTime_k[SFk] / PDR
 	PowerTx = params.PowerTx[params.Ptx.index(Ptx)]
 	P_R_TX = (params.T - Ttx) * (params.P_MCU_off + params.P_R_off) + \
 			 Ttx * (params.P_MCU_on + PowerTx)
@@ -227,7 +228,10 @@ def GetPDR(sr_info, G, PL, N_kq, params, idx):
 		Prx_W_list = list(map(lambda Prx_dB: 10 ** (Prx_dB / 10), Prx_dB_list))
 		Prx_W_sum = sum(Prx_W_list)
 		Prx_W_Coll = Coll * Prx_W_sum
-		Prx_dB_Coll = 10 * math.log10(Prx_W_Coll)
+		if Prx_W_Coll > 0:
+			Prx_dB_Coll = 10 * math.log10(Prx_W_Coll)
+		else:
+			Prx_dB_Coll = -np.inf
 
 		# Get the probability that the SNR requirement is satisfied	
 		Val = Prx - Prx_dB_Coll - params.N0 - params.SNR_k[k]
@@ -242,8 +246,8 @@ def GetPDR(sr_info, G, PL, N_kq, params, idx):
 
 	P_idxj = np.array(P_idxj)
 	PDR = 1 - np.prod(1 - P_idxj)
-	print(P_idxj)
-	print(PDR)
+	#print(P_idxj)
+	#print(PDR)
 	return PDR
 
 
@@ -353,8 +357,10 @@ def main():
 
 				# Try to assign the minimum SF and channel based on the current sr_info
 				# and collision-possible nodes N_kq
-				SF_min = list(filter(lambda maxD: \
-					dist[sr_idx, gw_idx] <= maxD, maxDist))[0]
+				SF_min = maxDist.index( \
+					list(filter(lambda maxD: dist[sr_idx, gw_idx] <= maxD, maxDist))[0])
+				succ = False # whether a new assignment is success
+				SF_cur = int(sr_info[sr_idx, 2])
 				for k in range(SF_min, SF_cnt):
 					for q in range(CH_cnt):
 						for Ptx in params.Ptx:
@@ -363,19 +369,39 @@ def main():
 							sr_info_cur[sr_idx, 4] = q
 							N_kq_cur[str(k) + '_' + str(q)].append(sr_idx)
 							PDR = GetPDR(sr_info_cur, G, PL, N_kq, params, sr_idx)
-							Lifetime = GetLifetime(k, Ptx, params)
+							Lifetime = GetLifetime(k, Ptx, PDR, params)
 							if PDR >= params.PDR_th and Lifetime >= params.Lifetime_th:
 								# stop searching once PDR and lifetime requirements are met
+								succ = True
 								break
+							# Not selected to use this assignment, remove it
+							N_kq_cur[str(k) + '_' + str(q)].remove(sr_idx)
 
-				m_gateway_cur[sr_idx] += 1
+						if succ:
+							break
+
+					if succ:
+						break
+
+				if succ:
+					m_gateway_cur[sr_idx] += 1
+					# Only keep the assignment if it serves as the primary connection
+					# In other words, it uses the smallest SF or the same SF and the smaller
+					# transmission power
+					if sr_info_cur[sr_idx, 2] > sr_info[sr_idx, 2] or \
+						(sr_info_cur[sr_idx, 2] == sr_info[sr_idx, 2] and \
+						sr_info_cur[sr_idx, 3] > sr_info[sr_idx, 3]):
+						# Reset to the previous device settings
+						sr_info_cur[sr_idx, :] = np.copy(sr_info[sr_idx, :])
+				else: # All assignment attempts are failed, no more assignment can be made
+					break
 				
 			# Calculate benefit of placing gateway at this location
 			bnft = np.sum(m_gateway_cur) - np.sum(m_gateway)
 
 			# Update global best benefit value if necessary
-			if bnft > bntf_old:
-				bntf_old = bnft
+			if bnft > bnft_old:
+				bnft_old = bnft
 				next_idx = gw_idx
 				next_sr_info = sr_info_cur
 				next_N_kq = N_kq_cur
@@ -388,19 +414,19 @@ def main():
 		# Place a gateway at next_idx with the max benefit
 		G[next_idx, 2] = 1
 		sr_info = np.copy(next_sr_info)
-		N_kq = N_kq_next.copy()
+		N_kq = next_N_kq.copy()
 		m_gateway = np.copy(next_m_gateway)
 		logging.info("Placed gateway #{} at grid {} [{},{}]".format( \
 			rounds, next_idx, G[next_idx, 0], G[next_idx, 1]))
 
 		# Check if m-gateway connectivity has been met at all end nodes
 		# If so, terminate the placement process
-		Uncover = np.ones((sr_cnt, 1)) * M - m_gateway_cur
+		Uncover = np.ones((sr_cnt, 1)) * params.M - m_gateway_cur
 		Uncover = np.sum(Uncover[Uncover > 0])
 		if Uncover <= 0:
 			break
 
-		rounds++
+		rounds += 1
 
 	plot(sr_info, G)
 
