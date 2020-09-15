@@ -249,10 +249,68 @@ def GetPDR(sr_info, G, PL, N_kq, params, idx):
 	PDR = 1 - np.prod(1 - P_idxj)
 	return PDR
 
-#def DeviceConfiguration(sr_info_cur, params, idx):
+def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
+	params, sr_idx, gw_idx, SF_min):
 	'''
 	Greedily select the SF, Ptx and CH configuration for sensor idx
+
+	Args:
+		sr_info_cur: current complete sensor/end device configuration
+		sr_info: original sensor/end device configuration
+		G: gateway placement
+		PL: path loss matrix
+		N_kq_cur: current dictionary recording the list of nodes using SFk and channel q
+		m_gateway_cur: current m-gateway connectivity at each end device
+		params: important parameters
+		sr_idx: index of sensor being considered
+		gw_idx: index of gateway being considered
+		SF_min: the min SF that can used by this sensor/end devices
+
+	Return:
+		succ: whether the configuration attempt is success
+		sr_info_cur: updated configuration
 	'''
+	SF_cnt = len(params.SF)
+	CH_cnt = len(params.CH)
+
+	succ = False # whether a new assignment is success
+	for k in range(SF_min, SF_cnt):
+		for q in range(CH_cnt):
+			for Ptx in params.Ptx:
+				sr_info_cur[sr_idx, 2] = k
+				sr_info_cur[sr_idx, 3] = Ptx
+				sr_info_cur[sr_idx, 4] = q
+				N_kq_cur[str(k) + '_' + str(q)].append(sr_idx)
+				PDR = GetPDR(sr_info_cur, G, PL, N_kq_cur, params, sr_idx)
+				Lifetime = GetLifetime(k, Ptx, PDR, params)
+
+				logging.debug('k: {} Ptx: {} q: {} PDR: {} Lifetime: {}'.format( \
+					k, Ptx, q, PDR, Lifetime))
+				if PDR >= params.PDR_th and Lifetime >= params.Lifetime_th:
+					# stop searching once PDR and lifetime requirements are met
+					succ = True
+					break
+				# Not selected to use this assignment, remove it
+				N_kq_cur[str(k) + '_' + str(q)].remove(sr_idx)
+
+			if succ:
+				break
+
+		if succ:
+			break
+
+	if succ:
+		m_gateway_cur[sr_idx] += 1
+		logging.info('succ: {} k: {} Ptx: {} q: {}'.format(succ, \
+			sr_info_cur[sr_idx, 2], sr_info_cur[sr_idx, 3], sr_info_cur[sr_idx, 4]))
+		# Only keep the assignment if it serves as the primary connection
+		# In other words, it uses the smallest SF
+		if sr_info[sr_idx, 2] >= 0 and sr_info_cur[sr_idx, 2] > sr_info[sr_idx, 2]: 
+			# There is existing assignment and existing SF is smaller
+			# Reset to the previous device settings
+			sr_info_cur[sr_idx, :] = np.copy(sr_info[sr_idx, :])
+
+	return succ, sr_info_cur, N_kq_cur, m_gateway_cur
 
 def plot(sr_info, G):
 	# Visualize the placement and device configuration
@@ -358,50 +416,18 @@ def main():
 			# the following sensors exceed the maximum communication range
 			# therefore we do not need to consider them
 			break
-		# Try to assign the minimum SF and channel based on the current sr_info
-		# and collision-possible nodes N_kq
+
+		# Calculate the min SF that can used by this end device according to distance
 		SF_min = maxDist.index( \
 			list(filter(lambda maxD: dist[sr_idx, gw_idx] <= maxD, maxDist))[0])
-		logging.info('SF_min: {}'.format(SF_min))
-		succ = False # whether a new assignment is success
-		SF_cur = int(sr_info[sr_idx, 2])
-		for k in range(SF_min, SF_cnt):
-			for q in range(CH_cnt):
-				for Ptx in params.Ptx:
-					sr_info_cur[sr_idx, 2] = k
-					sr_info_cur[sr_idx, 3] = Ptx
-					sr_info_cur[sr_idx, 4] = q
-					N_kq_cur[str(k) + '_' + str(q)].append(sr_idx)
-					PDR = GetPDR(sr_info_cur, G, PL, N_kq, params, sr_idx)
-					Lifetime = GetLifetime(k, Ptx, PDR, params)
-
-					logging.info('k: {} Ptx: {} q: {} PDR: {} Lifetime: {}'.format( \
-						k, Ptx, q, PDR, Lifetime))
-
-					if PDR >= params.PDR_th and Lifetime >= params.Lifetime_th:
-						# stop searching once PDR and lifetime requirements are met
-						succ = True
-						break
-					# Not selected to use this assignment, remove it
-					N_kq_cur[str(k) + '_' + str(q)].remove(sr_idx)
-
-				if succ:
-					break
-
-			if succ:
-				break
-
-		if succ:
-			m_gateway_cur[sr_idx] += 1
-			logging.info('succ: {} k: {} Ptx: {} q:{}'.format(succ, \
-				sr_info_cur[sr_idx, 2], sr_info_cur[sr_idx, 3], sr_info_cur[sr_idx, 4]))
-			# Only keep the assignment if it serves as the primary connection
-			# In other words, it uses the smallest SF
-			if sr_info[sr_idx, 2] >= 0 and sr_info_cur[sr_idx, 2] > sr_info[sr_idx, 2]: 
-				# There is existing assignment and existing SF is smaller
-				# Reset to the previous device settings
-				sr_info_cur[sr_idx, :] = np.copy(sr_info[sr_idx, :])
-		else: # All assignment attempts are failed, no more assignment can be made
+		logging.debug('SF_min: {}'.format(SF_min))
+		# Try to assign the minimum SF and channel based on the current sr_info
+		# and collision-possible nodes N_kq
+		succ, sr_info_cur, N_kq_cur, m_gateway_cur = DeviceConfiguration(sr_info_cur, \
+			sr_info, G, PL, N_kq_cur, m_gateway_cur, params, sr_idx, gw_idx, SF_min)
+		
+		if not succ:
+			# All assignment attempts are failed, no more assignment can be made
 			logging.info('All assignment attempts are failed!')
 			break
 				
@@ -419,7 +445,6 @@ def main():
 
 	# Reset
 	G[gw_idx, 2] = 0
-	N_kq[str(k) + '_' + str(q)].append(sr_idx)
 
 	# Check if there is still more benefit to gain
 	if bnft == 0:
@@ -436,7 +461,7 @@ def main():
 
 	# Check if m-gateway connectivity has been met at all end nodes
 	# If so, terminate the placement process
-	Uncover = np.ones((sr_cnt, 1)) * params.M - m_gateway_cur
+	Uncover = np.ones((sr_cnt, 1)) * params.M - m_gateway
 	Uncover = np.sum(Uncover[Uncover > 0])
 	logging.info('Uncover: {}'.format(Uncover))
 	#if Uncover <= 0:
