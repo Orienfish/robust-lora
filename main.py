@@ -5,6 +5,7 @@ import random
 import matplotlib.pyplot as plt
 import logging
 import os
+import copy
 logging.basicConfig(level=logging.INFO)
 
 import ICIOT
@@ -275,33 +276,41 @@ def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
 
 	succ = False # whether a new assignment is success
 	for k in range(SF_min, SF_cnt):
+
+		sr_info_cur[sr_idx, 2] = k
+
 		for q in range(CH_cnt):
+
+			sr_info_cur[sr_idx, 4] = q
+			N_kq_cur[str(k) + '_' + str(q)].append(sr_idx)
+
 			for Ptx in params.Ptx:
-				sr_info_cur[sr_idx, 2] = k
+				
 				sr_info_cur[sr_idx, 3] = Ptx
-				sr_info_cur[sr_idx, 4] = q
-				N_kq_cur[str(k) + '_' + str(q)].append(sr_idx)
+
 				PDR = GetPDR(sr_info_cur, G, PL, N_kq_cur, params, sr_idx)
 				Lifetime = GetLifetime(k, Ptx, PDR, params)
 
 				logging.debug('k: {} Ptx: {} q: {} PDR: {} Lifetime: {}'.format( \
 					k, Ptx, q, PDR, Lifetime))
+
 				if PDR >= params.PDR_th and Lifetime >= params.Lifetime_th:
 					# stop searching once PDR and lifetime requirements are met
 					succ = True
 					break
-				# Not selected to use this assignment, remove it
-				N_kq_cur[str(k) + '_' + str(q)].remove(sr_idx)
 
 			if succ:
 				break
+
+			# Not selected to use this assignment, remove it
+			N_kq_cur[str(k) + '_' + str(q)].remove(sr_idx)
 
 		if succ:
 			break
 
 	if succ:
 		m_gateway_cur[sr_idx] += 1
-		logging.info('succ: {} k: {} Ptx: {} q: {}'.format(succ, \
+		logging.debug('succ: {} k: {} Ptx: {} q: {}'.format(succ, \
 			sr_info_cur[sr_idx, 2], sr_info_cur[sr_idx, 3], sr_info_cur[sr_idx, 4]))
 		# Only keep the assignment if it serves as the primary connection
 		# In other words, it uses the smallest SF
@@ -372,19 +381,13 @@ def main():
 	# Use a dictionary to record the list of nodes using the SFk and channel q
 	SF_cnt = len(params.SF)
 	CH_cnt = len(params.CH)
-	N_kq = {}
+	N_kq = dict()
 	for k in range(SF_cnt):
 		for q in range(CH_cnt):
 			N_kq[str(k) + '_' + str(q)] = []
-	#for i in range(sr_cnt):
-	#	k = int(sr_info[i, 2])
-	#	q = int(sr_info[i, 4])
-	#	N_kq[str(k) + '_' + str(q)].append(i)
-	
 
 	maxDist = GetDist(propagation.LogDistancePathLossModel, params)
 	print(maxDist)
-
 
 	#cov_gw_sr = GetCoverage(G[:, :2], params.G_y, params.Unit_gw, sr_info[:, :2], \
 	#			 maxDist[len(params.SF)-1], params.L)
@@ -392,80 +395,82 @@ def main():
 
 	# Start greedily place gateway
 	m_gateway = np.zeros((sr_cnt, 1)) # Current gateway connectivity at each end node
-	#while True:
-	rounds = 0
-	bnft_old = -np.inf
-	next_idx = -1
-	next_sr_info = None
-	#for gw_idx in range(gw_cnt):
-	#	if G[gw_idx, 2]: # A gateway has been placed at this location
-	#		continue
+	while True:
+		rounds = 0
+		bnft_old = -np.inf
+		next_idx = -1
+		next_sr_info = None
+		for gw_idx in range(gw_cnt):
+			if G[gw_idx, 2]: # A gateway has been placed at this location
+				continue
 
-	gw_idx = 7
-	# Try to place gateway at gateway location idx and configure the sensor
-	G[gw_idx, 2] = 1
-	sr_info_cur = np.copy(sr_info)
-	N_kq_cur = N_kq.copy()
-	m_gateway_cur = np.copy(m_gateway)
+			# Try to place gateway at gateway location idx and configure the sensor
+			G[gw_idx, 2] = 1
+			sr_info_cur = np.copy(sr_info)
+			N_kq_cur = copy.deepcopy(N_kq)
+			m_gateway_cur = np.copy(m_gateway)
 
-	dist_gw_idx = dist[:, gw_idx] # distance to gateway idx
-	sort_idx = np.argsort(dist_gw_idx, axis=0) # index of distance sorting
-	for i in range(sr_cnt):
-		sr_idx = int(sort_idx[i])
-		if dist[sr_idx, gw_idx] > maxDist[len(params.SF)-1]:
-			# the following sensors exceed the maximum communication range
-			# therefore we do not need to consider them
-			break
+			dist_gw_idx = dist[:, gw_idx] # distance to gateway idx
+			sort_idx = np.argsort(dist_gw_idx, axis=0) # index of distance sorting
+			for i in range(sr_cnt):
+				sr_idx = int(sort_idx[i])
+				if dist[sr_idx, gw_idx] > maxDist[len(params.SF)-1]:
+					# the following sensors exceed the maximum communication range
+					# therefore we do not need to consider them
+					break
 
-		# Calculate the min SF that can used by this end device according to distance
-		SF_min = maxDist.index( \
-			list(filter(lambda maxD: dist[sr_idx, gw_idx] <= maxD, maxDist))[0])
-		logging.debug('SF_min: {}'.format(SF_min))
-		# Try to assign the minimum SF and channel based on the current sr_info
-		# and collision-possible nodes N_kq
-		succ, sr_info_cur, N_kq_cur, m_gateway_cur = DeviceConfiguration(sr_info_cur, \
-			sr_info, G, PL, N_kq_cur, m_gateway_cur, params, sr_idx, gw_idx, SF_min)
-		
-		if not succ:
-			# All assignment attempts are failed, no more assignment can be made
-			logging.info('All assignment attempts are failed!')
-			break
+				# Calculate the min SF that can used by this end device according to distance
+				SF_min = maxDist.index( \
+					list(filter(lambda maxD: dist[sr_idx, gw_idx] <= maxD, maxDist))[0])
+				logging.debug('SF_min: {}'.format(SF_min))
+				# Try to assign the minimum SF and channel based on the current sr_info
+				# and collision-possible nodes N_kq
+				succ, sr_info_cur, N_kq_cur, m_gateway_cur = DeviceConfiguration(sr_info_cur, \
+					sr_info, G, PL, N_kq_cur, m_gateway_cur, params, sr_idx, gw_idx, SF_min)
 				
-	# Calculate benefit of placing gateway at this location
-	bnft = np.sum(m_gateway_cur) - np.sum(m_gateway)
-	logging.info('Benefit: {}'.format(bnft))
+				if not succ:
+					# All assignment attempts are failed, no more assignment can be made
+					logging.debug('All assignment attempts are failed!')
+					break
+						
+			# Calculate benefit of placing gateway at this location
+			bnft = np.sum(m_gateway_cur) - np.sum(m_gateway)
 
-	# Update global best benefit value if necessary
-	if bnft > bnft_old:
-		bnft_old = bnft
-		next_idx = gw_idx
-		next_sr_info = sr_info_cur
-		next_N_kq = N_kq_cur
-		next_m_gateway = m_gateway_cur
+			# Update global best benefit value if necessary
+			if bnft > bnft_old:
+				bnft_old = bnft
+				next_idx = gw_idx
+				next_sr_info = sr_info_cur
+				next_N_kq = N_kq_cur
+				next_m_gateway = m_gateway_cur
 
-	# Reset
-	G[gw_idx, 2] = 0
+			# Logging
+			logging.info('gw_idx: {} Benefit: {} Max bnft: {} Max idx: {}'.format(\
+				gw_idx, bnft, bnft_old, next_idx))
 
-	# Check if there is still more benefit to gain
-	if bnft == 0:
-		logging.info('No more gateway placement can provide m-gateway connectivity benefit!')
-		#break
+			# Reset
+			G[gw_idx, 2] = 0
 
-	# Place a gateway at next_idx with the max benefit
-	G[next_idx, 2] = 1
-	sr_info = np.copy(next_sr_info)
-	N_kq = next_N_kq.copy()
-	m_gateway = np.copy(next_m_gateway)
-	logging.info('Placed gateway #{} at grid {} [{},{}]'.format( \
-		rounds, next_idx, G[next_idx, 0], G[next_idx, 1]))
+		# Check if there is no benefit to gain, end the searching while loop
+		if bnft == 0:
+			logging.info('No more gateway placement can provide m-gateway connectivity benefit!')
+			break
 
-	# Check if m-gateway connectivity has been met at all end nodes
-	# If so, terminate the placement process
-	Uncover = np.ones((sr_cnt, 1)) * params.M - m_gateway
-	Uncover = np.sum(Uncover[Uncover > 0])
-	logging.info('Uncover: {}'.format(Uncover))
-	#if Uncover <= 0:
-	#	break
+		# Place a gateway at next_idx with the max benefit
+		G[next_idx, 2] = 1
+		sr_info = np.copy(next_sr_info)
+		N_kq = next_N_kq.copy()
+		m_gateway = np.copy(next_m_gateway)
+		logging.info('Placed gateway #{} at grid {} [{},{}]'.format( \
+			rounds, next_idx, G[next_idx, 0], G[next_idx, 1]))
+
+		# Check if m-gateway connectivity has been met at all end nodes
+		# If so, terminate the placement process
+		Uncover = np.ones((sr_cnt, 1)) * params.M - m_gateway
+		Uncover = np.sum(Uncover[Uncover > 0])
+		logging.info('Uncover: {}'.format(Uncover))
+		if Uncover <= 0:
+			break
 
 	rounds += 1
 
