@@ -174,13 +174,13 @@ def DeviceConfiguration(sr_info, G, PL, params):
 
 	return sr_info
 
-def ICIOTAlg(sr_info_ori, G_ori, PL, params):
+def ICIOTAlg(sr_info_ogn, G_ogn, PL, params):
 	'''
 	Call the ICIOT gateway placement algorithm
 
 	Args:
-		sr_info: sensor placement and configuration
-		G: gateway placement
+		sr_info: original read-only sensor placement and configuration
+		G: original read-only gateway placement
 		PL: path loss matrix between sensors and potential gateways
 		params: important parameters
 
@@ -189,8 +189,8 @@ def ICIOTAlg(sr_info_ori, G_ori, PL, params):
 		G: resulted gateway placement
 	'''
 	# Make a deep copy of the original numpy array to avoid changes
-	sr_info = np.copy(sr_info_ori)
-	G = np.copy(G_ori)
+	sr_info = np.copy(sr_info_ogn)
+	G = np.copy(G_ogn)
 	sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
 

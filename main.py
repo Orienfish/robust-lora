@@ -177,16 +177,16 @@ def main():
 		# Plot result
 		plot(sr_info_res, G_res, 'R2')
 
-		params.M = 1
-		print(G)
-		sr_info_res, G_res, m_gateway_res = \
-			RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
+		#params.M = 1
+		#print(G)
+		#sr_info_res, G_res, m_gateway_res = \
+		#	RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
 		
 		# show m-gateway connectivity at each end device
-		print(np.reshape(m_gateway_res, (1, -1)))
+		#print(np.reshape(m_gateway_res, (1, -1)))
 
 		# Plot result
-		plot(sr_info_res, G_res, 'R1')
+		#plot(sr_info_res, G_res, 'R1')
 
 		# Write sensor and gateway information to file
 		# SaveInfo(sr_info, G, 'RGreedy')

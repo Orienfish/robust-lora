@@ -186,7 +186,8 @@ def GetPDR(sr_info, G, PL, N_kq, params, idx):
 def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
 	params, sr_idx, gw_idx, SF_min):
 	'''
-	Greedily select the SF, Ptx and CH configuration for sensor idx
+	Greedily select the SF, Ptx and CH configuration for sensor sr_idx considering
+	a new gateway is placed at gw_idx
 
 	Args:
 		sr_info_cur: current complete sensor/end device configuration
@@ -202,7 +203,9 @@ def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
 
 	Return:
 		succ: whether the configuration attempt is success
-		sr_info_cur: updated configuration
+		sr_info_cur: updated device configuration
+		N_kq_cur: updated collision dictionary
+		m_gateway_cur: updated m-gateway connectivity status
 	'''
 	SF_cnt = len(params.SF)
 	CH_cnt = len(params.CH)
@@ -245,23 +248,47 @@ def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
 		m_gateway_cur[sr_idx] += 1
 		logging.debug('succ: {} k: {} Ptx: {} q: {}'.format(succ, \
 			sr_info_cur[sr_idx, 2], sr_info_cur[sr_idx, 3], sr_info_cur[sr_idx, 4]))
-		# Only keep the assignment if it serves as the primary connection
-		# In other words, it uses the smallest SF
-		if sr_info[sr_idx, 2] >= 0 and sr_info_cur[sr_idx, 2] > sr_info[sr_idx, 2]: 
-			# There is existing assignment and existing SF is smaller
-			# Reset to the previous device settings
-			sr_info_cur[sr_idx, :] = np.copy(sr_info[sr_idx, :])
 
-	return succ, sr_info_cur, N_kq_cur, m_gateway_cur
+		if sr_info[sr_idx, 2] >= 0:
+			# If there are multple connectivities
+			new_k = int(sr_info_cur[sr_idx, 2])
+			old_k = int(sr_info[sr_idx, 2])
+			new_q = int(sr_info_cur[sr_idx, 4])
+			old_q = int(sr_info[sr_idx, 4])
+
+			if new_k == old_k and new_q == old_q:
+				# If the new configuration is exactly same as the old configuration
+				# do nothing
+				pass
+			elif new_k > old_k or \
+				(new_k == old_k and sr_info_cur[sr_idx, 3] > sr_info[sr_idx, 3]): 
+				# This new connectivity should be backup connectivity
+				# Remove the node from collision dictionary
+				# Reset to the previous device settings 
+				N_kq_cur[str(new_k) + '_' + str(new_q)].remove(sr_idx)
+				sr_info_cur[sr_idx, :] = np.copy(sr_info[sr_idx, :])
+			else:
+				# The old connectivity should be backup connectivity
+				# Remove the node from collision dictionary
+				# Keep the current device settings 
+				N_kq_cur[str(old_k) + '_' + str(old_q)].remove(sr_idx)
+
+	else:
+		# All device configuration attempts are failed, reset current sensor info
+		logging.debug('All device configuration attempts are failed!')
+		sr_info_cur[sr_idx, :] = np.copy(sr_info[sr_idx, :])
 
 
-def RGreedyAlg(sr_info_ori, G_ori, PL, dist, params):
+	return succ
+
+
+def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params):
 	'''
 	Call the robust gateway placement algorithm
 
 	Args:
-		sr_info: sensor placement and configuration
-		G: gateway placement
+		sr_info: original read-only sensor placement and configuration
+		G: original read-only gateway placement
 		PL: path loss matrix between sensors and potential gateways
 		dist: distance matrix between sensors and potential gateways
 		params: important parameters
@@ -271,12 +298,13 @@ def RGreedyAlg(sr_info_ori, G_ori, PL, dist, params):
 		G: resulted gateway placement
 	'''
 	# Make a deep copy of the original numpy array to avoid changes
-	sr_info = np.copy(sr_info_ori)
-	G = np.copy(G_ori)
+	sr_info = np.copy(sr_info_ogn)
+	G = np.copy(G_ogn)
 	sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
 
 	# Use a dictionary to record the list of nodes using the SFk and channel q
+	# Note that the dictionary only records the primary connection
 	SF_cnt = len(params.SF)
 	CH_cnt = len(params.CH)
 	N_kq = dict()
@@ -306,6 +334,7 @@ def RGreedyAlg(sr_info_ori, G_ori, PL, dist, params):
 				continue
 
 			# Try to place gateway at gateway location idx and configure the sensor
+			# Create a deep copy of the original info for this gateway placement attempt
 			G[gw_idx, 2] = 1
 			sr_info_cur = np.copy(sr_info)
 			N_kq_cur = copy.deepcopy(N_kq)
@@ -326,12 +355,11 @@ def RGreedyAlg(sr_info_ori, G_ori, PL, dist, params):
 				logging.debug('SF_min: {}'.format(SF_min))
 				# Try to assign the minimum SF and channel based on the current sr_info
 				# and collision-possible nodes N_kq
-				succ, sr_info_cur, N_kq_cur, m_gateway_cur = DeviceConfiguration(sr_info_cur, \
+				succ = DeviceConfiguration(sr_info_cur, \
 					sr_info, G, PL, N_kq_cur, m_gateway_cur, params, sr_idx, gw_idx, SF_min)
 				
 				if not succ:
 					# All assignment attempts are failed, no more assignment can be made
-					logging.debug('All assignment attempts are failed!')
 					break
 						
 			# Calculate benefit of placing gateway at this location
