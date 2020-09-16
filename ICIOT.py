@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import numpy as np
-import math
-import matplotlib.pyplot as plt
+# import math
+# import matplotlib.pyplot as plt
 import logging
 
 import propagation
@@ -185,8 +185,8 @@ def ICIOTAlg(sr_info, G, PL, params):
 		params: important parameters
 
 	Returns:
-		gw_place: a binary vector of gateway placement decision
 		sr_info: sensor configuration
+		G: resulted gateway placement
 	'''
 	sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
@@ -245,5 +245,4 @@ def ICIOTAlg(sr_info, G, PL, params):
 		logging.info("Placed gateway #{} at grid {} [{},{}]".format( \
 			rounds, next_idx, G[next_idx, 0], G[next_idx, 1]))
 
-	gw_place = G[:, 2]
-	return gw_place, sr_info
+	return sr_info, G
