@@ -75,8 +75,8 @@ class params:
 
 # which algorithm to run
 class run:
-	ICIOT = True
 	RGreedy = True
+	ICIOT = False
 
 
 def plot(sr_info, G, method):

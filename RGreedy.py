@@ -370,15 +370,15 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params):
 			# Update global best benefit value if necessary
 			if bnft > bnft_best:
 				bnft_best = bnft
-				next_idx = gw_idx
-				next_sr_info = sr_info_cur
-				next_N_kq = N_kq_cur
-				next_m_gateway = m_gateway_cur
-				next_uncover = uncover_new
+				best_idx = gw_idx
+				best_sr_info = sr_info_cur
+				best_N_kq = N_kq_cur
+				best_m_gateway = m_gateway_cur
+				best_uncover = uncover_new
 
 			# Logging
-			logging.debug('gw_idx: {} Benefit: {} Max bnft: {} Max idx: {}'.format(\
-				gw_idx, bnft, bnft_best, next_idx))
+			logging.info('gw_idx: {} Benefit: {} Max bnft: {} Max idx: {}'.format(\
+				gw_idx, bnft, bnft_best, best_idx))
 
 			# Reset
 			G[gw_idx, 2] = 0
@@ -389,14 +389,14 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params):
 			break
 
 		# Place a gateway at next_idx with the max benefit and update info
-		G[next_idx, 2] = 1
-		sr_info = np.copy(next_sr_info)
-		N_kq = next_N_kq.copy()
-		m_gateway = np.copy(next_m_gateway)
-		uncover_old = next_uncover
+		G[best_idx, 2] = 1
+		sr_info = best_sr_info
+		N_kq = best_N_kq
+		m_gateway = best_m_gateway
+		uncover_old = best_uncover
 
 		logging.info('Placed gateway #{} at grid {} [{},{}]'.format( \
-			rounds, next_idx, G[next_idx, 0], G[next_idx, 1]))
+			rounds, best_idx, G[best_idx, 0], G[best_idx, 1]))
 		logging.info('Uncover: {}'.format(uncover_old))
 
 		# Check if m-gateway connectivity has been met at all end nodes
