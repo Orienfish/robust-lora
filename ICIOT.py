@@ -174,7 +174,7 @@ def DeviceConfiguration(sr_info, G, PL, params):
 
 	return sr_info
 
-def ICIOTAlg(sr_info, G, PL, params):
+def ICIOTAlg(sr_info_ori, G_ori, PL, params):
 	'''
 	Call the ICIOT gateway placement algorithm
 
@@ -188,8 +188,12 @@ def ICIOTAlg(sr_info, G, PL, params):
 		sr_info: sensor configuration
 		G: resulted gateway placement
 	'''
+	# Make a deep copy of the original numpy array to avoid changes
+	sr_info = np.copy(sr_info_ori)
+	G = np.copy(G_ori)
 	sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
+
 	# Start the greedy gateway placement algorithm
 	for rounds in range(params.desired_gw_cnt):
 		obj_old = -np.inf

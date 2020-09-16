@@ -255,7 +255,7 @@ def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
 	return succ, sr_info_cur, N_kq_cur, m_gateway_cur
 
 
-def RGreedyAlg(sr_info, G, PL, dist, params):
+def RGreedyAlg(sr_info_ori, G_ori, PL, dist, params):
 	'''
 	Call the robust gateway placement algorithm
 
@@ -270,8 +270,12 @@ def RGreedyAlg(sr_info, G, PL, dist, params):
 		sr_info: sensor configuration
 		G: resulted gateway placement
 	'''
+	# Make a deep copy of the original numpy array to avoid changes
+	sr_info = np.copy(sr_info_ori)
+	G = np.copy(G_ori)
 	sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
+
 	# Use a dictionary to record the list of nodes using the SFk and channel q
 	SF_cnt = len(params.SF)
 	CH_cnt = len(params.CH)
@@ -295,7 +299,7 @@ def RGreedyAlg(sr_info, G, PL, dist, params):
 	while True:
 
 		# Variables to record the best gateway location in the current round
-		bnft_old = -np.inf
+		bnft_best = -np.inf
 		
 		for gw_idx in range(gw_cnt):
 			if G[gw_idx, 2]: # A gateway has been placed at this location
@@ -336,8 +340,8 @@ def RGreedyAlg(sr_info, G, PL, dist, params):
 			bnft = uncover_old - uncover_new
 
 			# Update global best benefit value if necessary
-			if bnft > bnft_old:
-				bnft_old = bnft
+			if bnft > bnft_best:
+				bnft_best = bnft
 				next_idx = gw_idx
 				next_sr_info = sr_info_cur
 				next_N_kq = N_kq_cur
@@ -345,14 +349,14 @@ def RGreedyAlg(sr_info, G, PL, dist, params):
 				next_uncover = uncover_new
 
 			# Logging
-			logging.info('gw_idx: {} Benefit: {} Max bnft: {} Max idx: {}'.format(\
-				gw_idx, bnft, bnft_old, next_idx))
+			logging.debug('gw_idx: {} Benefit: {} Max bnft: {} Max idx: {}'.format(\
+				gw_idx, bnft, bnft_best, next_idx))
 
 			# Reset
 			G[gw_idx, 2] = 0
 
 		# Check if there is no benefit to gain, end the searching while loop
-		if bnft == 0:
+		if bnft_best == 0:
 			logging.info('No more gateway placement can provide m-gateway connectivity benefit!')
 			break
 
@@ -374,4 +378,4 @@ def RGreedyAlg(sr_info, G, PL, dist, params):
 
 		rounds += 1
 
-	return sr_info, G
+	return sr_info, G, m_gateway

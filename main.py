@@ -16,7 +16,7 @@ import propagation
 # Important parameters
 ########################################
 class params:
-	L = 50000			# Edge of analysis area
+	L = 50000			# Edge of analysis area in m
 	N_x = 1000			# Number of sensor potential locations on x coordinate
 	N_y = 1000			# Number of sensor potential locations on y coordinate
 	Unit_sr = math.floor(L / (N_x-1)) # Unit length between gw grid points
@@ -25,7 +25,7 @@ class params:
 	G_x = 6     	 	# Number of gateway potential locations on x coordinate
 	G_y = 6				# Number of gateway potential locations on y coordinate
 	Unit_gw = math.floor(L / (G_x-1)) # Unit length between gw grid points
-	desired_gw_cnt = 10 # Desired gateways to place
+	desired_gw_cnt = 10 # Desired gateways to place by ICIOT alg
 
 	# Version of log propagation model
 	LogPropVer = 'Dongare'
@@ -75,11 +75,11 @@ class params:
 
 # which algorithm to run
 class run:
-	ICIOT = False
+	ICIOT = True
 	RGreedy = True
 
 
-def plot(sr_info, G):
+def plot(sr_info, G, method):
 	# Visualize the placement and device configuration
 	# sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
@@ -91,8 +91,9 @@ def plot(sr_info, G):
 	plt.scatter(G[:, 0], G[:, 1], s=G[:, 2]*50, c=color, marker='^')
 	plt.xlabel('X (m)'); plt.ylabel('Y (m)');
 	# plt.legend()
-	plt.savefig('vis.png')
-	plt.show()
+	filename = 'vis_{}.png'.format(method)
+	plt.savefig(filename)
+	# plt.show()
 
 def SaveInfo(sr_info, G, method):
 	'''
@@ -166,22 +167,38 @@ def main():
 
 	
 	if run.RGreedy:
-		sr_info, G = RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
+		params.M = 2
+		sr_info_res, G_res, m_gateway_res = \
+			RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
 
-		# Write sensor and gateway information to file
-		SaveInfo(sr_info, G, 'RGreedy')
+		# show m-gateway connectivity at each end device
+		print(np.reshape(m_gateway_res, (1, -1)))
 
 		# Plot result
-		plot(sr_info, G)
+		plot(sr_info_res, G_res, 'R2')
+
+		params.M = 1
+		print(G)
+		sr_info_res, G_res, m_gateway_res = \
+			RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
+		
+		# show m-gateway connectivity at each end device
+		print(np.reshape(m_gateway_res, (1, -1)))
+
+		# Plot result
+		plot(sr_info_res, G_res, 'R1')
+
+		# Write sensor and gateway information to file
+		# SaveInfo(sr_info, G, 'RGreedy')
 
 	if run.ICIOT:
-		sr_info, G = ICIOT.ICIOTAlg(sr_info, G, PL, params)
-
-		# Write sensor and gateway information to file
-		SaveInfo(sr_info, G, 'ICIOT')
+		sr_info_res, G_res = ICIOT.ICIOTAlg(sr_info, G, PL, params)
 
 		# Plot result
-		plot(sr_info, G)
+		plot(sr_info_res, G_res, 'ICIOT')
+
+		# Write sensor and gateway information to file
+		SaveInfo(sr_info_res, G_res, 'ICIOT')
 
 
 if __name__ == '__main__':
