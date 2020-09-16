@@ -16,15 +16,15 @@ import propagation
 # Important parameters
 ########################################
 class params:
-	L = 50000			# Edge of analysis area in m
-	N_x = 1000			# Number of sensor potential locations on x coordinate
-	N_y = 1000			# Number of sensor potential locations on y coordinate
-	Unit_sr = math.floor(L / (N_x-1)) # Unit length between gw grid points
+	L = 60000			# Edge of analysis area in m
+	#N_x = 1000			# Number of sensor potential locations on x coordinate
+	#N_y = 1000			# Number of sensor potential locations on y coordinate
+	#Unit_sr = math.floor(L / (N_x-1)) # Unit length between gw grid points
 	#G_x = math.floor(N_x * Unit_sr / Unit_gw)
 	#G_y = math.floor(N_y * Unit_sr / Unit_gw)
 	G_x = 6     	 	# Number of gateway potential locations on x coordinate
 	G_y = 6				# Number of gateway potential locations on y coordinate
-	Unit_gw = math.floor(L / (G_x-1)) # Unit length between gw grid points
+	Unit_gw = math.floor(L / G_x) # Unit length between gw grid points
 	desired_gw_cnt = 10 # Desired gateways to place by ICIOT alg
 
 	# Version of log propagation model
@@ -76,7 +76,7 @@ class params:
 # which algorithm to run
 class run:
 	RGreedy = True
-	ICIOT = False
+	ICIOT = True
 
 
 def plot(sr_info, G, method):
@@ -133,7 +133,7 @@ def main():
 	G = []				# [x, y, placed or not]
 	for p in range(params.G_x):
 		for q in range(params.G_y):
-			new_loc = [p * params.Unit_gw, q * params.Unit_gw, 0]
+			new_loc = [(p + 0.5) * params.Unit_gw, (q + 0.5) * params.Unit_gw, 0]
 			G.append(new_loc)
 	G = np.array(G)
 	gw_cnt = params.G_x * params.G_y  # Number of gw potential locations
@@ -142,7 +142,7 @@ def main():
 	noise = np.zeros((gw_cnt, len(params.SF), len(params.CH)))
 
 	# Randomly generate sensor positions
-	sr_cnt = 100 #50000		# Number of sensors
+	sr_cnt = 500 #50000		# Number of sensors
 	sr_info = []		# [x, y, SF, Ptx, CH]
 	for i in range(sr_cnt):	
 		k = -1 #random.randint(0, len(params.SF)-1) # SFk
@@ -177,16 +177,15 @@ def main():
 		# Plot result
 		plot(sr_info_res, G_res, 'R2')
 
-		#params.M = 1
-		#print(G)
-		#sr_info_res, G_res, m_gateway_res = \
-		#	RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
+		params.M = 1
+		sr_info_res, G_res, m_gateway_res = \
+			RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
 		
 		# show m-gateway connectivity at each end device
-		#print(np.reshape(m_gateway_res, (1, -1)))
+		print(np.reshape(m_gateway_res, (1, -1)))
 
 		# Plot result
-		#plot(sr_info_res, G_res, 'R1')
+		plot(sr_info_res, G_res, 'R1')
 
 		# Write sensor and gateway information to file
 		# SaveInfo(sr_info, G, 'RGreedy')

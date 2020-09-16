@@ -10,6 +10,8 @@ import propagation
 ########################################
 # RGreedy Alg
 ########################################
+penalty = 0 # Penalize redundant connectivity
+
 def GetDist(propFunc, params):
 	'''
 	Get the transmission distance for each SF under maximum transmission power
@@ -363,8 +365,9 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params):
 					break
 						
 			# Calculate benefit of placing gateway at this location
-			uncover_new = np.ones((sr_cnt, 1)) * params.M - m_gateway_cur
-			uncover_new = np.sum(uncover_new[uncover_new > 0])
+			conn_cur = np.ones((sr_cnt, 1)) * params.M - m_gateway_cur
+			uncover_new = np.sum(conn_cur[conn_cur > 0])
+			# Benefit function: promote new connectivity and penalize redundant connectivity
 			bnft = uncover_old - uncover_new
 
 			# Update global best benefit value if necessary
@@ -377,7 +380,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params):
 				best_uncover = uncover_new
 
 			# Logging
-			logging.info('gw_idx: {} Benefit: {} Max bnft: {} Max idx: {}'.format(\
+			logging.debug('gw_idx: {} Benefit: {} Max bnft: {} Max idx: {}'.format(\
 				gw_idx, bnft, bnft_best, best_idx))
 
 			# Reset

@@ -195,7 +195,9 @@ def ICIOTAlg(sr_info_ogn, G_ogn, PL, params):
 	gw_cnt = G.shape[0]
 
 	# Start the greedy gateway placement algorithm
-	for rounds in range(params.desired_gw_cnt):
+	#for rounds in range(params.desired_gw_cnt):
+	rounds = 0
+	while True:
 		obj_old = -np.inf
 		next_idx = -1
 		next_sr_info = None
@@ -239,6 +241,7 @@ def ICIOTAlg(sr_info_ogn, G_ogn, PL, params):
 				obj_old = obj
 				next_idx = idx
 				next_sr_info = np.copy(sr_info)
+				next_PDR = np.copy(PDR)
 
 			# reset
 			G[idx, 2] = 0
@@ -248,5 +251,11 @@ def ICIOTAlg(sr_info_ogn, G_ogn, PL, params):
 		sr_info = np.copy(next_sr_info)
 		logging.info("Placed gateway #{} at grid {} [{},{}]".format( \
 			rounds, next_idx, G[next_idx, 0], G[next_idx, 1]))
+
+		# If the packet deliver ratio at each end device is ensured, end the loop
+		if np.min(next_PDR) >= params.PDR_th:
+			break
+
+		rounds += 1
 
 	return sr_info, G
