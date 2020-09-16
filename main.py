@@ -355,7 +355,7 @@ def main():
 	noise = np.zeros((gw_cnt, len(params.SF), len(params.CH)))
 
 	# Randomly generate sensor positions
-	sr_cnt = 1000 #50000		# Number of sensors
+	sr_cnt = 100 #50000		# Number of sensors
 	sr_info = []		# [x, y, SF, Ptx, CH]
 	for i in range(sr_cnt):	
 		k = -1 #random.randint(0, len(params.SF)-1) # SFk
@@ -393,13 +393,16 @@ def main():
 	#			 maxDist[len(params.SF)-1], params.L)
 	#print(cov_gw_sr)
 
-	# Start greedily place gateway
 	m_gateway = np.zeros((sr_cnt, 1)) # Current gateway connectivity at each end node
+	uncover_old = sr_cnt * params.M
+	rounds = 0
+
+	# Start greedily place gateway
 	while True:
-		rounds = 0
+
+		# Variables to record the best gateway location in the current round
 		bnft_old = -np.inf
-		next_idx = -1
-		next_sr_info = None
+		
 		for gw_idx in range(gw_cnt):
 			if G[gw_idx, 2]: # A gateway has been placed at this location
 				continue
@@ -434,7 +437,9 @@ def main():
 					break
 						
 			# Calculate benefit of placing gateway at this location
-			bnft = np.sum(m_gateway_cur) - np.sum(m_gateway)
+			uncover_new = np.ones((sr_cnt, 1)) * params.M - m_gateway_cur
+			uncover_new = np.sum(uncover_new[uncover_new > 0])
+			bnft = uncover_old - uncover_new
 
 			# Update global best benefit value if necessary
 			if bnft > bnft_old:
@@ -443,6 +448,7 @@ def main():
 				next_sr_info = sr_info_cur
 				next_N_kq = N_kq_cur
 				next_m_gateway = m_gateway_cur
+				next_uncover = uncover_new
 
 			# Logging
 			logging.info('gw_idx: {} Benefit: {} Max bnft: {} Max idx: {}'.format(\
@@ -456,23 +462,24 @@ def main():
 			logging.info('No more gateway placement can provide m-gateway connectivity benefit!')
 			break
 
-		# Place a gateway at next_idx with the max benefit
+		# Place a gateway at next_idx with the max benefit and update info
 		G[next_idx, 2] = 1
 		sr_info = np.copy(next_sr_info)
 		N_kq = next_N_kq.copy()
 		m_gateway = np.copy(next_m_gateway)
+		uncover_old = next_uncover
+
 		logging.info('Placed gateway #{} at grid {} [{},{}]'.format( \
 			rounds, next_idx, G[next_idx, 0], G[next_idx, 1]))
+		logging.info('Uncover: {}'.format(uncover_old))
 
 		# Check if m-gateway connectivity has been met at all end nodes
 		# If so, terminate the placement process
-		Uncover = np.ones((sr_cnt, 1)) * params.M - m_gateway
-		Uncover = np.sum(Uncover[Uncover > 0])
-		logging.info('Uncover: {}'.format(Uncover))
-		if Uncover <= 0:
+		if uncover_old <= 0:
 			break
 
-	rounds += 1
+		rounds += 1
+
 
 	plot(sr_info, G)
 
