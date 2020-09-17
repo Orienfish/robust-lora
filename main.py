@@ -5,6 +5,7 @@ import random
 import matplotlib.pyplot as plt
 import logging
 import os
+import time
 logging.basicConfig(level=logging.INFO)
 
 import ICIOT
@@ -22,8 +23,8 @@ class params:
 	#Unit_sr = math.floor(L / (N_x-1)) # Unit length between gw grid points
 	#G_x = math.floor(N_x * Unit_sr / Unit_gw)
 	#G_y = math.floor(N_y * Unit_sr / Unit_gw)
-	G_x = 6     	 	# Number of gateway potential locations on x coordinate
-	G_y = 6				# Number of gateway potential locations on y coordinate
+	G_x = 15     	 	# Number of gateway potential locations on x coordinate
+	G_y = 15			# Number of gateway potential locations on y coordinate
 	Unit_gw = math.floor(L / G_x) # Unit length between gw grid points
 	desired_gw_cnt = 10 # Desired gateways to place by ICIOT alg
 
@@ -70,16 +71,17 @@ class params:
 	# Power of additive white Gaussian noise with zero-mean
 	N0 = 1e-15 # in W
 
-	PDR_th = 0.7		# PDR threshold at each end node
+	PDR_th = 0.8		# PDR threshold at each end node
 	Lifetime_th = 1		# Lifetime threshold at each end node in years
 
 # which algorithm to run
 class run:
+	iter = 10
 	RGreedy = True
-	ICIOT = True
+	ICIOT = False
 
 
-def plot(sr_info, G, method):
+def plot(sr_info, G, version):
 	# Visualize the placement and device configuration
 	# sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
@@ -91,7 +93,7 @@ def plot(sr_info, G, method):
 	plt.scatter(G[:, 0], G[:, 1], s=G[:, 2]*50, c=color, marker='^')
 	plt.xlabel('X (m)'); plt.ylabel('Y (m)');
 	# plt.legend()
-	filename = 'vis_{}.png'.format(method)
+	filename = 'vis_{}.png'.format(version)
 	plt.savefig(filename)
 	# plt.show()
 
@@ -122,6 +124,12 @@ def SaveInfo(sr_info, G, method):
 				out.write(str(round(G[i, 0], 2)) + ' ' + \
 					str(round(G[i, 1], 2)) + '\n')
 
+def SaveRes(sr_cnt, M, gw_cnt, time):
+	# Log results
+	with open('res.txt', 'a') as out:
+		out.write(str(sr_cnt) + ' ' + str(M) + ' ' + \
+			str(gw_cnt) + ' ' + str(time) + '\n')
+
 
 ########################################
 # Main Process
@@ -142,62 +150,92 @@ def main():
 	noise = np.zeros((gw_cnt, len(params.SF), len(params.CH)))
 
 	# Randomly generate sensor positions
-	sr_cnt = 500 #50000		# Number of sensors
-	sr_info = []		# [x, y, SF, Ptx, CH]
-	for i in range(sr_cnt):	
-		k = -1 #random.randint(0, len(params.SF)-1) # SFk
-		q = -1 # random.randint(0, len(params.CH)-1) # Channel q
-		new_loc = [random.random() * params.L, random.random() * params.L, \
-			k, params.Ptx_max, q]
-		sr_info.append(new_loc)
-	sr_info = np.array(sr_info)
-	# print(sr_info)
+	for sr_cnt in [100, 500, 1000, 5000]: # Number of sensors
 
-	# Generate path loss and distance matrix between sensor i and gateway j
-	PL = np.zeros((sr_cnt, gw_cnt))
-	dist = np.zeros((sr_cnt, gw_cnt))
-	for i in range(sr_cnt):
-		for j in range(gw_cnt):
-			loc1 = sr_info[i, :2]
-			loc2 = G[j, :2]
-			dist[i, j] = np.sqrt(np.sum((loc1 - loc2)**2))
-			PL[i, j] = propagation.LogDistancePathLossModel(d=dist[i, j], \
-				ver=params.LogPropVer)
-	# print(PL)
+		for it in range(run.iter):
+			# Experiment iterations to evaluate diff random init
+			logging.info('sr_cnt: {} iter: {}'.format(sr_cnt, it))
 
-	
-	if run.RGreedy:
-		params.M = 2
-		sr_info_res, G_res, m_gateway_res = \
-			RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
+			sr_info = []				# [x, y, SF, Ptx, CH]
+			for i in range(sr_cnt):	
+				k = -1 #random.randint(0, len(params.SF)-1) # SFk
+				q = -1 # random.randint(0, len(params.CH)-1) # Channel q
+				new_loc = [random.random() * params.L, random.random() * params.L, \
+					k, params.Ptx_max, q]
+				sr_info.append(new_loc)
+			sr_info = np.array(sr_info)
+			# print(sr_info)
 
-		# show m-gateway connectivity at each end device
-		print(np.reshape(m_gateway_res, (1, -1)))
+			# Generate path loss and distance matrix between sensor i and gateway j
+			PL = np.zeros((sr_cnt, gw_cnt))
+			dist = np.zeros((sr_cnt, gw_cnt))
+			for i in range(sr_cnt):
+				for j in range(gw_cnt):
+					loc1 = sr_info[i, :2]
+					loc2 = G[j, :2]
+					dist[i, j] = np.sqrt(np.sum((loc1 - loc2)**2))
+					PL[i, j] = propagation.LogDistancePathLossModel(d=dist[i, j], \
+						ver=params.LogPropVer)
+			# print(PL)
 
-		# Plot result
-		plot(sr_info_res, G_res, 'R2')
+			if run.RGreedy:
+				
+				params.M = 3
+				logging.info('Running M = {}'.format(params.M))
+				st_time = time.time()
+				sr_info_res, G_res, m_gateway_res = \
+					RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
+				run_time = time.time() - st_time
 
-		params.M = 1
-		sr_info_res, G_res, m_gateway_res = \
-			RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
-		
-		# show m-gateway connectivity at each end device
-		print(np.reshape(m_gateway_res, (1, -1)))
+				# show m-gateway connectivity at each end device
+				print(np.reshape(m_gateway_res, (1, -1)))
 
-		# Plot result
-		plot(sr_info_res, G_res, 'R1')
+				# Plot and log result
+				plot(sr_info_res, G_res, 'R{}_{}'.format(params.M, sr_cnt))
+				SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
-		# Write sensor and gateway information to file
-		# SaveInfo(sr_info, G, 'RGreedy')
+				params.M = 2
+				logging.info('Running M = {}'.format(params.M))
+				st_time = time.time()
+				sr_info_res, G_res, m_gateway_res = \
+					RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
+				run_time = time.time() - st_time
 
-	if run.ICIOT:
-		sr_info_res, G_res = ICIOT.ICIOTAlg(sr_info, G, PL, params)
+				# show m-gateway connectivity at each end device
+				print(np.reshape(m_gateway_res, (1, -1)))
 
-		# Plot result
-		plot(sr_info_res, G_res, 'ICIOT')
+				# Plot and log result
+				plot(sr_info_res, G_res, 'R{}_{}'.format(params.M, sr_cnt))
+				SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
-		# Write sensor and gateway information to file
-		SaveInfo(sr_info_res, G_res, 'ICIOT')
+				params.M = 1
+				logging.info('Running M = {}'.format(params.M))
+				st_time = time.time()
+				sr_info_res, G_res, m_gateway_res = \
+					RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
+				run_time = time.time() - st_time
+				
+				# show m-gateway connectivity at each end device
+				print(np.reshape(m_gateway_res, (1, -1)))
+
+				# Plot and log result
+				plot(sr_info_res, G_res, 'R{}_{}'.format(params.M, sr_cnt))
+				SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
+
+				# Write sensor and gateway information to file
+				# SaveInfo(sr_info, G, 'RGreedy')
+				
+
+			if run.ICIOT:
+				st_time = time.time()
+				sr_info_res, G_res = ICIOT.ICIOTAlg(sr_info, G, PL, params)
+				run_time = time.time() - st_time
+
+				# Plot result
+				plot(sr_info_res, G_res, 'ICIOT')
+
+				# Write sensor and gateway information to file
+				SaveInfo(sr_info_res, G_res, 'ICIOT')
 
 
 if __name__ == '__main__':

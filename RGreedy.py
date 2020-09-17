@@ -315,11 +315,11 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params):
 			N_kq[str(k) + '_' + str(q)] = []
 
 	maxDist = GetDist(propagation.LogDistancePathLossModel, params)
-	print(maxDist)
+	# print(maxDist)
 
-	#cov_gw_sr = GetCoverage(G[:, :2], params.G_y, params.Unit_gw, sr_info[:, :2], \
-	#			 maxDist[len(params.SF)-1], params.L)
-	#print(cov_gw_sr)
+	# cov_gw_sr = GetCoverage(G[:, :2], params.G_y, params.Unit_gw, sr_info[:, :2], \
+	# 			 maxDist[len(params.SF)-1], params.L)
+	# print(cov_gw_sr)
 
 	m_gateway = np.zeros((sr_cnt, 1)) # Current gateway connectivity at each end node
 	uncover_old = sr_cnt * params.M
