@@ -23,8 +23,8 @@ class params:
 	#Unit_sr = math.floor(L / (N_x-1)) # Unit length between gw grid points
 	#G_x = math.floor(N_x * Unit_sr / Unit_gw)
 	#G_y = math.floor(N_y * Unit_sr / Unit_gw)
-	G_x = 15     	 	# Number of gateway potential locations on x coordinate
-	G_y = 15			# Number of gateway potential locations on y coordinate
+	G_x = 12     	 	# Number of gateway potential locations on x coordinate
+	G_y = 12			# Number of gateway potential locations on y coordinate
 	Unit_gw = math.floor(L / G_x) # Unit length between gw grid points
 	desired_gw_cnt = 10 # Desired gateways to place by ICIOT alg
 
@@ -76,7 +76,7 @@ class params:
 
 # which algorithm to run
 class run:
-	iter = 10
+	iter = 1
 	RGreedy = True
 	ICIOT = False
 
@@ -86,7 +86,7 @@ def plot(sr_info, G, version):
 	# sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
 	plt.figure()
-	colorList = ['b', 'g', 'y', 'm', 'w', 'r', 'k', 'c']
+	colorList = ['tab:blue', 'tab:orange', 'tab:green', 'tab:purple']
 	color = [colorList[int(i)] for i in list(sr_info[:, 2])]
 	plt.scatter(sr_info[:, 0], sr_info[:, 1], c=color , s=5)
 	color = ['r' for i in range(gw_cnt)]
@@ -150,8 +150,8 @@ def main():
 	noise = np.zeros((gw_cnt, len(params.SF), len(params.CH)))
 
 	# Randomly generate sensor positions
-	for sr_cnt in [100, 500, 1000, 5000]: # Number of sensors
-
+	#for sr_cnt in [100, 500, 1000, 5000]: # Number of sensors
+	for sr_cnt in [1000]:
 		for it in range(run.iter):
 			# Experiment iterations to evaluate diff random init
 			logging.info('sr_cnt: {} iter: {}'.format(sr_cnt, it))
@@ -179,48 +179,21 @@ def main():
 			# print(PL)
 
 			if run.RGreedy:
-				
-				params.M = 3
-				logging.info('Running M = {}'.format(params.M))
-				st_time = time.time()
-				sr_info_res, G_res, m_gateway_res = \
-					RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
-				run_time = time.time() - st_time
+				for M in [1]: #[3, 2, 1]:
+					params.M = M
+					logging.info('Running M = {}'.format(params.M))
+					st_time = time.time()
+					sr_info_res, G_res, m_gateway_res = \
+						RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
+					run_time = time.time() - st_time
 
-				# show m-gateway connectivity at each end device
-				print(np.reshape(m_gateway_res, (1, -1)))
+					# show m-gateway connectivity at each end device
+					print(np.reshape(m_gateway_res, (1, -1)))
 
-				# Plot and log result
-				plot(sr_info_res, G_res, 'R{}_{}'.format(params.M, sr_cnt))
-				SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
+					# Plot and log result
+					plot(sr_info_res, G_res, 'R{}_{}'.format(params.M, sr_cnt))
+					SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
-				params.M = 2
-				logging.info('Running M = {}'.format(params.M))
-				st_time = time.time()
-				sr_info_res, G_res, m_gateway_res = \
-					RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
-				run_time = time.time() - st_time
-
-				# show m-gateway connectivity at each end device
-				print(np.reshape(m_gateway_res, (1, -1)))
-
-				# Plot and log result
-				plot(sr_info_res, G_res, 'R{}_{}'.format(params.M, sr_cnt))
-				SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
-
-				params.M = 1
-				logging.info('Running M = {}'.format(params.M))
-				st_time = time.time()
-				sr_info_res, G_res, m_gateway_res = \
-					RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
-				run_time = time.time() - st_time
-				
-				# show m-gateway connectivity at each end device
-				print(np.reshape(m_gateway_res, (1, -1)))
-
-				# Plot and log result
-				plot(sr_info_res, G_res, 'R{}_{}'.format(params.M, sr_cnt))
-				SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
 				# SaveInfo(sr_info, G, 'RGreedy')

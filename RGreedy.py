@@ -386,6 +386,10 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params):
 			# Reset
 			G[gw_idx, 2] = 0
 
+			# Early ending if already satisfy all uncovers
+			if uncover_new == 0:
+				break
+
 		# Check if there is no benefit to gain, end the searching while loop
 		if bnft_best == 0:
 			logging.info('No more gateway placement can provide m-gateway connectivity benefit!')
