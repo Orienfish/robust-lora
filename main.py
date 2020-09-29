@@ -113,9 +113,11 @@ def SaveInfo(sr_info, G, method):
 	filename = 'sr_{}.txt'.format(method)
 	with open (filename, 'w') as out:
 		for i in range(sr_cnt):
+			# Note: we need to convert SF to data rate (DR)
+			# SF7 - DR3, SF8 - DR2, SF9 - DR1, SF10 - DR0
 			out.write(str(round(sr_info[i, 0], 2)) + ' ' + \
 				str(round(sr_info[i, 1], 2)) + ' ' + \
-				str(int(sr_info[i, 2])) + ' ' + \
+				str(int(3 - sr_info[i, 2])) + ' ' + \
 				str(round(sr_info[i, 3])) + '\n')
 	filename = 'gw_{}.txt'.format(method)
 	with open (filename, 'w') as out:
@@ -195,8 +197,9 @@ def main():
 					SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 
-				# Write sensor and gateway information to file
-				# SaveInfo(sr_info, G, 'RGreedy')
+					# Write sensor and gateway information to file
+					method = 'RGreedy_{}_{}_{}'.format(sr_cnt, it, M)
+					SaveInfo(sr_info_res, G, method)
 				
 
 			if run.ICIOT:
@@ -208,7 +211,8 @@ def main():
 				plot(sr_info_res, G_res, 'ICIOT')
 
 				# Write sensor and gateway information to file
-				SaveInfo(sr_info_res, G_res, 'ICIOT')
+				method = 'ICIOT_{}_{}'.format(sr_cnt, it)
+				SaveInfo(sr_info_res, G_res, method)
 
 
 if __name__ == '__main__':
