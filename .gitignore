@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+
+*.txt
+*.png
+__pycache__
+.DS_Store
