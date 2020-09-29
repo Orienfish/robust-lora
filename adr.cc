@@ -182,6 +182,7 @@ int main (int argc, char *argv[])
 
   // Read sensor locations from text file
   std::ifstream EdLocationFile(srlocFile);
+  std::vector<int> SFVec;
   if (EdLocationFile.is_open())
   {
     NS_LOG_DEBUG ("Read from existing ed device location file.");
@@ -190,8 +191,10 @@ int main (int argc, char *argv[])
         if (line.size() > 0) {
             std::vector < std::string > coordinates = split(line, ' ');
             double x = atof(coordinates.at(0).c_str());
-            double y = atof(coordinates.at(1).c_str());            
+            double y = atof(coordinates.at(1).c_str());
+            int SFCur = atof(coordinates.at(2).c_str());
             positionAllocEd->Add (Vector (x, y, 0.0) );
+            SFVec.push_back(SFCur);
             nDevices ++;
         }
     }
@@ -305,7 +308,8 @@ int main (int argc, char *argv[])
   // Do not set spreading factors up: we will wait for the NS to do this
   if (initializeSF) 
   {
-    macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
+    // macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
+    macHelper.SetSpreadingFactors (endDevices, SFVec);
   }
 
 
