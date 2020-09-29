@@ -180,10 +180,10 @@ int main (int argc, char *argv[])
   MobilityHelper mobilityEd;
   Ptr<ListPositionAllocator> positionAllocEd = CreateObject<ListPositionAllocator> ();
 
-  // Read sensor locations from text file
+  // Read end nodes' locations from text file
   std::ifstream EdLocationFile(srlocFile);
-  std::vector<int> SFVec;
-  std::vector<double> TxPowVec;
+  std::vector<int> DrVec;       // Data rate vector for end nodes
+  std::vector<double> TxPowVec; // Transmission power vector for end nodes
   if (EdLocationFile.is_open())
   {
     NS_LOG_DEBUG ("Read from existing ed device location file.");
@@ -193,10 +193,10 @@ int main (int argc, char *argv[])
             std::vector < std::string > coordinates = split(line, ' ');
             double x = atof(coordinates.at(0).c_str());
             double y = atof(coordinates.at(1).c_str());
-            int SFCur = atof(coordinates.at(2).c_str());
+            int DrCur = atof(coordinates.at(2).c_str());
             double TxPowCur = atof(coordinates.at(3).c_str());
             positionAllocEd->Add (Vector (x, y, 0.0) );
-            SFVec.push_back(SFCur);
+            DrVec.push_back(DrCur);
             TxPowVec.push_back(TxPowCur);
             nDevices ++;
         }
@@ -313,7 +313,7 @@ int main (int argc, char *argv[])
   if (initializeSF) 
   {
     // macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
-    macHelper.SetParams (endDevices, SFVec, TxPowVec);
+    macHelper.SetParams (endDevices, DrVec, TxPowVec);
   }
 
 
@@ -394,7 +394,7 @@ int main (int argc, char *argv[])
   std::cout << tracker.CountMacPacketsGlobally (Seconds (0), simulationTime) << std::endl;
   std::cout << tracker.CountMacPacketsGloballyCpsr (Seconds (0), simulationTime) << std::endl;
   std::cout << tracker.PrintPhyPacketsPerGw (Seconds (0), simulationTime, nDevices) << std::endl;
-  // std::cout << CalObjectiveValue (endDevices, gateways, tracker, Seconds (0), simulationTime, "nodeEE.txt") << std::endl;
+  std::cout << CalObjectiveValue (endDevices, gateways, tracker, Seconds (0), simulationTime, "nodeEE.txt") << std::endl;
 
   return 0;
 }
