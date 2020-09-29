@@ -135,7 +135,7 @@ int main (int argc, char *argv[])
   // LogComponentEnable ("EndDeviceStatus", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrComponent", LOG_LEVEL_ALL);
   // LogComponentEnable ("ClassAEndDeviceLorawanMac", LOG_LEVEL_ALL);
-  // LogComponentEnable ("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
+  LogComponentEnable ("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
   // LogComponentEnable ("MacCommand", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrExploraSf", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrExploraAt", LOG_LEVEL_ALL);
@@ -283,6 +283,7 @@ int main (int argc, char *argv[])
   // Create the LoraNetDevices of the gateways
   phyHelper.SetDeviceType (LoraPhyHelper::GW);
   macHelper.SetDeviceType (LorawanMacHelper::GW);
+  macHelper.SetRegion (LorawanMacHelper::US);
   helper.Install (phyHelper, macHelper, gateways);
 
   // Create a LoraDeviceAddressGenerator
@@ -294,7 +295,7 @@ int main (int argc, char *argv[])
   phyHelper.SetDeviceType (LoraPhyHelper::ED);
   macHelper.SetDeviceType (LorawanMacHelper::ED_A);
   macHelper.SetAddressGenerator (addrGen);
-  macHelper.SetRegion (LorawanMacHelper::EU);
+  macHelper.SetRegion (LorawanMacHelper::US);
   NetDeviceContainer endDevicesNetDevices = helper.Install (phyHelper, macHelper, endDevices);
 
 
@@ -393,7 +394,7 @@ int main (int argc, char *argv[])
   std::cout << tracker.CountMacPacketsGlobally (Seconds (0), simulationTime) << std::endl;
   std::cout << tracker.CountMacPacketsGloballyCpsr (Seconds (0), simulationTime) << std::endl;
   std::cout << tracker.PrintPhyPacketsPerGw (Seconds (0), simulationTime, nDevices) << std::endl;
-  std::cout << CalObjectiveValue (endDevices, gateways, tracker, Seconds (0), simulationTime, "nodeEE.txt") << std::endl;
+  // std::cout << CalObjectiveValue (endDevices, gateways, tracker, Seconds (0), simulationTime, "nodeEE.txt") << std::endl;
 
   return 0;
 }
