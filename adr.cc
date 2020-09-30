@@ -78,7 +78,7 @@ int main (int argc, char *argv[])
   bool initializeSF = true;
   int nDevices = 0;
   int nGateways = 0;
-  int nPeriods = 2;
+  int nPeriods = 3; // 1 hour
   double mobileNodeProbability = 0;
   double sideLength = 10000;
   int gatewayDistance = 5000;
@@ -123,7 +123,7 @@ int main (int argc, char *argv[])
   // Logging //
   /////////////
 
-  LogComponentEnable ("AdrExample", LOG_LEVEL_ALL);
+  // LogComponentEnable ("AdrExample", LOG_LEVEL_ALL);
   // LogComponentEnable ("SimpleEndDeviceLoraPhy", LOG_LEVEL_ALL);
   // LogComponentEnable ("LoraChannel", LOG_LEVEL_ALL); 
   // LogComponentEnable ("PropagationLossModel", LOG_LEVEL_ALL);
@@ -135,11 +135,12 @@ int main (int argc, char *argv[])
   // LogComponentEnable ("EndDeviceStatus", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrComponent", LOG_LEVEL_ALL);
   // LogComponentEnable ("ClassAEndDeviceLorawanMac", LOG_LEVEL_ALL);
-  LogComponentEnable ("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
+  // LogComponentEnable ("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
   // LogComponentEnable ("MacCommand", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrExploraSf", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrExploraAt", LOG_LEVEL_ALL);
   // LogComponentEnable ("EndDeviceLorawanMac", LOG_LEVEL_ALL);
+  // LogComponentEnable ("LoraRadioEnergyModel", LOG_LEVEL_ALL);
   LogComponentEnableAll (LOG_PREFIX_FUNC);
   LogComponentEnableAll (LOG_PREFIX_NODE);
   LogComponentEnableAll (LOG_PREFIX_TIME);
@@ -154,17 +155,17 @@ int main (int argc, char *argv[])
   //////////////////////////////////////
 
   Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
-  loss->SetPathLossExponent (2.1);
-  loss->SetReference (1000, 130);
+  loss->SetPathLossExponent (2.1495);
+  loss->SetReference (140, 105.5729);
 
-  Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
-  x->SetAttribute ("Min", DoubleValue (0.0));
-  x->SetAttribute ("Max", DoubleValue (maxRandomLoss));
+  Ptr<NormalRandomVariable> x = CreateObject<NormalRandomVariable> ();
+  x->SetAttribute ("Mean", DoubleValue (0));
+  x->SetAttribute ("Variance", DoubleValue (10.0));
 
-  //Ptr<RandomPropagationLossModel> randomLoss = CreateObject<RandomPropagationLossModel> ();
-  //randomLoss->SetAttribute ("Variable", PointerValue (x));
+  Ptr<RandomPropagationLossModel> randomLoss = CreateObject<RandomPropagationLossModel> ();
+  randomLoss->SetAttribute ("Variable", PointerValue (x));
 
-  //loss->SetNext (randomLoss);
+  loss->SetNext (randomLoss);
 
   Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
 
@@ -344,17 +345,18 @@ int main (int argc, char *argv[])
   BasicEnergySourceHelper basicSourceHelper;
   LoraRadioEnergyModelHelper radioEnergyHelper;
 
-  // configure energy source
-  basicSourceHelper.Set ("BasicEnergySourceInitialEnergyJ", DoubleValue (10000)); // Energy in J
+  // Configure energy source
+  basicSourceHelper.Set ("BasicEnergySourceInitialEnergyJ", DoubleValue (23760)); // 2Ah*3.3V in J
   basicSourceHelper.Set ("BasicEnergySupplyVoltageV", DoubleValue (3.3));
 
-  radioEnergyHelper.Set ("StandbyCurrentA", DoubleValue (0.0014));
-  radioEnergyHelper.Set ("TxCurrentA", DoubleValue (0.028));
-  radioEnergyHelper.Set ("SleepCurrentA", DoubleValue (0.0000015));
-  radioEnergyHelper.Set ("RxCurrentA", DoubleValue (0.0112));
+  radioEnergyHelper.Set ("StandbyCurrentA", DoubleValue (0.02348));
+  // radioEnergyHelper.Set ("TxCurrentA", DoubleValue (0));
+  radioEnergyHelper.Set ("SleepCurrentA", DoubleValue (0.00017465));
+  radioEnergyHelper.Set ("RxCurrentA", DoubleValue (0.1245));
 
-  radioEnergyHelper.SetTxCurrentModel ("ns3::ConstantLoraTxCurrentModel",
-                                       "TxCurrent", DoubleValue (0.028));
+  // Use the radio Tx current model from Liando 2019.
+  radioEnergyHelper.SetTxCurrentModel ("ns3::LiandoLoraTxCurrentModel",
+                                       "Voltage", DoubleValue (3.3));
 
   // install source on EDs' nodes
   EnergySourceContainer sources = basicSourceHelper.Install (endDevices);
@@ -391,9 +393,16 @@ int main (int argc, char *argv[])
   Simulator::Run ();
   Simulator::Destroy ();
 
+  std::cout << "CountMacPacketGlobally: Sent Received" << std::endl;
   std::cout << tracker.CountMacPacketsGlobally (Seconds (0), simulationTime) << std::endl;
+  std::cout << "CountMacPacketsGloballyCpsr: Sent Received" << std::endl;
   std::cout << tracker.CountMacPacketsGloballyCpsr (Seconds (0), simulationTime) << std::endl;
-  std::cout << tracker.PrintPhyPacketsPerGw (Seconds (0), simulationTime, nDevices) << std::endl;
+
+  std::cout << "TOTAL RECEIVED INTERFERED NO_MORE_RECEIVERS UNDER_SENSITIVITY LOST_BECAUSE_TX" << std::endl;
+  for (int gwId = nDevices; gwId < nDevices + nGateways; ++gwId)
+  {
+    std::cout << tracker.PrintPhyPacketsPerGw (Seconds (0), simulationTime, gwId) << std::endl;
+  }
   std::cout << CalObjectiveValue (endDevices, gateways, tracker, Seconds (0), simulationTime, "nodeEE.txt") << std::endl;
 
   return 0;
@@ -571,6 +580,7 @@ std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
     EEVec.push_back (nodeEE);
 
     outputFile << object->GetId () <<  " "
+               << packetEd.at (1) << " " << packetEd.at (0) << " "
                << pdr << " " << energyPerPkt << " " 
                << nodeEE << std::endl;
   }
