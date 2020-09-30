@@ -40,6 +40,7 @@ class params:
 	RSSI_k = [-123, -126, -129, -132]
 	# Air time of SF7, 8, 9, 10 in s
 	# Copied from ICIOT paper under 50 Bytes payload
+	# Can be verified with toa.py
 	AirTime_k = [0.098, 0.175, 0.329, 0.616]
 	# SNR threshold of SF7, 8, 9, 10 in dB
 	# Copied from ICDCS paper
@@ -199,7 +200,7 @@ def main():
 
 					# Write sensor and gateway information to file
 					method = 'RGreedy_{}_{}_{}'.format(sr_cnt, it, M)
-					SaveInfo(sr_info_res, G, method)
+					SaveInfo(sr_info_res, G_res, method)
 				
 
 			if run.ICIOT:
