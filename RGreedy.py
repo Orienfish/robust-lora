@@ -315,7 +315,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params):
 			N_kq[str(k) + '_' + str(q)] = []
 
 	maxDist = GetDist(propagation.LogDistancePathLossModel, params)
-	# print(maxDist)
+	print(maxDist)
 
 	# cov_gw_sr = GetCoverage(G[:, :2], params.G_y, params.Unit_gw, sr_info[:, :2], \
 	# 			 maxDist[len(params.SF)-1], params.L)

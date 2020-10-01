@@ -3,6 +3,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import logging
+import random
 logging.basicConfig(level=logging.INFO)
 
 def FreeSpacePathLossModel(**kwargs):
@@ -34,6 +35,7 @@ def LogDistancePathLossModel(**kwargs):
 		LogDistancePathLossModel.d0 = 1000 # Reference distance in m
 		LogDistancePathLossModel.PL0 = 130 # Reference path loss in dB
 		LogDistancePathLossModel.gamma = 2.1 # Path loss exponent
+		LogDistancePathLossModel.sigma = 10.0 # Standard deviation
 	elif kwargs['ver'] == 'Bor':
 		# Settings in the paper (Bor 2016) for indoor building
 		LogDistancePathLossModel.d0 = 40 # Reference distance in m
@@ -76,22 +78,35 @@ GetRSSI.Grx = 2 # Reception antenna gain
 def main():
 	# Test and tune path loss model's parameter
 	d = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
-	loss_log = [LogDistancePathLossModel(d=di, ver='ICIOT') for di in d]
+	# ICIOT
+	loss_log = list(map(lambda di: LogDistancePathLossModel(d=di, ver='ICIOT'), d))
 	Prx_log_ICIOT = [GetRSSI(20, lossi) for lossi in loss_log]
-	loss_log = [LogDistancePathLossModel(d=di, ver='Bor') for di in d]
-	Prx_log_Bor = [GetRSSI(20, lossi) for lossi in loss_log]
-	loss_log = [LogDistancePathLossModel(d=di, ver='Dongare') for di in d]
-	Prx_log_Dongare = [GetRSSI(20, lossi) for lossi in loss_log]
-	loss_friis = [FreeSpacePathLossModel(d=di, f=868) for di in d]
-	Prx_friis = [GetRSSI(20, lossi) for lossi in loss_friis]
+	loss_logr = list(map(lambda di: LogDistancePathLossModel(d=di, ver='ICIOT')+random.normalvariate(.0, LogDistancePathLossModel.sigma), d))
+	Prx_log_ICIOTr = [GetRSSI(20, lossi) for lossi in loss_logr]
+	# Bor
+	loss_bor = list(map(lambda di: LogDistancePathLossModel(d=di, ver='Bor'), d))
+	Prx_log_Bor = [GetRSSI(20, lossi) for lossi in loss_bor]
+	loss_borr = list(map(lambda di: LogDistancePathLossModel(d=di, ver='Bor')+random.normalvariate(.0, LogDistancePathLossModel.sigma), d))
+	Prx_log_Borr = [GetRSSI(20, lossi) for lossi in loss_borr]
+	# Dongare
+	loss_don = list(map(lambda di: LogDistancePathLossModel(d=di, ver='Dongare'), d))
+	Prx_log_Dongare = [GetRSSI(20, lossi) for lossi in loss_don]
+	loss_donr = list(map(lambda di: LogDistancePathLossModel(d=di, ver='ICIOT')+random.normalvariate(.0, LogDistancePathLossModel.sigma), d))
+	Prx_log_Dongarer = [GetRSSI(20, lossi) for lossi in loss_donr]
+	# Friis
+	loss_friis = list(map(lambda di: FreeSpacePathLossModel(d=di, f=902.3), d))
+	Prx_friis= [GetRSSI(20, lossi) for lossi in loss_friis]
+
 	plt.figure()
-	plt.plot(d, Prx_log_ICIOT, label='log ICIOT')
-	plt.plot(d, Prx_log_Bor, label='log Bor')
-	plt.plot(d, Prx_log_Dongare, label='log Dongare')
+	plt.plot(d, Prx_log_ICIOTr, label='log ICIOT')
+	plt.plot(d, Prx_log_Borr, label='log Bor')
+	plt.plot(d, Prx_log_Dongarer, label='log Dongare')
 	plt.plot(d, Prx_friis, label='friis')
 	plt.legend()
 	plt.savefig('loss.png')
 	plt.show()
+
+	# Get the reachable distance
 
 if __name__ == '__main__':
 	main()
