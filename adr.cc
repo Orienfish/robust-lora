@@ -63,12 +63,13 @@ std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
                                          LoraPacketTracker& tracker, 
                                          Time startTime, Time stopTime, std::string filename);
 
-// parameters in calculating the objective value
-int M = 1;                     // number of gateway candidate locations
-double alpha = 0.5;            // weight
-std::vector<double> energyVec; // a vector to store total energy consumption at each end device
-std::string srlocFile = "sr_loc.txt"; // sensor location file
-std::string gwlocFile = "gw_loc.txt"; // gateway location file
+// Parameters in calculating the objective value
+int M = 1;                     // Number of gateway candidate locations
+double alpha = 0.5;            // Weight
+double E_cap_J = 23760;        // Battery capacity in J
+std::vector<double> energyVec; // A vector to store total energy consumption at each end device
+std::string srlocFile = "sr_loc.txt"; // Sensor location file
+std::string gwlocFile = "gw_loc.txt"; // Gateway location file
 
 int main (int argc, char *argv[])
 {
@@ -78,7 +79,7 @@ int main (int argc, char *argv[])
   bool initializeSF = true;
   int nDevices = 0;
   int nGateways = 0;
-  int nPeriods = 3; // 1 hour
+  int nPeriods = 24*3; // 1 day
   double mobileNodeProbability = 0;
   double sideLength = 10000;
   int gatewayDistance = 5000;
@@ -346,13 +347,14 @@ int main (int argc, char *argv[])
   LoraRadioEnergyModelHelper radioEnergyHelper;
 
   // Configure energy source
-  basicSourceHelper.Set ("BasicEnergySourceInitialEnergyJ", DoubleValue (23760)); // 2Ah*3.3V in J
+  basicSourceHelper.Set ("BasicEnergySourceInitialEnergyJ", DoubleValue (E_cap_J));
   basicSourceHelper.Set ("BasicEnergySupplyVoltageV", DoubleValue (3.3));
 
-  radioEnergyHelper.Set ("StandbyCurrentA", DoubleValue (0.02348));
+  // Data from Liando 2019
+  radioEnergyHelper.Set ("StandbyCurrentA", DoubleValue (0.02348 / 3.3));
   // radioEnergyHelper.Set ("TxCurrentA", DoubleValue (0));
-  radioEnergyHelper.Set ("SleepCurrentA", DoubleValue (0.00017465));
-  radioEnergyHelper.Set ("RxCurrentA", DoubleValue (0.1245));
+  radioEnergyHelper.Set ("SleepCurrentA", DoubleValue ((0.00017465 + 0.0001) / 3.3));
+  radioEnergyHelper.Set ("RxCurrentA", DoubleValue (0.02348 / 3.3));
 
   // Use the radio Tx current model from Liando 2019.
   radioEnergyHelper.SetTxCurrentModel ("ns3::LiandoLoraTxCurrentModel",
@@ -562,26 +564,25 @@ std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
   {
     Ptr<Node> object = *j;
     int edId = object->GetId();
-    NS_LOG_DEBUG ("Dealing with node ID " << edId);
 
     // Get packet delivery ratio
     std::vector<int> packetEd = tracker.CountPhyPacketsPerEd (startTime, stopTime, edId);
     double pdr = (double) packetEd.at (1) / packetEd.at (0);
-    NS_LOG_DEBUG ("Packet statistics: sent " << packetEd.at(0) << " received " << packetEd.at(1));
-    NS_LOG_DEBUG ("Packet delivery ratio " << pdr);
 
     // Get energy consumption per sent packet
     double energyPerPkt = energyVec.at (edId) / packetEd.at (0);
-    NS_LOG_DEBUG ("Energy consumption per sent packet: " << energyPerPkt);
+
+    // Estimate lifetime
+    double lifetimeYrs = (stopTime.GetSeconds() - startTime.GetSeconds()) / 3600 / 24 / 365
+      * E_cap_J / energyVec.at (edId) ;
 
     // Push back energy efficiency
     double nodeEE = pdr / energyPerPkt;
-    NS_LOG_DEBUG ("Energy efficiency: " << nodeEE);
     EEVec.push_back (nodeEE);
 
     outputFile << object->GetId () <<  " "
                << packetEd.at (1) << " " << packetEd.at (0) << " "
-               << pdr << " " << energyPerPkt << " " 
+               << pdr << " " << energyPerPkt << " " << lifetimeYrs << " "
                << nodeEE << std::endl;
   }
 
