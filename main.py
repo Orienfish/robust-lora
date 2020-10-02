@@ -81,6 +81,44 @@ class run:
 	RGreedy = True
 	ICIOT = False
 
+def init(sr_cnt, G, params):
+	'''
+	Initialize end device and path loss matrix
+
+	Args:
+		sr_cnt: number of end devices
+		G: gateway locations
+		params: important parameters
+
+	Return:
+		sr_info: end device settings
+		PL: path loss matrix
+		dist: distance matrix
+	'''
+	sr_info = []				# [x, y, SF, Ptx, CH]
+	for i in range(sr_cnt):	
+		k = -1 #random.randint(0, len(params.SF)-1) # SFk
+		q = -1 # random.randint(0, len(params.CH)-1) # Channel q
+		new_loc = [random.random() * params.L, random.random() * params.L, \
+			k, params.Ptx_max, q]
+		sr_info.append(new_loc)
+	sr_info = np.array(sr_info)
+	# print(sr_info)
+
+	# Generate path loss and distance matrix between sensor i and gateway j
+	gw_cnt = G.shape[0]
+	PL = np.zeros((sr_cnt, gw_cnt))
+	dist = np.zeros((sr_cnt, gw_cnt))
+	for i in range(sr_cnt):
+		for j in range(gw_cnt):
+			loc1 = sr_info[i, :2]
+			loc2 = G[j, :2]
+			dist[i, j] = np.sqrt(np.sum((loc1 - loc2)**2))
+			PL[i, j] = propagation.LogDistancePathLossModel(d=dist[i, j], \
+				ver=params.LogPropVer)
+	# print(PL)
+
+	return sr_info, PL, dist
 
 def plot(sr_info, G, version):
 	# Visualize the placement and device configuration
@@ -149,37 +187,14 @@ def main():
 	G = np.array(G)
 	gw_cnt = params.G_x * params.G_y  # Number of gw potential locations
 
-	# Sum of expected RSSI at gateway j using SFk and channel q, as noise
-	noise = np.zeros((gw_cnt, len(params.SF), len(params.CH)))
-
 	# Randomly generate sensor positions
 	#for sr_cnt in [100, 500, 1000, 5000]: # Number of sensors
-	for sr_cnt in [1000]:
+	for sr_cnt in [100]:
 		for it in range(run.iter):
 			# Experiment iterations to evaluate diff random init
 			logging.info('sr_cnt: {} iter: {}'.format(sr_cnt, it))
 
-			sr_info = []				# [x, y, SF, Ptx, CH]
-			for i in range(sr_cnt):	
-				k = -1 #random.randint(0, len(params.SF)-1) # SFk
-				q = -1 # random.randint(0, len(params.CH)-1) # Channel q
-				new_loc = [random.random() * params.L, random.random() * params.L, \
-					k, params.Ptx_max, q]
-				sr_info.append(new_loc)
-			sr_info = np.array(sr_info)
-			# print(sr_info)
-
-			# Generate path loss and distance matrix between sensor i and gateway j
-			PL = np.zeros((sr_cnt, gw_cnt))
-			dist = np.zeros((sr_cnt, gw_cnt))
-			for i in range(sr_cnt):
-				for j in range(gw_cnt):
-					loc1 = sr_info[i, :2]
-					loc2 = G[j, :2]
-					dist[i, j] = np.sqrt(np.sum((loc1 - loc2)**2))
-					PL[i, j] = propagation.LogDistancePathLossModel(d=dist[i, j], \
-						ver=params.LogPropVer)
-			# print(PL)
+			sr_info, PL, dist = init(sr_cnt, G, params)
 
 			if run.RGreedy:
 				for M in [1]: #[3, 2, 1]:
@@ -196,6 +211,32 @@ def main():
 					# Plot and log result
 					plot(sr_info_res, G_res, 'R{}_{}'.format(params.M, sr_cnt))
 					SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
+
+					# Evaluate the PDR and lifetime
+					# First gather the number of nodes using the same SF and channel
+					SF_cnt = len(params.SF)
+					CH_cnt = len(params.CH)
+					N_kq = dict()
+					for k in range(SF_cnt): # Init N_kq
+						for q in range(CH_cnt):
+							N_kq[str(k) + '_' + str(q)] = []
+
+					for idx in range(sr_cnt):		# Fill in N_kq
+						k = int(sr_info_res[idx, 2])	# SFk
+						Ptx = sr_info_res[idx, 3]		# Transmission power
+						q = int(sr_info_res[idx, 4])	# Channel q
+						label = str(k) + '_' + str(q)
+						N_kq[label].append(idx)
+
+					PDR, PDR_gw, lifetime = [], [], []
+					for idx in range(sr_cnt):
+						newPDR, newPDR_gw = RGreedy.GetPDR(sr_info_res, G_res, PL, N_kq, params, idx)
+						PDR.append(newPDR)
+						PDR_gw.append(newPDR_gw)
+						lifetime.append(RGreedy.GetLifetime(k, Ptx, newPDR, params))
+					print(np.array(PDR))
+					print(PDR)
+					print(lifetime)
 
 
 					# Write sensor and gateway information to file

@@ -129,6 +129,7 @@ def GetPDR(sr_info, G, PL, N_kq, params, idx):
 
 	Return:
 		PDR: packet delivery ratio at sensor idx
+		P_idxj: packet delivery ratio between sensor idx and gatway j
 	'''
 	sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
@@ -183,7 +184,7 @@ def GetPDR(sr_info, G, PL, N_kq, params, idx):
 
 	P_idxj = np.array(P_idxj)
 	PDR = 1 - np.prod(1 - P_idxj)
-	return PDR
+	return PDR, P_idxj
 
 def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
 	params, sr_idx, gw_idx, SF_min):
@@ -226,7 +227,7 @@ def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
 				
 				sr_info_cur[sr_idx, 3] = Ptx
 
-				PDR = GetPDR(sr_info_cur, G, PL, N_kq_cur, params, sr_idx)
+				PDR, _ = GetPDR(sr_info_cur, G, PL, N_kq_cur, params, sr_idx)
 				Lifetime = GetLifetime(k, Ptx, PDR, params)
 
 				logging.debug('k: {} Ptx: {} q: {} PDR: {} Lifetime: {}'.format( \
