@@ -79,7 +79,7 @@ int main (int argc, char *argv[])
   bool initializeSF = true;
   int nDevices = 0;
   int nGateways = 0;
-  int nPeriods = 24*3; // 1 day
+  int nPeriods = 24*3*30; // 1 month
   double mobileNodeProbability = 0;
   double sideLength = 10000;
   int gatewayDistance = 5000;
@@ -161,7 +161,7 @@ int main (int argc, char *argv[])
 
   Ptr<NormalRandomVariable> x = CreateObject<NormalRandomVariable> ();
   x->SetAttribute ("Mean", DoubleValue (0));
-  x->SetAttribute ("Variance", DoubleValue (10.0));
+  x->SetAttribute ("Variance", DoubleValue (100.0724));
 
   Ptr<RandomPropagationLossModel> randomLoss = CreateObject<RandomPropagationLossModel> ();
   randomLoss->SetAttribute ("Variable", PointerValue (x));
@@ -405,6 +405,17 @@ int main (int argc, char *argv[])
   {
     std::cout << tracker.PrintPhyPacketsPerGw (Seconds (0), simulationTime, gwId) << std::endl;
   }
+
+  for (int edId = 0; edId < nDevices; ++edId)
+  {
+    for (int gwId = nDevices; gwId < nDevices + nGateways; ++gwId)
+    {
+      std::cout << tracker.PrintPhyPacketsPerGwEd (Seconds (0), simulationTime, gwId, edId) << std::endl;
+    }
+    std::cout << std::endl;
+  }
+
+
   std::cout << CalObjectiveValue (endDevices, gateways, tracker, Seconds (0), simulationTime, "nodeEE.txt") << std::endl;
 
   return 0;
