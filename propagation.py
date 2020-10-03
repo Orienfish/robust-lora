@@ -72,8 +72,8 @@ def GetRSSI(Ptx, PL):
 	Prx = Ptx + GetRSSI.Gtx + GetRSSI.Grx - PL
 	return Prx
 
-GetRSSI.Gtx = 2 # Transmission antenna gain
-GetRSSI.Grx = 2 # Reception antenna gain
+GetRSSI.Gtx = 0.0 # Transmission antenna gain
+GetRSSI.Grx = 0.0 # Reception antenna gain
 
 def main():
 	# Test and tune path loss model's parameter
@@ -105,8 +105,6 @@ def main():
 	plt.legend()
 	plt.savefig('loss.png')
 	plt.show()
-
-	# Get the reachable distance
 
 if __name__ == '__main__':
 	main()

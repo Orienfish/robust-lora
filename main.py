@@ -120,6 +120,49 @@ def init(sr_cnt, G, params):
 
 	return sr_info, PL, dist
 
+def eval(sr_info_res, G_res, PL, params):
+	'''
+	Evaluate the PDR and lifetime of the solution
+
+	Args:
+		sr_info_res: generated sensor/end device configuration
+		G_res: generated gateway placement
+		PL: path loss matrix
+		params: important parameters
+
+	Return:
+		PDR: an array of PDR at each end device
+		PDR_gw: a matrix of PDR between end device-gateway pair
+		lifetime: an array of lifetime at each end device 
+	'''
+	sr_cnt = sr_info_res.shape[0]
+	SF_cnt = len(params.SF)
+	CH_cnt = len(params.CH)
+
+	# First gather the number of nodes using the same SF and channel
+	N_kq = dict()
+	for k in range(SF_cnt): # Init N_kq
+		for q in range(CH_cnt):
+			N_kq[str(k) + '_' + str(q)] = []
+
+	for idx in range(sr_cnt):		# Fill in N_kq
+		k = int(sr_info_res[idx, 2])	# SFk
+		Ptx = sr_info_res[idx, 3]		# Transmission power
+		q = int(sr_info_res[idx, 4])	# Channel q
+		label = str(k) + '_' + str(q)
+		N_kq[label].append(idx)
+
+	PDR, PDR_gw, lifetime = [], [], []
+	for idx in range(sr_cnt):
+		newPDR, newPDR_gw = RGreedy.GetPDR(sr_info_res, G_res, PL, N_kq, params, idx)
+		PDR.append(newPDR)
+		PDR_gw.append(newPDR_gw)
+		lifetime.append(RGreedy.GetLifetime(k, Ptx, newPDR, params))
+	print(np.array(PDR_gw))
+	print(PDR)
+	print(lifetime)
+	return PDR, PDR_gw, lifetime
+
 def plot(sr_info, G, version):
 	# Visualize the placement and device configuration
 	# sr_cnt = sr_info.shape[0]
@@ -205,39 +248,15 @@ def main():
 						RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
 					run_time = time.time() - st_time
 
-					# show m-gateway connectivity at each end device
+					# Show m-gateway connectivity at each end device
 					print(np.reshape(m_gateway_res, (1, -1)))
+
+					# Print out PDR and lifetime at each end device
+					eval(sr_info_res, G_res, PL, params)
 
 					# Plot and log result
 					plot(sr_info_res, G_res, 'R{}_{}'.format(params.M, sr_cnt))
 					SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
-
-					# Evaluate the PDR and lifetime
-					# First gather the number of nodes using the same SF and channel
-					SF_cnt = len(params.SF)
-					CH_cnt = len(params.CH)
-					N_kq = dict()
-					for k in range(SF_cnt): # Init N_kq
-						for q in range(CH_cnt):
-							N_kq[str(k) + '_' + str(q)] = []
-
-					for idx in range(sr_cnt):		# Fill in N_kq
-						k = int(sr_info_res[idx, 2])	# SFk
-						Ptx = sr_info_res[idx, 3]		# Transmission power
-						q = int(sr_info_res[idx, 4])	# Channel q
-						label = str(k) + '_' + str(q)
-						N_kq[label].append(idx)
-
-					PDR, PDR_gw, lifetime = [], [], []
-					for idx in range(sr_cnt):
-						newPDR, newPDR_gw = RGreedy.GetPDR(sr_info_res, G_res, PL, N_kq, params, idx)
-						PDR.append(newPDR)
-						PDR_gw.append(newPDR_gw)
-						lifetime.append(RGreedy.GetLifetime(k, Ptx, newPDR, params))
-					print(np.array(PDR))
-					print(PDR)
-					print(lifetime)
-
 
 					# Write sensor and gateway information to file
 					method = 'RGreedy_{}_{}_{}'.format(sr_cnt, it, M)
