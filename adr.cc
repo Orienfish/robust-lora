@@ -78,7 +78,7 @@ int main (int argc, char *argv[])
   bool adrEnabled = false;
   int nDevices = 0;
   int nGateways = 0;
-  int nPeriods = 24*3*30; // 1 month
+  int nPeriods = 24*3; // 1 day
   std::string adrType = "ns3::AdrComponent";
 
   CommandLine cmd;
@@ -116,6 +116,7 @@ int main (int argc, char *argv[])
   // LogComponentEnable ("AdrComponent", LOG_LEVEL_ALL);
   // LogComponentEnable ("ClassAEndDeviceLorawanMac", LOG_LEVEL_ALL);
   // LogComponentEnable ("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
+  // LogComponentEnable ("GatewayLorawanMac", LOG_LEVEL_ALL);
   // LogComponentEnable ("MacCommand", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrExploraSf", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrExploraAt", LOG_LEVEL_ALL);
@@ -360,7 +361,8 @@ int main (int argc, char *argv[])
 
   for (int edId = 0; edId < nDevices; ++edId)
   {
-    std::cout << tracker.PrintMacPacketsCpsrPerEd (Seconds (0), simulationTime, edId) << std::endl;
+    std::cout << tracker.PrintMacPacketsCpsrPerEd (Seconds (0), simulationTime, edId) << " "
+              << tracker.PrintMacPacketsPerEd (Seconds (0), simulationTime, edId) << std::endl;
   }
 
   /*
@@ -378,10 +380,10 @@ int main (int argc, char *argv[])
     }
     std::cout << std::endl;
   }
-
+  */
 
   std::cout << CalObjectiveValue (endDevices, gateways, tracker, Seconds (0), simulationTime, "nodeEE.txt") << std::endl;
-  */
+  
 
   return 0;
 }
@@ -542,7 +544,7 @@ std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
     int edId = object->GetId();
 
     // Get packet delivery ratio
-    std::vector<int> packetEd = tracker.CountMacPacketsCpsrPerEd (startTime, stopTime, edId);
+    std::vector<int> packetEd = tracker.CountPhyPacketsPerEd (startTime, stopTime, edId);
     double pdr = (double) packetEd.at (1) / packetEd.at (0);
 
     // Get energy consumption per sent packet
