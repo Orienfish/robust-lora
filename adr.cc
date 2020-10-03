@@ -79,7 +79,6 @@ int main (int argc, char *argv[])
   int nDevices = 0;
   int nGateways = 0;
   int nPeriods = 24*3*30; // 1 month
-  int maxTransmissions = 8;
   std::string adrType = "ns3::AdrComponent";
 
   CommandLine cmd;
@@ -97,9 +96,6 @@ int main (int argc, char *argv[])
   cmd.AddValue ("nDevices", "Number of devices to simulate", nDevices);
   cmd.AddValue ("nGateways", "Number of gateways to simulate", nDevices);
   cmd.AddValue ("PeriodsToSimulate", "Number of periods to simulate", nPeriods);
-  cmd.AddValue ("MaxTransmissions",
-                "Maximum number of retransmissions on end devices",
-                maxTransmissions);
   cmd.Parse (argc, argv);
 
 
@@ -362,6 +358,12 @@ int main (int argc, char *argv[])
   std::cout << "CountMacPacketsGloballyCpsr: Sent Received" << std::endl;
   std::cout << tracker.CountMacPacketsGloballyCpsr (Seconds (0), simulationTime) << std::endl;
 
+  for (int edId = 0; edId < nDevices; ++edId)
+  {
+    std::cout << tracker.PrintMacPacketsCpsrPerEd (Seconds (0), simulationTime, edId) << std::endl;
+  }
+
+  /*
   std::cout << "TOTAL RECEIVED INTERFERED NO_MORE_RECEIVERS UNDER_SENSITIVITY LOST_BECAUSE_TX" << std::endl;
   for (int gwId = nDevices; gwId < nDevices + nGateways; ++gwId)
   {
@@ -379,6 +381,7 @@ int main (int argc, char *argv[])
 
 
   std::cout << CalObjectiveValue (endDevices, gateways, tracker, Seconds (0), simulationTime, "nodeEE.txt") << std::endl;
+  */
 
   return 0;
 }
@@ -539,7 +542,7 @@ std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
     int edId = object->GetId();
 
     // Get packet delivery ratio
-    std::vector<int> packetEd = tracker.CountPhyPacketsPerEd (startTime, stopTime, edId);
+    std::vector<int> packetEd = tracker.CountMacPacketsCpsrPerEd (startTime, stopTime, edId);
     double pdr = (double) packetEd.at (1) / packetEd.at (0);
 
     // Get energy consumption per sent packet
