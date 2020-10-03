@@ -76,24 +76,19 @@ int main (int argc, char *argv[])
 
   bool verbose = false;
   bool adrEnabled = false;
-  bool initializeSF = true;
   int nDevices = 0;
   int nGateways = 0;
   int nPeriods = 24*3*30; // 1 month
-  double mobileNodeProbability = 0;
-  double sideLength = 10000;
-  int gatewayDistance = 5000;
-  double maxRandomLoss = 10;
   int maxTransmissions = 8;
   std::string adrType = "ns3::AdrComponent";
 
   CommandLine cmd;
   cmd.AddValue ("verbose", "Whether to print output or not", verbose);
-  cmd.AddValue ("MultipleGwCombiningMethod",
-                "ns3::AdrComponent::MultipleGwCombiningMethod");
-  cmd.AddValue ("MultiplePacketsCombiningMethod",
-                "ns3::AdrComponent::MultiplePacketsCombiningMethod");
-  cmd.AddValue ("HistoryRange", "ns3::AdrComponent::HistoryRange");
+  // cmd.AddValue ("MultipleGwCombiningMethod",
+  //              "ns3::AdrComponent::MultipleGwCombiningMethod");
+  // cmd.AddValue ("MultiplePacketsCombiningMethod",
+  //              "ns3::AdrComponent::MultiplePacketsCombiningMethod");
+  // cmd.AddValue ("HistoryRange", "ns3::AdrComponent::HistoryRange");
   cmd.AddValue ("MType", "ns3::EndDeviceLorawanMac::MType");
   cmd.AddValue ("EDDRAdaptation", "ns3::EndDeviceLorawanMac::EnableEDDataRateAdaptation");
   cmd.AddValue ("ChangeTransmissionPower",
@@ -102,18 +97,6 @@ int main (int argc, char *argv[])
   cmd.AddValue ("nDevices", "Number of devices to simulate", nDevices);
   cmd.AddValue ("nGateways", "Number of gateways to simulate", nDevices);
   cmd.AddValue ("PeriodsToSimulate", "Number of periods to simulate", nPeriods);
-  cmd.AddValue ("sideLength",
-                "Length of the side of the rectangle nodes will be placed in",
-                sideLength);
-  cmd.AddValue ("maxRandomLoss",
-                "Maximum amount in dB of the random loss component",
-                maxRandomLoss);
-  cmd.AddValue ("gatewayDistance",
-                "Distance between gateways",
-                gatewayDistance);
-  cmd.AddValue ("initializeSF",
-                "Whether to initialize the SFs",
-                initializeSF);
   cmd.AddValue ("MaxTransmissions",
                 "Maximum number of retransmissions on end devices",
                 maxTransmissions);
@@ -214,20 +197,6 @@ int main (int argc, char *argv[])
   
   endDevices.Create (nDevices);
   mobilityEd.Install (endDevices);
-  
-  // Install mobility model on mobile nodes
-  //mobilityEd.SetMobilityModel ("ns3::RandomWalk2dMobilityModel",
-  //                             "Bounds", RectangleValue (Rectangle (-sideLength, sideLength,
-  //                                                                  -sideLength, sideLength)),
-  //                             "Distance", DoubleValue (1000),
-  //                             "Speed", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
-  //                                                    ("Min", DoubleValue(minSpeed),
-  //                                                     "Max", DoubleValue(maxSpeed))));
-  //for (int i = fixedPositionNodes; i < (int) endDevices.GetN (); ++i)
-  //  {
-  //    mobilityEd.Install (endDevices.Get (i));
-  //  }
-
 
 
   ////////////////
@@ -300,7 +269,8 @@ int main (int argc, char *argv[])
   macHelper.SetRegion (LorawanMacHelper::US);
   NetDeviceContainer endDevicesNetDevices = helper.Install (phyHelper, macHelper, endDevices);
 
-
+  // Configure data rates and tx power
+  macHelper.SetParams (endDevices, DrVec, TxPowVec);
 
   /////////////////////////////////
   // Install applications in EDs //
@@ -310,14 +280,6 @@ int main (int argc, char *argv[])
   PeriodicSenderHelper appHelper = PeriodicSenderHelper ();
   appHelper.SetPeriod (Seconds (appPeriodSeconds));
   ApplicationContainer appContainer = appHelper.Install (endDevices);
-
-  // Do not set spreading factors up: we will wait for the NS to do this
-  if (initializeSF) 
-  {
-    // macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
-    macHelper.SetParams (endDevices, DrVec, TxPowVec);
-  }
-
 
 
   ///////////////
