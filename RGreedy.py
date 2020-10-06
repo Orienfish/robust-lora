@@ -354,7 +354,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params):
 				if dist[sr_idx, gw_idx] > maxDist[len(params.SF)-1]:
 					# the following sensors exceed the maximum communication range
 					# therefore we do not need to consider them
-					logging.info('Exceeds maximum communication range!')
+					logging.debug('Exceeds maximum communication range!')
 					break
 
 				# Calculate the min SF that can used by this end device according to distance

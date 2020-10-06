@@ -74,8 +74,8 @@ class params:
 
 	PDR_th = 0.8		# PDR threshold at each end node
 	Lifetime_th = 1		# Lifetime threshold at each end node in years
-	w_pdr = 100
-	w_lifetime = 10
+	w_pdr = 10
+	w_lifetime = 1
 
 # which algorithm to run
 class run:
@@ -234,7 +234,7 @@ def main():
 
 	# Randomly generate sensor positions
 	#for sr_cnt in [100, 500, 1000, 5000]: # Number of sensors
-	for sr_cnt in [2]:
+	for sr_cnt in [100]:
 		for it in range(run.iter):
 			# Experiment iterations to evaluate diff random init
 			logging.info('sr_cnt: {} iter: {}'.format(sr_cnt, it))
