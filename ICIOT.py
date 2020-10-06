@@ -153,7 +153,7 @@ def DeviceConfiguration(sr_info, G, PL, params):
 		sr_info[sr_index, 2] = k
 		pi = params.RSSI_k[k] + PL[sr_index][gw_index]
 		if pi <= params.Ptx_max: # if transmission power does not violate
-			sr_info[sr_index, 3] = max(pi, 0.0)
+			sr_info[sr_index, 3] = max(pi, params.Ptx_min)
 			continue
 		# if transmission power violates the upperbound
 		# print('tx violate')

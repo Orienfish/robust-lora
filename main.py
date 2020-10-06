@@ -49,6 +49,7 @@ class params:
 	# Transmission power options in dBm
 	Ptx = [20, 17, 14, 11, 8, 5]
 	Ptx_max = 20		# Maximum allowed transmission power in dBm
+	Ptx_min = 5			# Minimum allowed transmission power in dBm
 	# Power consumption using each transmission power options in W
 	# Copied from the TOSN paper (Liando 2019) for SX1276 chipset
 	PowerTx = [0.4, 0.4, 0.3, 0.25, 0.2, 0.15]
@@ -80,8 +81,9 @@ class params:
 # which algorithm to run
 class run:
 	iter = 1
-	RGreedy = True
-	ICIOT = False
+	RGreedy = False
+	RGenetic = False
+	ICIOT = True
 
 def init(sr_cnt, G, params):
 	'''
@@ -149,17 +151,22 @@ def eval(sr_info_res, G_res, PL, params):
 
 	for idx in range(sr_cnt):		# Fill in N_kq
 		k = int(sr_info_res[idx, 2])	# SFk
-		Ptx = sr_info_res[idx, 3]		# Transmission power
 		q = int(sr_info_res[idx, 4])	# Channel q
 		label = str(k) + '_' + str(q)
 		N_kq[label].append(idx)
 
 	PDR, PDR_gw, lifetime = [], [], []
 	for idx in range(sr_cnt):
+	
 		newPDR, newPDR_gw = RGreedy.GetPDR(sr_info_res, G_res, PL, N_kq, params, idx)
 		PDR.append(newPDR)
 		PDR_gw.append(newPDR_gw)
-		lifetime.append(RGreedy.GetLifetime(k, Ptx, newPDR, params))
+
+		k = int(sr_info_res[idx, 2])	# SFk
+		# Find the index of closet Transmission power
+		Ptx_idx = np.abs(params.Ptx - sr_info_res[idx, 3]).argmin()
+		lifetime.append(RGreedy.GetLifetime(k, params.Ptx[Ptx_idx], newPDR, params))
+
 	print(np.array(PDR_gw))
 	print(PDR)
 	print(lifetime)
@@ -269,6 +276,12 @@ def main():
 				st_time = time.time()
 				sr_info_res, G_res = ICIOT.ICIOTAlg(sr_info, G, PL, params)
 				run_time = time.time() - st_time
+
+				# This paper assumes all end devices share one channel
+				sr_info_res[:, 4] = np.ones((1, sr_cnt))
+				print(sr_info_res)
+
+				eval(sr_info_res, G_res, PL, params)
 
 				# Plot result
 				plot(sr_info_res, G_res, 'ICIOT')
