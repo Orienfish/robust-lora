@@ -75,15 +75,15 @@ class params:
 
 	PDR_th = 0.8		# PDR threshold at each end node
 	Lifetime_th = 1		# Lifetime threshold at each end node in years
-	w_pdr = 10
-	w_lifetime = 1
+	w_pdr = 0.1
+	w_lifetime = 0.1
 
 # which algorithm to run
 class run:
 	iter = 1
-	RGreedy = False
+	RGreedy = True
 	RGenetic = False
-	ICIOT = True
+	ICIOT = False
 
 def init(sr_cnt, G, params):
 	'''
@@ -157,7 +157,7 @@ def eval(sr_info_res, G_res, PL, params):
 
 	PDR, PDR_gw, lifetime = [], [], []
 	for idx in range(sr_cnt):
-	
+
 		newPDR, newPDR_gw = RGreedy.GetPDR(sr_info_res, G_res, PL, N_kq, params, idx)
 		PDR.append(newPDR)
 		PDR_gw.append(newPDR_gw)

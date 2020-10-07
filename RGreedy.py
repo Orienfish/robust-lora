@@ -8,7 +8,7 @@ import copy
 import propagation
 
 ########################################
-# RGreedy Alg
+# Robust-Driven Greedy Alg
 ########################################
 
 def GetDist(propFunc, params):
