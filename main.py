@@ -10,6 +10,7 @@ logging.basicConfig(level=logging.INFO)
 
 import ICIOT
 import RGreedy
+import RGenetic
 import propagation
 
 
@@ -75,14 +76,23 @@ class params:
 
 	PDR_th = 0.8		# PDR threshold at each end node
 	Lifetime_th = 1		# Lifetime threshold at each end node in years
-	w_pdr = 0.1
-	w_lifetime = 0.1
+
+# Parameters for the greedy algorithm
+class GreedyParams:
+	w_pdr = 0.1			# Weight for PDR
+	w_lifetime = 0.1	# Weight for lifetime
+
+# Parameters for the genetic algorithm
+class GeneticParams:
+	w_pdr = 0.5			# Weight for PDR
+	w_lifetime = 0.05	# Weight for lifetime
+	w_gateway_conn = 0.025 # Weight for m-gateway connectivity
 
 # which algorithm to run
 class run:
 	iter = 1
-	RGreedy = True
-	RGenetic = False
+	RGreedy = False
+	RGenetic = True
 	ICIOT = False
 
 def init(sr_cnt, G, params):
@@ -143,13 +153,14 @@ def eval(sr_info_res, G_res, PL, params):
 	SF_cnt = len(params.SF)
 	CH_cnt = len(params.CH)
 
-	# First gather the number of nodes using the same SF and channel
+	# Init N_kq: the number of nodes using the same SF and channel
 	N_kq = dict()
-	for k in range(SF_cnt): # Init N_kq
+	for k in range(SF_cnt): 
 		for q in range(CH_cnt):
 			N_kq[str(k) + '_' + str(q)] = []
 
-	for idx in range(sr_cnt):		# Fill in N_kq
+	# Fill in N_kq
+	for idx in range(sr_cnt):
 		k = int(sr_info_res[idx, 2])	# SFk
 		q = int(sr_info_res[idx, 4])	# Channel q
 		label = str(k) + '_' + str(q)
@@ -157,7 +168,6 @@ def eval(sr_info_res, G_res, PL, params):
 
 	PDR, PDR_gw, lifetime = [], [], []
 	for idx in range(sr_cnt):
-
 		newPDR, newPDR_gw = RGreedy.GetPDR(sr_info_res, G_res, PL, N_kq, params, idx)
 		PDR.append(newPDR)
 		PDR_gw.append(newPDR_gw)
@@ -248,13 +258,14 @@ def main():
 
 			sr_info, PL, dist = init(sr_cnt, G, params)
 
-			if run.RGreedy:
-				for M in [1]: #[3, 2, 1]:
-					params.M = M
-					logging.info('Running M = {}'.format(params.M))
+			for M in [1]: #[3, 2, 1]:
+				params.M = M
+
+				if run.RGreedy:
+					logging.info('Running RGreedy M = {}'.format(params.M))
 					st_time = time.time()
 					sr_info_res, G_res, m_gateway_res = \
-						RGreedy.RGreedyAlg(sr_info, G, PL, dist, params)
+						RGreedy.RGreedyAlg(sr_info, G, PL, dist, params, GreedyParams)
 					run_time = time.time() - st_time
 
 					# Show m-gateway connectivity at each end device
@@ -270,6 +281,13 @@ def main():
 					# Write sensor and gateway information to file
 					method = 'RGreedy_{}_{}_{}'.format(sr_cnt, it, M)
 					SaveInfo(sr_info_res, G_res, method)
+
+				if run.RGenetic:
+					logging.info('Running RGenetic M = {}'.format(params.M))
+					st_time = time.time()
+					sr_info_res, G_res, m_gateway_res = \
+						RGenetic.RGeneticAlg(sr_info, G, PL, dist, params, GeneticParams)
+					run_time = time.time() - st_time
 				
 
 			if run.ICIOT:

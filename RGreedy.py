@@ -284,7 +284,7 @@ def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
 	return succ, PDR, Lifetime
 
 
-def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params):
+def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params, GeneticParams):
 	'''
 	Call the robust gateway placement algorithm
 
@@ -294,6 +294,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params):
 		PL: path loss matrix between sensors and potential gateways
 		dist: distance matrix between sensors and potential gateways
 		params: important parameters
+		GeneticParams: parameters for this greedy algorithms
 
 	Returns:
 		sr_info: sensor configuration
@@ -380,8 +381,10 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params):
 			uncover_new = np.sum(conn_cur[conn_cur > 0])
 			# Benefit function: promote new connectivity and PDR, lifetime constraints
 			bnft_cov = uncover_old - uncover_new
-			bnft_pdr = params.w_pdr * np.sum(PDR_cur - np.ones((sr_cnt, 1)) * params.PDR_th)
-			bnft_lifetime = params.w_lifetime * np.sum(Lifetime_cur - np.ones((sr_cnt, 1)) * params.Lifetime_th)
+			bnft_pdr = GeneticParams.w_pdr * \
+				np.sum(PDR_cur - np.ones((sr_cnt, 1)) * params.PDR_th)
+			bnft_lifetime = GeneticParams.w_lifetime * \
+				np.sum(Lifetime_cur - np.ones((sr_cnt, 1)) * params.Lifetime_th)
 			bnft = bnft_cov + bnft_pdr + bnft_lifetime
 			logging.debug('cov: {} pdr: {} lifetime: {}'.format(bnft_cov, bnft_pdr, bnft_lifetime))
 
