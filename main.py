@@ -93,8 +93,8 @@ class GeneticParams:
 # which algorithm to run
 class run:
 	iter = 1
-	RGreedy = False
-	RGenetic = True
+	RGreedy = True
+	RGenetic = False
 	ICIOT = False
 
 def init(sr_cnt, G, params):
@@ -253,7 +253,7 @@ def main():
 
 	# Randomly generate sensor positions
 	#for sr_cnt in [100, 500, 1000, 5000]: # Number of sensors
-	for sr_cnt in [100]:
+	for sr_cnt in [500]:
 		for it in range(run.iter):
 			# Experiment iterations to evaluate diff random init
 			logging.info('sr_cnt: {} iter: {}'.format(sr_cnt, it))

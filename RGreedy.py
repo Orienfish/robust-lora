@@ -11,84 +11,6 @@ import propagation
 # Robust-Driven Greedy Alg
 ########################################
 
-def GetDist(propFunc, params):
-	'''
-	Get the transmission distance for each SF under maximum transmission power
-	using binary search
-
-	Args:
-		propFunc: selected propagation function model
-		params: important parameters
-
-	Return:
-		maxDist: the max reachable distance for each SF, in m
-	'''
-	maxDist = []
-	for i in range(len(params.SF)):
-		minRSSI = params.RSSI_k[i]
-		d_min = GetDist.d_min
-		d_max = GetDist.d_max
-
-		# start the binary search loop
-		while d_max - d_min > GetDist.epsilon:
-			d_mid = 0.5 * (d_min + d_max)
-			PL = propFunc(d=d_mid, f=868, ver=params.LogPropVer)
-			RSSI = propagation.GetRSSI(params.Ptx_max, PL)
-			if RSSI > minRSSI: # distance is not long enough
-				d_min = d_mid
-			else:			   # distance is too long
-				d_max = d_mid
-
-		maxDist.append(0.5 * (d_min + d_max))
-	return maxDist
-
-GetDist.d_min = 0.0      # lower distance bound in m in the binary search
-GetDist.d_max = 20000.0  # upper distance bound in m in the binary search
-GetDist.epsilon = 50.0   # stop granularity in m in the binary search
-
-def GetCoverage(grid, grid_y, Unit_grid, target, R, L):
-	'''
-	Get a binary coverage matrix, where (i,j) indicates whether grid point 
-	i covers target j
-
-	Args:
-		grid: list of candidate grid locations
-		grid_y: number of sensor potential locations on y coordinate
-		Unit_grid: unit of grid points
-		target: list of target locations to cover
-		R: coverage radius
-		L: range of the field
-
-	Return:
-		cov: a N_grid x N_target matrix indicating coverage situation
-	'''
-	N_grid = grid.shape[0]
-	N_target = target.shape[0]
-	cov = np.zeros((N_grid, N_target))
-
-	for j in range(N_target):
-		target_loc = target[j, :]
-
-		# only search in the surrounding grid space to save time
-		x_min = max(0.0, target_loc[0] - R)
-		x_idx_min = math.ceil(x_min / Unit_grid)
-		x_max = min(L, target_loc[0] + R)
-		x_idx_max = math.floor(x_max / Unit_grid)
-		y_min = max(0.0, target_loc[1] - R)
-		y_idx_min = math.ceil(y_min / Unit_grid)
-		y_max = min(L, target_loc[1] + R)
-		y_idx_max = math.floor(y_max / Unit_grid)
-
-		# Start searching in the small rectangle
-		for x_idx in range(x_idx_min, x_idx_max+1):
-			for y_idx in range(y_idx_min, y_idx_max+1):
-				idx = x_idx * grid_y + y_idx
-				grid_loc = grid[idx, :]
-				dist = np.sqrt(np.sum((grid_loc - target_loc)**2))
-				if dist <= R:
-					cov[idx, j] = 1
-	return cov
-
 def GetLifetime(SFk, Ptx, PDR, params):
 	'''
 	Calculate the lifetime of node using SF and Ptx using the formula in 
@@ -186,7 +108,7 @@ def GetPDR(sr_info, G, PL, N_kq, params, idx):
 	return PDR, P_idxj
 
 def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
-	params, sr_idx, gw_idx, SF_min):
+	params, sr_idx, gw_idx):
 	'''
 	Greedily select the SF, Ptx and CH configuration for sensor sr_idx considering
 	a new gateway is placed at gw_idx
@@ -201,7 +123,6 @@ def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
 		params: important parameters
 		sr_idx: index of sensor being considered
 		gw_idx: index of gateway being considered
-		SF_min: the min SF that can used by this sensor/end devices
 
 	Return:
 		succ: whether the configuration attempt is success
@@ -215,7 +136,7 @@ def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
 	CH_cnt = len(params.CH)
 
 	succ = False # whether a new assignment is success
-	for k in range(SF_min, SF_cnt):
+	for k in range(SF_cnt):
 
 		sr_info_cur[sr_idx, 2] = k
 		for q in range(CH_cnt):
@@ -315,13 +236,6 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params, GeneticParams):
 		for q in range(CH_cnt):
 			N_kq[str(k) + '_' + str(q)] = []
 
-	maxDist = GetDist(propagation.LogDistancePathLossModel, params)
-	print(maxDist)
-
-	# cov_gw_sr = GetCoverage(G[:, :2], params.G_y, params.Unit_gw, sr_info[:, :2], \
-	# 			 maxDist[len(params.SF)-1], params.L)
-	# print(cov_gw_sr)
-
 	m_gateway = np.zeros((sr_cnt, 1)) # Current gateway connectivity at each end node
 	uncover_old = sr_cnt * params.M
 	PDR_old = np.zeros((sr_cnt, 1))
@@ -347,25 +261,23 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params, GeneticParams):
 			PDR_cur = np.copy(PDR_old)
 			Lifetime_cur = np.copy(Lifetime_old)
 
-			dist_gw_idx = dist[:, gw_idx] # distance to gateway idx
-			sort_idx = np.argsort(dist_gw_idx, axis=0) # index of distance sorting
+			PL_gw_idx = dist[:, gw_idx] # path loss to gateway idx
+			sort_idx = np.argsort(PL_gw_idx, axis=0) # sort the PL from min to max
+
 			for i in range(sr_cnt):
 				sr_idx = int(sort_idx[i])
 
-				if dist[sr_idx, gw_idx] > maxDist[len(params.SF)-1]:
-					# the following sensors exceed the maximum communication range
+				if propagation.GetRSSI(params.Ptx_max, PL[sr_idx, gw_idx]) < params.RSSI_k[-1]:
+					# If the RSSI under max tx power will still below the minimum RSSI threshold
+					# then the following sensors exceed the maximum communication range
 					# therefore we do not need to consider them
 					logging.debug('Exceeds maximum communication range!')
 					break
 
-				# Calculate the min SF that can used by this end device according to distance
-				SF_min = maxDist.index( \
-					list(filter(lambda maxD: dist[sr_idx, gw_idx] <= maxD, maxDist))[0])
-				logging.debug('SF_min: {}'.format(SF_min))
 				# Try to assign the minimum SF and channel based on the current sr_info
 				# and collision-possible nodes N_kq
 				succ, PDR_i, Lifetime_i = DeviceConfiguration(sr_info_cur, \
-					sr_info, G, PL, N_kq_cur, m_gateway_cur, params, sr_idx, gw_idx, SF_min)
+					sr_info, G, PL, N_kq_cur, m_gateway_cur, params, sr_idx, gw_idx)
 				logging.debug('succ: {} PDR_i: {} Lifetime_i: {}'.format(succ, PDR_i, Lifetime_i))
 				
 				if not succ:
