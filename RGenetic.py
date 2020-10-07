@@ -173,17 +173,17 @@ def fitness(X):
 				m_gateway[idx] += 1
 
 	gw_cnt = np.sum(G[:, 2])
-	bnft_pdr = GeneticParams.w_pdr * \
-		np.sum(PDR - np.ones((sr_cnt, 1)) * params.PDR_th)
-	bnft_lifetime = GeneticParams.w_lifetime * \
-		np.sum(Lifetime - np.ones((sr_cnt, 1)) * params.Lifetime_th)
-	bnft_gateway = GeneticParams.w_gateway_conn * \
-		np.sum(m_gateway - np.ones((sr_cnt, 1)) * params.M)
-	bnft = gw_cnt + bnft_pdr + bnft_lifetime + bnft_gateway
+	cost_pdr = GeneticParams.w_pdr * \
+		np.sum(np.ones((sr_cnt, 1)) * params.PDR_th - PDR)
+	cost_lifetime = GeneticParams.w_lifetime * \
+		np.sum(np.ones((sr_cnt, 1)) * params.Lifetime_th - Lifetime)
+	cost_gateway = GeneticParams.w_gateway_conn * \
+		np.sum(np.ones((sr_cnt, 1)) * params.M - m_gateway)
+	cost = gw_cnt + cost_pdr + cost_lifetime + cost_gateway
 	logging.info('gw_cnt: {} pdr: {} lifetime: {} m-gateway conn: {}'.format( \
-		gw_cnt, bnft_pdr, bnft_lifetime, bnft_gateway))
+		gw_cnt, cost_pdr, cost_lifetime, cost_gateway))
 
-	return bnft
+	return cost
 
 def RGeneticAlg(sr_info, G, PL, dist, params, GeneticParams):
 	'''
@@ -222,8 +222,8 @@ def RGeneticAlg(sr_info, G, PL, dist, params, GeneticParams):
 	varbound_ch = np.array([[0, 7]] * sr_cnt)
 	varbound = np.concatenate((varbound_gw, varbound_sf, varbound_ptx, varbound_ch), axis=0)
 
-	algorithm_param = {'max_num_iteration': 1000,\
-                   'population_size':30,\
+	algorithm_param = {'max_num_iteration': GeneticParams.it,\
+                   'population_size': GeneticParams.pop,\
                    'mutation_probability':0.1,\
                    'elit_ratio': 0.01,\
                    'crossover_probability': 0.5,\
@@ -241,7 +241,31 @@ def RGeneticAlg(sr_info, G, PL, dist, params, GeneticParams):
 
 	model.run()
 
-	convergence=model.report
-	solution=model.ouput_dict
+	convergence = model.report
+	solution = model.output_dict['variable']
 
-	return sr_info, G, #m_gateway
+	# Wrap up the solution
+	G[:, 2] = solution[:gw_cnt]
+	sr_info[:, 2] = solution[gw_cnt:gw_cnt+sr_cnt]
+	Ptx_idx = solution[gw_cnt+sr_cnt:gw_cnt+sr_cnt*2].astype(int)
+	sr_info[:, 3] = list(map(lambda i: params.Ptx[i], Ptx_idx))
+	sr_info[:, 4] = solution[gw_cnt+sr_cnt*2:gw_cnt+sr_cnt*3]
+
+	m_gateway = np.zeros((sr_cnt, 1)) # Current gateway connectivity at each end node
+
+	# Update m gateway connectivity
+	for idx in range(sr_cnt):
+		k = int(sr_info[idx, 2])	# SFk
+		Ptx_idx = np.abs(params.Ptx - sr_info[idx, 3]).argmin()
+		Ptx = params.Ptx[Ptx_idx]	# Ptx
+
+		for j in range(gw_cnt):
+			if not G[j, 2]: # No gateway has been placed at this location
+				continue
+
+			# If the expected RSSI meets the threshold, then we say one more gateway
+			# connectivity is established
+			if propagation.GetRSSI(Ptx, PL[idx, j]) > params.RSSI_k[k]:
+				m_gateway[idx] += 1
+
+	return sr_info, G, m_gateway

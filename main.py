@@ -84,6 +84,8 @@ class GreedyParams:
 
 # Parameters for the genetic algorithm
 class GeneticParams:
+	pop = 100			# Popupation count
+	it = 1000			# Iteration count
 	w_pdr = 0.5			# Weight for PDR
 	w_lifetime = 0.05	# Weight for lifetime
 	w_gateway_conn = 0.025 # Weight for m-gateway connectivity
@@ -275,7 +277,7 @@ def main():
 					eval(sr_info_res, G_res, PL, params)
 
 					# Plot and log result
-					plot(sr_info_res, G_res, 'R{}_{}'.format(params.M, sr_cnt))
+					plot(sr_info_res, G_res, 'RGreedy{}_{}'.format(params.M, sr_cnt))
 					SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 					# Write sensor and gateway information to file
@@ -288,6 +290,20 @@ def main():
 					sr_info_res, G_res, m_gateway_res = \
 						RGenetic.RGeneticAlg(sr_info, G, PL, dist, params, GeneticParams)
 					run_time = time.time() - st_time
+
+					# Show m-gateway connectivity at each end device
+					print(np.reshape(m_gateway_res, (1, -1)))
+
+					# Print out PDR and lifetime at each end device
+					eval(sr_info_res, G_res, PL, params)
+
+					# Plot and log result
+					plot(sr_info_res, G_res, 'RGenetic{}_{}'.format(params.M, sr_cnt))
+					SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
+
+					# Write sensor and gateway information to file
+					method = 'RGenetic_{}_{}_{}'.format(sr_cnt, it, M)
+					SaveInfo(sr_info_res, G_res, method)
 				
 
 			if run.ICIOT:
