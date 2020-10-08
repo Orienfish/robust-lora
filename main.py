@@ -12,6 +12,7 @@ import ICIOT
 import RGreedy
 import RGenetic
 import propagation
+import ReadData
 
 
 ########################################
@@ -19,15 +20,13 @@ import propagation
 ########################################
 class params:
 	L = 60000			# Edge of analysis area in m
-	#N_x = 1000			# Number of sensor potential locations on x coordinate
-	#N_y = 1000			# Number of sensor potential locations on y coordinate
+	sr_cnt = 1000       # Number of end devices
 	#Unit_sr = math.floor(L / (N_x-1)) # Unit length between gw grid points
 	#G_x = math.floor(N_x * Unit_sr / Unit_gw)
 	#G_y = math.floor(N_y * Unit_sr / Unit_gw)
 	G_x = 12     	 	# Number of gateway potential locations on x coordinate
 	G_y = 12			# Number of gateway potential locations on y coordinate
 	Unit_gw = math.floor(L / G_x) # Unit length between gw grid points
-	desired_gw_cnt = 10 # Desired gateways to place by ICIOT alg
 
 	# Version of log propagation model
 	LogPropVer = 'Dongare'
@@ -79,6 +78,7 @@ class params:
 
 # Parameters for the greedy algorithm
 class GreedyParams:
+	desired_gw_cnt = 10 # Desired gateways to place by ICIOT alg
 	w_pdr = 0.1			# Weight for PDR
 	w_lifetime = 0.1	# Weight for lifetime
 
@@ -92,36 +92,47 @@ class GeneticParams:
 
 # which algorithm to run
 class run:
-	iter = 1
+	iteration = 1
 	RGreedy = True
 	RGenetic = False
 	ICIOT = False
 
-def init(sr_cnt, G, params):
+def init(params):
 	'''
 	Initialize end device and path loss matrix
 
 	Args:
-		sr_cnt: number of end devices
-		G: gateway locations
 		params: important parameters
 
 	Return:
-		sr_info: end device settings
+		sr_info: initial end device settings
+		G: set of candidate gateway locations
 		PL: path loss matrix
 		dist: distance matrix
 	'''
 	sr_info = []				# [x, y, SF, Ptx, CH]
+	coor = ReadData.ReadFile('./data/dataLA.csv', [33.6711, -118.5911])
+	sr_cnt = coor.shape[0]
 	for i in range(sr_cnt):	
 		k = -1 #random.randint(0, len(params.SF)-1) # SFk
 		q = -1 # random.randint(0, len(params.CH)-1) # Channel q
-		new_loc = [random.random() * params.L, random.random() * params.L, \
-			k, params.Ptx_max, q]
+		
+		new_loc = [coor[i, 0], coor[i, 1], k, params.Ptx_max, q]
 		sr_info.append(new_loc)
 	sr_info = np.array(sr_info)
 	# print(sr_info)
 
-	# Generate path loss and distance matrix between sensor i and gateway j
+	# Generate the grid candidate set N and G with their x, y coordinates
+	# N for sensor placement and G for gateway placement
+	G = []				# [x, y, placed or not]
+	for p in range(params.G_x):
+		for q in range(params.G_y):
+			new_loc = [(p + 0.5) * params.Unit_gw, (q + 0.5) * params.Unit_gw, 0]
+			G.append(new_loc)
+	G = np.array(G)
+
+	# Generate path loss and distance matrix between sensor i and 
+	# candidate gateway j
 	gw_cnt = G.shape[0]
 	PL = np.zeros((sr_cnt, gw_cnt))
 	dist = np.zeros((sr_cnt, gw_cnt))
@@ -134,7 +145,7 @@ def init(sr_cnt, G, params):
 				ver=params.LogPropVer)
 	# print(PL)
 
-	return sr_info, PL, dist
+	return sr_info, G, PL, dist
 
 def eval(sr_info_res, G_res, PL, params):
 	'''
@@ -240,89 +251,76 @@ def SaveRes(sr_cnt, M, gw_cnt, time):
 # Main Process
 ########################################
 def main():
-	# Preparation
-	# Generate the grid candidate set N and G with their x, y coordinates
-	# N for sensor placement and G for gateway placement
-	G = []				# [x, y, placed or not]
-	for p in range(params.G_x):
-		for q in range(params.G_y):
-			new_loc = [(p + 0.5) * params.Unit_gw, (q + 0.5) * params.Unit_gw, 0]
-			G.append(new_loc)
-	G = np.array(G)
-	gw_cnt = params.G_x * params.G_y  # Number of gw potential locations
+	for it in range(run.iteration):
+		# Initialization
+		sr_info, G, PL, dist = init(params)
+		sr_cnt = sr_info.shape[0]
+		gw_cnt = G.shape[0]
+		logging.info('sr_cnt: {} gw_cnt: {}'.format(sr_cnt, gw_cnt))
 
-	# Randomly generate sensor positions
-	#for sr_cnt in [100, 500, 1000, 5000]: # Number of sensors
-	for sr_cnt in [500]:
-		for it in range(run.iter):
-			# Experiment iterations to evaluate diff random init
-			logging.info('sr_cnt: {} iter: {}'.format(sr_cnt, it))
+		for M in [1]: #[3, 2, 1]:
+			params.M = M
 
-			sr_info, PL, dist = init(sr_cnt, G, params)
-
-			for M in [1]: #[3, 2, 1]:
-				params.M = M
-
-				if run.RGreedy:
-					logging.info('Running RGreedy M = {}'.format(params.M))
-					st_time = time.time()
-					sr_info_res, G_res, m_gateway_res = \
-						RGreedy.RGreedyAlg(sr_info, G, PL, dist, params, GreedyParams)
-					run_time = time.time() - st_time
-
-					# Show m-gateway connectivity at each end device
-					print(np.reshape(m_gateway_res, (1, -1)))
-
-					# Print out PDR and lifetime at each end device
-					eval(sr_info_res, G_res, PL, params)
-
-					# Plot and log result
-					plot(sr_info_res, G_res, 'RGreedy{}_{}'.format(params.M, sr_cnt))
-					SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
-
-					# Write sensor and gateway information to file
-					method = 'RGreedy_{}_{}_{}'.format(sr_cnt, it, M)
-					SaveInfo(sr_info_res, G_res, method)
-
-				if run.RGenetic:
-					logging.info('Running RGenetic M = {}'.format(params.M))
-					st_time = time.time()
-					sr_info_res, G_res, m_gateway_res = \
-						RGenetic.RGeneticAlg(sr_info, G, PL, dist, params, GeneticParams)
-					run_time = time.time() - st_time
-
-					# Show m-gateway connectivity at each end device
-					print(np.reshape(m_gateway_res, (1, -1)))
-
-					# Print out PDR and lifetime at each end device
-					eval(sr_info_res, G_res, PL, params)
-
-					# Plot and log result
-					plot(sr_info_res, G_res, 'RGenetic{}_{}'.format(params.M, sr_cnt))
-					SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
-
-					# Write sensor and gateway information to file
-					method = 'RGenetic_{}_{}_{}'.format(sr_cnt, it, M)
-					SaveInfo(sr_info_res, G_res, method)
-				
-
-			if run.ICIOT:
+			if run.RGreedy:
+				logging.info('Running RGreedy M = {}'.format(params.M))
 				st_time = time.time()
-				sr_info_res, G_res = ICIOT.ICIOTAlg(sr_info, G, PL, params)
+				sr_info_res, G_res, m_gateway_res = \
+					RGreedy.RGreedyAlg(sr_info, G, PL, dist, params, GreedyParams)
 				run_time = time.time() - st_time
 
-				# This paper assumes all end devices share one channel
-				sr_info_res[:, 4] = np.ones((1, sr_cnt))
-				print(sr_info_res)
+				# Show m-gateway connectivity at each end device
+				print(np.reshape(m_gateway_res, (1, -1)))
 
+				# Print out PDR and lifetime at each end device
 				eval(sr_info_res, G_res, PL, params)
 
-				# Plot result
-				plot(sr_info_res, G_res, 'ICIOT')
+				# Plot and log result
+				plot(sr_info_res, G_res, 'RGreedy{}_{}_{}'.format(M, sr_cnt, it))
+				SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
-				method = 'ICIOT_{}_{}'.format(sr_cnt, it)
+				method = 'RGreedy_{}_{}_{}'.format(M, sr_cnt, it)
 				SaveInfo(sr_info_res, G_res, method)
+
+			if run.RGenetic:
+				logging.info('Running RGenetic M = {}'.format(params.M))
+				st_time = time.time()
+				sr_info_res, G_res, m_gateway_res = \
+					RGenetic.RGeneticAlg(sr_info, G, PL, dist, params, GeneticParams)
+				run_time = time.time() - st_time
+
+				# Show m-gateway connectivity at each end device
+				print(np.reshape(m_gateway_res, (1, -1)))
+
+				# Print out PDR and lifetime at each end device
+				eval(sr_info_res, G_res, PL, params)
+
+				# Plot and log result
+				plot(sr_info_res, G_res, 'RGenetic{}_{}_{}'.format(M, sr_cnt, it))
+				SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
+
+				# Write sensor and gateway information to file
+				method = 'RGenetic_{}_{}_{}'.format(M, sr_cnt, it)
+				SaveInfo(sr_info_res, G_res, method)
+					
+
+		if run.ICIOT:
+			st_time = time.time()
+			sr_info_res, G_res = ICIOT.ICIOTAlg(sr_info, G, PL, params)
+			run_time = time.time() - st_time
+
+			# This paper assumes all end devices share one channel
+			sr_info_res[:, 4] = np.ones((1, sr_cnt))
+			print(sr_info_res)
+
+			eval(sr_info_res, G_res, PL, params)
+
+			# Plot result
+			plot(sr_info_res, G_res, 'ICIOT')
+
+			# Write sensor and gateway information to file
+			method = 'ICIOT_{}_{}'.format(sr_cnt, it)
+			SaveInfo(sr_info_res, G_res, method)
 
 
 if __name__ == '__main__':
