@@ -21,12 +21,7 @@ import ReadData
 class params:
 	L = 60000			# Edge of analysis area in m
 	sr_cnt = 1000       # Number of end devices
-	#Unit_sr = math.floor(L / (N_x-1)) # Unit length between gw grid points
-	#G_x = math.floor(N_x * Unit_sr / Unit_gw)
-	#G_y = math.floor(N_y * Unit_sr / Unit_gw)
-	G_x = 12     	 	# Number of gateway potential locations on x coordinate
-	G_y = 12			# Number of gateway potential locations on y coordinate
-	Unit_gw = math.floor(L / G_x) # Unit length between gw grid points
+	gw_dist = 6000      # Distance between two gateways in m
 
 	# Version of log propagation model
 	LogPropVer = 'Dongare'
@@ -79,8 +74,8 @@ class params:
 # Parameters for the greedy algorithm
 class GreedyParams:
 	desired_gw_cnt = 10 # Desired gateways to place by ICIOT alg
-	w_pdr = 0.1			# Weight for PDR
-	w_lifetime = 0.1	# Weight for lifetime
+	w_pdr = 1e-4	    # Weight for PDR
+	w_lifetime = 1e-4	# Weight for lifetime
 
 # Parameters for the genetic algorithm
 class GeneticParams:
@@ -112,28 +107,38 @@ def init(params):
 	'''
 	sr_info = []				# [x, y, SF, Ptx, CH]
 	coor = ReadData.ReadFile('./data/dataLA.csv', [33.6711, -118.5911])
-	sr_cnt = coor.shape[0]
-	for i in range(sr_cnt):	
+	for i in range(coor.shape[0]):	
 		k = -1 #random.randint(0, len(params.SF)-1) # SFk
 		q = -1 # random.randint(0, len(params.CH)-1) # Channel q
-		
 		new_loc = [coor[i, 0], coor[i, 1], k, params.Ptx_max, q]
 		sr_info.append(new_loc)
+
 	sr_info = np.array(sr_info)
 	# print(sr_info)
+	sr_cnt = sr_info.shape[0]
+	# Get the maximum range of the end device deployment
+	x_max = np.max(coor[:, 0])
+	y_max = np.max(coor[:, 1])
 
 	# Generate the grid candidate set N and G with their x, y coordinates
 	# N for sensor placement and G for gateway placement
 	G = []				# [x, y, placed or not]
-	for p in range(params.G_x):
-		for q in range(params.G_y):
-			new_loc = [(p + 0.5) * params.Unit_gw, (q + 0.5) * params.Unit_gw, 0]
+	x_gw = params.gw_dist / 2
+	y_gw = params.gw_dist / 2
+	while x_gw < x_max:
+		while y_gw < y_max:
+			new_loc = [x_gw, y_gw, 0]
 			G.append(new_loc)
+			y_gw += params.gw_dist
+		x_gw += params.gw_dist
+		y_gw = params.gw_dist / 2
+
 	G = np.array(G)
+	print(G)
+	gw_cnt = G.shape[0]
 
 	# Generate path loss and distance matrix between sensor i and 
 	# candidate gateway j
-	gw_cnt = G.shape[0]
 	PL = np.zeros((sr_cnt, gw_cnt))
 	dist = np.zeros((sr_cnt, gw_cnt))
 	for i in range(sr_cnt):

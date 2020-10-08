@@ -293,12 +293,12 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params, GeneticParams):
 			uncover_new = np.sum(conn_cur[conn_cur > 0])
 			# Benefit function: promote new connectivity and PDR, lifetime constraints
 			bnft_cov = uncover_old - uncover_new
-			bnft_pdr = GeneticParams.w_pdr * \
+			bnft_pdr = GeneticParams.w_pdr * uncover_old * \
 				np.sum(PDR_cur - np.ones((sr_cnt, 1)) * params.PDR_th)
-			bnft_lifetime = GeneticParams.w_lifetime * \
+			bnft_lifetime = GeneticParams.w_lifetime * uncover_old * \
 				np.sum(Lifetime_cur - np.ones((sr_cnt, 1)) * params.Lifetime_th)
 			bnft = bnft_cov + bnft_pdr + bnft_lifetime
-			logging.debug('cov: {} pdr: {} lifetime: {}'.format(bnft_cov, bnft_pdr, bnft_lifetime))
+			logging.info('cov: {} pdr: {} lifetime: {}'.format(bnft_cov, bnft_pdr, bnft_lifetime))
 
 			# Update global best benefit value if necessary
 			if bnft > bnft_best:
