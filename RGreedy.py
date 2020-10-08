@@ -379,15 +379,15 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 				best_Lifetime = Lifetime_cur
 
 			# Logging
-			logging.debug('gw_idx: {} Benefit: {} Max bnft: {} Max idx: {}'.format(\
-				gw_idx, bnft, bnft_best, best_idx))
+			logging.info('gw_loc: #{} {} Benefit: {} Max bnft: {} Max idx: {}'.format(\
+				gw_idx, G[gw_idx, :2], bnft, bnft_best, best_idx))
 
 			# Reset
 			G[gw_idx, 2] = 0
 
 			# Early ending if already satisfy all uncovers
-			if uncover_new == 0:
-				break
+			#if uncover_new == 0:
+			#	break
 
 		# Check if there is no benefit to gain, end the searching while loop
 		if bnft_best == 0:

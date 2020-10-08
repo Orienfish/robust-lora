@@ -94,8 +94,8 @@ class GeneticParams:
 # which algorithm to run
 class run:
 	iteration = 1
-	RCluster = False
-	RGreedy = True
+	RCluster = True
+	RGreedy = False
 	RGenetic = False
 	ICIOT = False
 
@@ -222,7 +222,7 @@ def plot(sr_info, G, version):
 	# sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
 	plt.figure()
-	colorList = ['tab:blue', 'tab:orange', 'tab:green', 'tab:purple']
+	colorList = ['tab:blue', 'tab:orange', 'tab:green', 'tab:purple', 'tab:gray']
 	color = [colorList[int(i)] for i in list(sr_info[:, 2])]
 	plt.scatter(sr_info[:, 0], sr_info[:, 1], c=color , s=5)
 	color = ['r' for i in range(gw_cnt)]
@@ -231,7 +231,7 @@ def plot(sr_info, G, version):
 	# plt.legend()
 	filename = 'vis_{}.png'.format(version)
 	plt.savefig(filename)
-	# plt.show()
+	plt.show()
 
 def SaveInfo(sr_info, G, method):
 	'''
@@ -284,7 +284,10 @@ def main():
 			params.M = M
 
 			if run.RCluster:
-				pass
+				logging.info('Running RGreedy Cluster M = {}'.format(params.M))
+				st_time = time.time()
+				clustering.RClusterAlg(sr_info, G, PL, dist, N_kq, params, ClusterParams, GreedyParams)
+				run_time = time.time() - st_time
 
 			if run.RGreedy:
 				logging.info('Running RGreedy M = {}'.format(params.M))
@@ -301,7 +304,7 @@ def main():
 
 				# Plot and log result
 				plot(sr_info_res, G_res, 'RGreedy{}_{}_{}'.format(M, sr_cnt, it))
-				SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
+				# SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
 				method = 'RGreedy_{}_{}_{}'.format(M, sr_cnt, it)
@@ -322,7 +325,7 @@ def main():
 
 				# Plot and log result
 				plot(sr_info_res, G_res, 'RGenetic{}_{}_{}'.format(M, sr_cnt, it))
-				SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
+				# SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
 				method = 'RGenetic_{}_{}_{}'.format(M, sr_cnt, it)

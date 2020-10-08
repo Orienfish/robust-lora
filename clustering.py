@@ -3,9 +3,11 @@ import numpy as np
 from sklearn.cluster import DBSCAN
 # from sklearn import metrics
 import matplotlib.pyplot as plt
+import logging
 
 import propagation
 import RGreedy
+import main
 
 def DBSCANAlg(X, ClusterParams):
 	db = DBSCAN(eps=ClusterParams.eps, min_samples=ClusterParams.min_samples).fit(X)
@@ -54,6 +56,7 @@ def plotClusters(X, labels, core_sample_indices, n_clusters):
 	             markeredgecolor='k', markersize=6)
 
 	plt.title('Estimated number of clusters: %d' % n_clusters)
+	plt.savefig('clusters.png')
 	plt.show()
 
 def RClusterAlg(sr_info, G, PL, dist, N_kq, params, ClusterParams, GreedyParams):
@@ -77,28 +80,39 @@ def RClusterAlg(sr_info, G, PL, dist, N_kq, params, ClusterParams, GreedyParams)
 	gw_cnt = G.shape[0]
 
 	# Clustering
-	db = clustering.DBSCANAlg(sr_info[:, :2], ClusterParams)
+	db = DBSCANAlg(sr_info[:, :2], ClusterParams)
 	labels = db.labels_
 	n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
-	clustering.plotClusters(sr_info[:, :2], labels, db.core_sample_indices_, n_clusters)
+	plotClusters(sr_info[:, :2], labels, db.core_sample_indices_, n_clusters)
 
 	for ic in range(n_clusters):
 		# Extract the points in this cluster
 		sr_info_mask = np.zeros_like(labels, dtype=bool)
 		sr_info_mask[labels == ic] = True
-		sr_info_blob = sr_info[sr_info_mask, :]
-		PL_blob = PL[sr_info_mask, :]
+		sr_info_blob = np.copy(sr_info[sr_info_mask, :])
 		sr_cnt_blob = sr_info_blob.shape[0]
 
 		gw_mask = np.zeros_like(G[:, 2], dtype=bool)
 		for j in range(gw_cnt):
 			for i in range(sr_cnt_blob):
-				if propagation.GetRSSI(params.Ptx_max, PL[i, j]) >= params.RSSI_k[-1]:
+				if propagation.GetRSSI(params.Ptx_max, PL[sr_info_mask, :][i, j]) >= params.RSSI_k[-1]:
 					# If the RSSI under max tx power exceeds the minimum RSSI threshold,
 					# we reckon this gateway has the probability of covering end devices 
 					# in this cluster
+					print(propagation.GetRSSI(params.Ptx_max, PL[i, j]))
 					gw_mask[j] = True
-		gw_blob = G[gw_mask, :]
+					break
+		G_blob = np.copy(G[gw_mask, :])
+		PL_blob = PL[sr_info_mask, :][:, gw_mask]
+		logging.info('Size of this blob: sr: {} gw: {} PL: {}'.format(sr_cnt_blob, \
+			G_blob.shape[0], PL_blob.shape))
 
+		# Call greedy algorithm for this cluster
 		sr_info_blob, G_blob, m_gateway, N_kq = \
-			RGreedyAlg(sr_info_blob, G_blob, PL_blob, dist, N_kq, params, GeneticParams)
+			RGreedy.RGreedyAlg(sr_info_blob, G_blob, PL_blob, dist, N_kq, params, GreedyParams)
+
+		# Fill the cluster result back into the original arrays
+		sr_info[sr_info_mask, :] = sr_info_blob
+		G[gw_mask, :] = G_blob
+
+		main.plot(sr_info, G, 'cluster_{}'.format(ic))

@@ -98,9 +98,9 @@ def main():
 	Prx_friis= [GetRSSI(20, lossi) for lossi in loss_friis]
 
 	plt.figure()
-	plt.plot(d, Prx_log_ICIOTr, label='log ICIOT')
-	plt.plot(d, Prx_log_Borr, label='log Bor')
-	plt.plot(d, Prx_log_Dongarer, label='log Dongare')
+	plt.plot(d, Prx_log_ICIOT, label='log ICIOT')
+	plt.plot(d, Prx_log_Bor, label='log Bor')
+	plt.plot(d, Prx_log_Dongare, label='log Dongare')
 	plt.plot(d, Prx_friis, label='friis')
 	plt.legend()
 	plt.savefig('loss.png')
