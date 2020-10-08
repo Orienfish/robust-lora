@@ -78,13 +78,26 @@ def GetPDR(sr_info, G, PL, N_kq, params, idx):
 		Cnt_kq = len(N_kq[str(k) + '_' + str(q)])
 		Coll = 1 - math.exp(-2 * Cnt_kq * params.AirTime_k[k] / params.T)
 		logging.debug('Cnt of nodes using same SF and CH: {} Coll Prob: {}'.format(Cnt_kq, Coll))
+
 		# Sum of the expected reception power at gateway j of all nodes using
 		# the same SFk and channel q
-		Noise_node_idx = N_kq[str(k) + '_' + str(q)].copy()
-		Noise_node_idx.remove(idx)
-		Prx_dB_list = list(map(lambda i: \
-			propagation.GetRSSI(sr_info[i, 3], PL[i, j]), Noise_node_idx))
-		Prx_W_list = list(map(lambda Prx_dB: 10 ** (Prx_dB / 10), Prx_dB_list))
+		Noise_node_info = N_kq[str(k) + '_' + str(q)].copy()
+		#print(Noise_node_info)
+		#print(sr_info[idx, :])
+		Noise_node_info = [x for x in Noise_node_info if not (x[0] == sr_info[idx, 0] and \
+			x[1] == sr_info[idx, 1])] # Remove the same node
+		#print(Noise_node_info)
+
+		Prx_W_list = []
+		for noise_node in Noise_node_info:
+			loc1 = noise_node[:2]
+			loc2 = G[j, :2]
+			Noise_PL = propagation.LogDistancePathLossModel(d=np.sqrt(np.sum((loc1 - loc2)**2)), \
+				ver=params.LogPropVer)
+			Prx_dB = propagation.GetRSSI(noise_node[3], Noise_PL)
+			Prx_W_list.append(10 ** (Prx_dB / 10))
+		#print(Prx_W_list)
+
 		Prx_W_sum = sum(Prx_W_list)
 		Prx_W_noise = Coll * Prx_W_sum + params.N0
 		logging.debug('Noise from other signals in W: {} AWGN noise in W: {}'.format( \
@@ -142,7 +155,7 @@ def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
 		for q in range(CH_cnt):
 
 			sr_info_cur[sr_idx, 4] = q
-			N_kq_cur[str(k) + '_' + str(q)].append(sr_idx)
+			N_kq_cur[str(k) + '_' + str(q)].append(sr_info_cur[sr_idx, :])
 			for Ptx in params.Ptx:
 				
 				sr_info_cur[sr_idx, 3] = Ptx
@@ -162,7 +175,8 @@ def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
 				break
 
 			# Not selected to use this assignment, remove it
-			N_kq_cur[str(k) + '_' + str(q)].remove(sr_idx)
+			N_kq_cur[str(k) + '_' + str(q)] = [x for x in N_kq_cur[str(k) + '_' + str(q)] \
+				if not (x[0] == sr_info_cur[sr_idx, 0] and x[1] == sr_info_cur[sr_idx, 1])]
 
 		if succ:
 			break
@@ -188,13 +202,17 @@ def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
 				# This new connectivity should be backup connectivity
 				# Remove the node from collision dictionary
 				# Reset to the previous device settings 
-				N_kq_cur[str(new_k) + '_' + str(new_q)].remove(sr_idx)
+				N_kq_cur[str(new_k) + '_' + str(new_q)] = \
+					[x for x in N_kq_cur[str(new_k) + '_' + str(new_q)] \
+					if not (x[0] == sr_info[sr_idx, 0] and x[1] == sr_info[sr_idx, 1])]
 				sr_info_cur[sr_idx, :] = np.copy(sr_info[sr_idx, :])
 			else:
 				# The old connectivity should be backup connectivity
 				# Remove the node from collision dictionary
 				# Keep the current device settings 
-				N_kq_cur[str(old_k) + '_' + str(old_q)].remove(sr_idx)
+				N_kq_cur[str(old_k) + '_' + str(old_q)] = \
+					[x for x in N_kq_cur[str(old_k) + '_' + str(old_q)] \
+					if not (x[0] == sr_info[sr_idx, 0] and x[1] == sr_info[sr_idx, 1])]
 
 	else:
 		# All device configuration attempts are failed, reset current sensor info
@@ -204,8 +222,53 @@ def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
 
 	return succ, PDR, Lifetime
 
+def UpdateConn(sr_info, G, PL, N_kq, params):
+	'''
+	Update current gateway connectivity at each end node, since there might be
+	gateway placement already in the G
 
-def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params, GeneticParams):
+	Args:
+		sr_info: original sensor/end device configuration
+		G: gateway placement
+		PL: path loss matrix between sensors and potential gateways
+		N_kq: a dictionary recording traffic allocation
+		params: important parameters
+
+	Return:
+		sr_info_cur: updated sensor/end device configuration
+		m_gateway_cur: updated gateway connectivity
+		N_kq_cur: updated global traffic
+	'''
+	sr_cnt = sr_info.shape[0]
+	gw_cnt = G.shape[0]
+
+	m_gateway = np.zeros((sr_cnt, 1))
+	gw_placed = G[:, 2]
+	if np.sum(gw_placed) == 0:
+		# No placed gateway
+		return m_gateway
+
+	# If there is placed gateway, update device configuration
+	for gw_idx in range(gw_cnt):
+		if not G[j, 2]: # No gateway is placed at this location
+			continue
+
+		# A gateway is placed at j	
+		for sr_idx in range(sr_cnt):
+			if propagation.GetRSSI(params.Ptx_max, PL[sr_idx, gw_idx]) >= params.RSSI_k[-1]:
+				# If the RSSI under max tx power exceeds the minimum RSSI threshold,
+				# we reckon this gateway has the probability of covering end device i 
+
+				# Try to assign the minimum SF and channel based on the current sr_info
+				# and collision-possible nodes N_kq
+				succ, PDR_i, Lifetime_i = DeviceConfiguration(sr_info, \
+					sr_info, G, PL, N_kq, m_gateway, params, sr_idx, gw_idx)
+				logging.debug('succ: {} PDR_i: {} Lifetime_i: {}'.format(succ, PDR_i, Lifetime_i))
+
+	return m_gateway
+
+
+def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GeneticParams):
 	'''
 	Call the robust gateway placement algorithm
 
@@ -214,12 +277,15 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params, GeneticParams):
 		G: original read-only gateway placement
 		PL: path loss matrix between sensors and potential gateways
 		dist: distance matrix between sensors and potential gateways
+		N_kq: a dictionary recording traffic allocation
 		params: important parameters
 		GeneticParams: parameters for this greedy algorithms
 
 	Returns:
 		sr_info: sensor configuration
 		G: resulted gateway placement
+		m_gateway: current m-gateway connectivity
+		N_kq: current traffic allocation
 	'''
 	# Make a deep copy of the original numpy array to avoid changes
 	sr_info = np.copy(sr_info_ogn)
@@ -227,17 +293,11 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params, GeneticParams):
 	sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
 
-	# Use a dictionary to record the list of nodes using the SFk and channel q
-	# Note that the dictionary only records the primary connection
-	SF_cnt = len(params.SF)
-	CH_cnt = len(params.CH)
-	N_kq = dict()
-	for k in range(SF_cnt):
-		for q in range(CH_cnt):
-			N_kq[str(k) + '_' + str(q)] = []
-
-	m_gateway = np.zeros((sr_cnt, 1)) # Current gateway connectivity at each end node
-	uncover_old = sr_cnt * params.M
+	# Update current gateway connectivity at each end node, since there might be
+	# gateway placement already in the G
+	m_gateway = UpdateConn(sr_info, G, PL, N_kq, params)
+	conn_cur = np.ones((sr_cnt, 1)) * params.M - m_gateway
+	uncover_old = np.sum(conn_cur[conn_cur > 0])
 	PDR_old = np.zeros((sr_cnt, 1))
 	Lifetime_old = np.zeros((sr_cnt, 1))
 	rounds = 0
@@ -261,7 +321,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params, GeneticParams):
 			PDR_cur = np.copy(PDR_old)
 			Lifetime_cur = np.copy(Lifetime_old)
 
-			PL_gw_idx = dist[:, gw_idx] # path loss to gateway idx
+			PL_gw_idx = PL[:, gw_idx] # path loss to gateway idx
 			sort_idx = np.argsort(PL_gw_idx, axis=0) # sort the PL from min to max
 
 			for i in range(sr_cnt):
@@ -347,4 +407,4 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, params, GeneticParams):
 
 		rounds += 1
 
-	return sr_info, G, m_gateway
+	return sr_info, G, m_gateway, N_kq

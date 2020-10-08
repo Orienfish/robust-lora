@@ -13,6 +13,7 @@ import RGreedy
 import RGenetic
 import propagation
 import ReadData
+import clustering
 
 
 ########################################
@@ -71,6 +72,11 @@ class params:
 	PDR_th = 0.8		# PDR threshold at each end node
 	Lifetime_th = 1		# Lifetime threshold at each end node in years
 
+# Parameters for the DBSCAN clustering algorithm
+class ClusterParams:
+	eps = 5000			# Distance of neighborhood
+	min_samples = 10	# How tolerant the algorithm is towards noise
+
 # Parameters for the greedy algorithm
 class GreedyParams:
 	desired_gw_cnt = 10 # Desired gateways to place by ICIOT alg
@@ -88,6 +94,7 @@ class GeneticParams:
 # which algorithm to run
 class run:
 	iteration = 1
+	RCluster = False
 	RGreedy = True
 	RGenetic = False
 	ICIOT = False
@@ -134,7 +141,7 @@ def init(params):
 		y_gw = params.gw_dist / 2
 
 	G = np.array(G)
-	print(G)
+	# print(G)
 	gw_cnt = G.shape[0]
 
 	# Generate path loss and distance matrix between sensor i and 
@@ -150,7 +157,17 @@ def init(params):
 				ver=params.LogPropVer)
 	# print(PL)
 
-	return sr_info, G, PL, dist
+	# Use a dictionary to record the list of nodes using the SFk and channel q
+	# Note that the dictionary only records the primary connection
+	# Initialize empty dictionary
+	SF_cnt = len(params.SF)
+	CH_cnt = len(params.CH)
+	N_kq = dict()
+	for k in range(SF_cnt):
+		for q in range(CH_cnt):
+			N_kq[str(k) + '_' + str(q)] = []
+
+	return sr_info, G, PL, dist, N_kq
 
 def eval(sr_info_res, G_res, PL, params):
 	'''
@@ -258,7 +275,7 @@ def SaveRes(sr_cnt, M, gw_cnt, time):
 def main():
 	for it in range(run.iteration):
 		# Initialization
-		sr_info, G, PL, dist = init(params)
+		sr_info, G, PL, dist, N_kq = init(params)
 		sr_cnt = sr_info.shape[0]
 		gw_cnt = G.shape[0]
 		logging.info('sr_cnt: {} gw_cnt: {}'.format(sr_cnt, gw_cnt))
@@ -266,11 +283,14 @@ def main():
 		for M in [1]: #[3, 2, 1]:
 			params.M = M
 
+			if run.RCluster:
+				pass
+
 			if run.RGreedy:
 				logging.info('Running RGreedy M = {}'.format(params.M))
 				st_time = time.time()
-				sr_info_res, G_res, m_gateway_res = \
-					RGreedy.RGreedyAlg(sr_info, G, PL, dist, params, GreedyParams)
+				sr_info_res, G_res, m_gateway_res, N_kq_res = \
+					RGreedy.RGreedyAlg(sr_info, G, PL, dist, N_kq, params, GreedyParams)
 				run_time = time.time() - st_time
 
 				# Show m-gateway connectivity at each end device
