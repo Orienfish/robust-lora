@@ -194,21 +194,28 @@ def DeviceConfiguration(sr_info_cur, sr_info, G, PL, N_kq_cur, m_gateway_cur, \
 			old_q = int(sr_info[sr_idx, 4])
 
 			if new_k == old_k and new_q == old_q:
-				# If the new configuration is exactly same as the old configuration
-				# do nothing
-				pass
-			elif new_k > old_k or \
-				(new_k == old_k and sr_info_cur[sr_idx, 3] > sr_info[sr_idx, 3]): 
-				# This new connectivity should be backup connectivity
-				# Remove the node from collision dictionary
-				# Reset to the previous device settings 
+				# If the new configuration is the same as the old configuration
+				# remove duplicates from collision dictionary
+
+				# First remove both of them
 				N_kq_cur[str(new_k) + '_' + str(new_q)] = \
 					[x for x in N_kq_cur[str(new_k) + '_' + str(new_q)] \
 					if not (x[0] == sr_info[sr_idx, 0] and x[1] == sr_info[sr_idx, 1])]
+				# Then add back one
+				N_kq_cur[str(new_k) + '_' + str(new_q)].append(sr_info_cur[sr_idx, :])
+
+			elif new_k > old_k or \
+				(new_k == old_k and sr_info_cur[sr_idx, 3] > sr_info[sr_idx, 3]): 
+				# This new connectivity should be backup connectivity
+				# Remove the new node from collision dictionary
+				# Reset to the previous device settings 
+				N_kq_cur[str(new_k) + '_' + str(new_q)] = \
+					[x for x in N_kq_cur[str(new_k) + '_' + str(new_q)] \
+					if not (x[0] == sr_info_cur[sr_idx, 0] and x[1] == sr_info_cur[sr_idx, 1])]
 				sr_info_cur[sr_idx, :] = np.copy(sr_info[sr_idx, :])
 			else:
 				# The old connectivity should be backup connectivity
-				# Remove the node from collision dictionary
+				# Remove the old node from collision dictionary
 				# Keep the current device settings 
 				N_kq_cur[str(old_k) + '_' + str(old_q)] = \
 					[x for x in N_kq_cur[str(old_k) + '_' + str(old_q)] \
@@ -250,7 +257,7 @@ def UpdateConn(sr_info, G, PL, N_kq, params):
 
 	# If there is placed gateway, update device configuration
 	for gw_idx in range(gw_cnt):
-		if not G[j, 2]: # No gateway is placed at this location
+		if not G[gw_idx, 2]: # No gateway is placed at this location
 			continue
 
 		# A gateway is placed at j	
@@ -263,12 +270,12 @@ def UpdateConn(sr_info, G, PL, N_kq, params):
 				# and collision-possible nodes N_kq
 				succ, PDR_i, Lifetime_i = DeviceConfiguration(sr_info, \
 					sr_info, G, PL, N_kq, m_gateway, params, sr_idx, gw_idx)
-				logging.debug('succ: {} PDR_i: {} Lifetime_i: {}'.format(succ, PDR_i, Lifetime_i))
+				logging.info('succ: {} PDR_i: {} Lifetime_i: {}'.format(succ, PDR_i, Lifetime_i))
 
 	return m_gateway
 
 
-def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GeneticParams):
+def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 	'''
 	Call the robust gateway placement algorithm
 
@@ -279,7 +286,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GeneticParams):
 		dist: distance matrix between sensors and potential gateways
 		N_kq: a dictionary recording traffic allocation
 		params: important parameters
-		GeneticParams: parameters for this greedy algorithms
+		GreedyParams: parameters for this greedy algorithms
 
 	Returns:
 		sr_info: sensor configuration
@@ -353,9 +360,9 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GeneticParams):
 			uncover_new = np.sum(conn_cur[conn_cur > 0])
 			# Benefit function: promote new connectivity and PDR, lifetime constraints
 			bnft_cov = uncover_old - uncover_new
-			bnft_pdr = GeneticParams.w_pdr * uncover_old * \
+			bnft_pdr = GreedyParams.w_pdr * uncover_old * \
 				np.sum(PDR_cur - np.ones((sr_cnt, 1)) * params.PDR_th)
-			bnft_lifetime = GeneticParams.w_lifetime * uncover_old * \
+			bnft_lifetime = GreedyParams.w_lifetime * uncover_old * \
 				np.sum(Lifetime_cur - np.ones((sr_cnt, 1)) * params.Lifetime_th)
 			bnft = bnft_cov + bnft_pdr + bnft_lifetime
 			logging.info('cov: {} pdr: {} lifetime: {}'.format(bnft_cov, bnft_pdr, bnft_lifetime))

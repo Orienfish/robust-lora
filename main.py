@@ -199,7 +199,7 @@ def eval(sr_info_res, G_res, PL, params):
 		k = int(sr_info_res[idx, 2])	# SFk
 		q = int(sr_info_res[idx, 4])	# Channel q
 		label = str(k) + '_' + str(q)
-		N_kq[label].append(idx)
+		N_kq[label].append(sr_info_res[idx, :])
 
 	PDR, PDR_gw, lifetime = [], [], []
 	for idx in range(sr_cnt):
