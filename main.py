@@ -94,8 +94,8 @@ class GeneticParams:
 # which algorithm to run
 class run:
 	iteration = 1
-	RCluster = True
-	RGreedy = False
+	RCluster = False
+	RGreedy = True
 	RGenetic = False
 	ICIOT = False
 
@@ -280,14 +280,29 @@ def main():
 		gw_cnt = G.shape[0]
 		logging.info('sr_cnt: {} gw_cnt: {}'.format(sr_cnt, gw_cnt))
 
-		for M in [1]: #[3, 2, 1]:
+		for M in [2]: #[3, 2, 1]:
 			params.M = M
 
 			if run.RCluster:
 				logging.info('Running RGreedy Cluster M = {}'.format(params.M))
 				st_time = time.time()
-				clustering.RClusterAlg(sr_info, G, PL, dist, N_kq, params, ClusterParams, GreedyParams)
+				sr_info_res, G_res, m_gateway_res, N_kq_res = \
+					clustering.RClusterAlg(sr_info, G, PL, dist, N_kq, params, ClusterParams, GreedyParams)
 				run_time = time.time() - st_time
+
+				# Show m-gateway connectivity at each end device
+				print(np.reshape(m_gateway_res, (1, -1)))
+
+				# Print out PDR and lifetime at each end device
+				eval(sr_info_res, G_res, PL, params)
+
+				# Plot and log result
+				plot(sr_info_res, G_res, 'RCluster{}_{}_{}'.format(M, sr_cnt, it))
+				# SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
+
+				# Write sensor and gateway information to file
+				method = 'RCluster_{}_{}_{}'.format(M, sr_cnt, it)
+				SaveInfo(sr_info_res, G_res, method)
 
 			if run.RGreedy:
 				logging.info('Running RGreedy M = {}'.format(params.M))
