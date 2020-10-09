@@ -82,13 +82,13 @@ def RClusterAlg(sr_info, G, PL, dist, N_kq, params, ClusterParams, GreedyParams)
 	# Clustering
 	db = DBSCANAlg(sr_info[:, :2], ClusterParams)
 	labels = db.labels_
-	n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+	n_clusters = len(set(labels))
+	labels = np.array([x if x != -1 else n_clusters-1 for x in labels]) # Convert -1 to the last cluster
 	plotClusters(sr_info[:, :2], labels, db.core_sample_indices_, n_clusters)
 
 	for ic in range(n_clusters):
 		# Extract the points in this cluster
-		sr_info_mask = np.zeros_like(labels, dtype=bool)
-		sr_info_mask[labels == ic] = True
+		sr_info_mask = (labels == ic)
 		sr_info_blob = np.copy(sr_info[sr_info_mask, :])
 		sr_cnt_blob = sr_info_blob.shape[0]
 
@@ -99,7 +99,7 @@ def RClusterAlg(sr_info, G, PL, dist, N_kq, params, ClusterParams, GreedyParams)
 					# If the RSSI under max tx power exceeds the minimum RSSI threshold,
 					# we reckon this gateway has the probability of covering end devices 
 					# in this cluster
-					print(propagation.GetRSSI(params.Ptx_max, PL[i, j]))
+					# print(propagation.GetRSSI(params.Ptx_max, PL[i, j]))
 					gw_mask[j] = True
 					break
 		G_blob = np.copy(G[gw_mask, :])
