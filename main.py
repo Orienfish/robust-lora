@@ -280,7 +280,7 @@ def main():
 		gw_cnt = G.shape[0]
 		logging.info('sr_cnt: {} gw_cnt: {}'.format(sr_cnt, gw_cnt))
 
-		for M in [2]: #[3, 2, 1]:
+		for M in [3, 2, 1]:
 			params.M = M
 
 			if run.RCluster:
