@@ -282,8 +282,6 @@ def main():
 	for it in range(run.iteration):
 		# Initialization
 		sr_info, G, PL, dist, N_kq = init(params)
-		sr_info = sr_info[:10, :]
-		PL = PL[:10, :]
 		sr_cnt = sr_info.shape[0]
 		gw_cnt = G.shape[0]
 		logging.info('sr_cnt: {} gw_cnt: {}'.format(sr_cnt, gw_cnt))
