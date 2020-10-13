@@ -78,14 +78,19 @@ def RClusterAlg(sr_info, G, PL, dist, N_kq, params, ClusterParams, GreedyParams)
 		G: resulted gateway placement
 	'''
 	gw_cnt = G.shape[0]
+	n_clusters = 1
+	labels = np.zeros_like(sr_info[:, 0])
 
 	# Clustering
-	db = DBSCANAlg(sr_info[:, :2], ClusterParams)
-	labels = db.labels_
-	n_clusters = len(set(labels))
-	labels = np.array([x if x != -1 else n_clusters-1 for x in labels]) # Convert -1 to the last cluster
-	plotClusters(sr_info[:, :2], labels, db.core_sample_indices_, n_clusters)
+	if GreedyParams.cluster:
+		db = DBSCANAlg(sr_info[:, :2], ClusterParams)
+		labels = db.labels_
+		print(labels.shape)
+		n_clusters = len(set(labels))
+		labels = np.array([x if x != -1 else n_clusters-1 for x in labels]) # Convert -1 to the last cluster
+		plotClusters(sr_info[:, :2], labels, db.core_sample_indices_, n_clusters)
 
+	# Perform gateway placement in each cluster
 	for ic in range(n_clusters):
 		# Extract the points in this cluster
 		sr_info_mask = (labels == ic)
@@ -108,7 +113,7 @@ def RClusterAlg(sr_info, G, PL, dist, N_kq, params, ClusterParams, GreedyParams)
 			G_blob.shape[0], PL_blob.shape))
 
 		# Call greedy algorithm for this cluster
-		sr_info_blob, G_blob, m_gateway, N_kq = \
+		m_gateway, N_kq = \
 			RGreedy.RGreedyAlg(sr_info_blob, G_blob, PL_blob, dist, N_kq, params, GreedyParams)
 
 		# Fill the cluster result back into the original arrays

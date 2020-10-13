@@ -314,27 +314,51 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 
 		# Variables to record the best gateway location in the current round
 		bnft_best = -np.inf
+
+		# If uncover count is lower than the threshold, fire end-of-exploration acceleration
+		G_remain = np.copy(G)
+		gw_mask = np.ones_like(G[:, 2], dtype=bool)
+		PL_remain = np.copy(PL)
+		if GreedyParams.end and uncover_old < params.M * sr_cnt * GreedyParams.end_thres:
+			gw_mask = np.zeros_like(G[:, 2], dtype=bool) # Clear gw mask
+			conn_cur = np.ones((sr_cnt, 1)) * params.M - m_gateway
+			for j in range(gw_cnt):
+				for i in range(sr_cnt):
+					# Only keep the gateway that can cover uncovered end devices
+					if conn_cur[i] > 0 and \
+						propagation.GetRSSI(params.Ptx_max, PL[i, j]) >= params.RSSI_k[-1]:
+						# If the RSSI under max tx power exceeds the minimum RSSI threshold,
+						# we reckon this gateway has the probability of covering uncovered end devices 
+						# print(propagation.GetRSSI(params.Ptx_max, PL[i, j]))
+						gw_mask[j] = True
+						break
+			G_remain = G_remain[gw_mask, :]
+			PL_remain = PL_remain[:, gw_mask]
 		
-		for gw_idx in range(gw_cnt):
-			if G[gw_idx, 2]: # A gateway has been placed at this location
+		logging.info('Remained candidate gw: {}'.format(G_remain.shape[0]))
+		
+		# The following operation is run on sr_info, G_remain and PL_remain
+		remained_cnt = G_remain.shape[0]
+		for gw_idx in range(remained_cnt):
+			if G_remain[gw_idx, 2]: # A gateway has been placed at this location
 				continue
 
 			# Try to place gateway at gateway location idx and configure the sensor
 			# Create a deep copy of the original info for this gateway placement attempt
-			G[gw_idx, 2] = 1
+			G_remain[gw_idx, 2] = 1
 			sr_info_cur = np.copy(sr_info)
 			N_kq_cur = copy.deepcopy(N_kq)
 			m_gateway_cur = np.copy(m_gateway)
 			PDR_cur = np.copy(PDR_old)
 			Lifetime_cur = np.copy(Lifetime_old)
 
-			PL_gw_idx = PL[:, gw_idx] # path loss to gateway idx
+			PL_gw_idx = PL_remain[:, gw_idx] # path loss to gateway idx
 			sort_idx = np.argsort(PL_gw_idx, axis=0) # sort the PL from min to max
 
 			for i in range(sr_cnt):
 				sr_idx = int(sort_idx[i])
 
-				if propagation.GetRSSI(params.Ptx_max, PL[sr_idx, gw_idx]) < params.RSSI_k[-1]:
+				if propagation.GetRSSI(params.Ptx_max, PL_remain[sr_idx, gw_idx]) < params.RSSI_k[-1]:
 					# If the RSSI under max tx power will still below the minimum RSSI threshold
 					# then the following sensors exceed the maximum communication range
 					# therefore we do not need to consider them
@@ -344,7 +368,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 				# Try to assign the minimum SF and channel based on the current sr_info
 				# and collision-possible nodes N_kq
 				succ, PDR_i, Lifetime_i = DeviceConfiguration(sr_info_cur, \
-					sr_info, G, PL, N_kq_cur, m_gateway_cur, params, sr_idx, gw_idx)
+					sr_info, G_remain, PL_remain, N_kq_cur, m_gateway_cur, params, sr_idx, gw_idx)
 				logging.debug('succ: {} PDR_i: {} Lifetime_i: {}'.format(succ, PDR_i, Lifetime_i))
 				
 				if not succ:
@@ -383,7 +407,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 				gw_idx, G[gw_idx, :2], bnft, bnft_best, best_idx))
 
 			# Reset
-			G[gw_idx, 2] = 0
+			G_remain[gw_idx, 2] = 0
 
 			# Early ending if already satisfy all uncovers
 			#if uncover_new == 0:
@@ -395,7 +419,8 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 			break
 
 		# Place a gateway at next_idx with the max benefit and update info
-		G[best_idx, 2] = 1
+		G_remain[best_idx, 2] = 1
+		G[gw_mask, :] = G_remain # Copy G_remain to G
 		sr_info = best_sr_info
 		N_kq = best_N_kq
 		m_gateway = best_m_gateway
