@@ -335,7 +335,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 			G_remain = G_remain[gw_mask, :]
 			PL_remain = PL_remain[:, gw_mask]
 		
-		logging.info('Remained candidate gw: {}'.format(G_remain.shape[0]))
+		logging.info('Remained candidate sr: {} gw: {}'.format(sr_cnt, G_remain.shape[0]))
 		
 		# The following operation is run on sr_info, G_remain and PL_remain
 		remained_cnt = G_remain.shape[0]

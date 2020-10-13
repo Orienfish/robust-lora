@@ -84,7 +84,7 @@ class GreedyParams:
 	w_lifetime = 0.5e-4	# Weight for lifetime
 	cluster = False		# Whether use the clustering-based acceleration
 	end = False			# Whether use the end-of-exploration acceleration
-	end_thres = 0.2		# The threshold to kick off end-of-exploration acceleration
+	end_thres = 0.3		# The threshold to kick off end-of-exploration acceleration
 
 # Parameters for the genetic algorithm
 class GeneticParams:
@@ -97,7 +97,7 @@ class GeneticParams:
 # which algorithm to run
 class run:
 	iteration = 1
-	M = [1] #[3, 2, 1]
+	M = [1, 2, 3] #[3, 2, 1]
 	RGreedy = True		# Pure greedy algorithm
 	RGreedy_c = True	# With cluster-based acceleration
 	RGreedy_e = True 	# With end-of-exploration acceleration
@@ -235,9 +235,9 @@ def plot(sr_info, G, version):
 	plt.scatter(G[:, 0], G[:, 1], s=G[:, 2]*50, c=color, marker='^')
 	plt.xlabel('X (m)'); plt.ylabel('Y (m)');
 	# plt.legend()
-	filename = 'vis_{}.png'.format(version)
+	filename = './vis/vis_{}.png'.format(version)
 	plt.savefig(filename)
-	plt.show()
+	# plt.show()
 
 def SaveInfo(sr_info, G, method):
 	'''
@@ -252,7 +252,7 @@ def SaveInfo(sr_info, G, method):
 	gw_cnt = G.shape[0]
 
 	# Write sensor and gateway information to file
-	filename = 'sr_{}.txt'.format(method)
+	filename = './res/sr_{}.txt'.format(method)
 	with open (filename, 'w') as out:
 		for i in range(sr_cnt):
 			# Note: we need to convert SF to data rate (DR)
@@ -261,7 +261,7 @@ def SaveInfo(sr_info, G, method):
 				str(round(sr_info[i, 1], 2)) + ' ' + \
 				str(int(3 - sr_info[i, 2])) + ' ' + \
 				str(round(sr_info[i, 3])) + '\n')
-	filename = 'gw_{}.txt'.format(method)
+	filename = './res/gw_{}.txt'.format(method)
 	with open (filename, 'w') as out:
 		for i in range(gw_cnt):
 			if G[i, 2]:
@@ -270,8 +270,8 @@ def SaveInfo(sr_info, G, method):
 
 def SaveRes(method, sr_cnt, M, gw_cnt, time):
 	# Log results
-	with open('res.txt', 'a') as out:
-		out.write(method + str(sr_cnt) + ' ' + str(M) + ' ' + \
+	with open('./res/res.txt', 'a') as out:
+		out.write(method + ' ' + str(sr_cnt) + ' ' + str(M) + ' ' + \
 			str(gw_cnt) + ' ' + str(time) + '\n')
 
 
@@ -282,6 +282,8 @@ def main():
 	for it in range(run.iteration):
 		# Initialization
 		sr_info, G, PL, dist, N_kq = init(params)
+		sr_info = sr_info[:10, :]
+		PL = PL[:10, :]
 		sr_cnt = sr_info.shape[0]
 		gw_cnt = G.shape[0]
 		logging.info('sr_cnt: {} gw_cnt: {}'.format(sr_cnt, gw_cnt))
@@ -306,7 +308,7 @@ def main():
 				eval(sr_info_res, G_res, PL, params)
 
 				# Plot and log result
-				plot(sr_info_res, G_res, 'RGreedy{}_{}_{}'.format(M, sr_cnt, it))
+				plot(sr_info_res, G_res, 'RGreedy_{}_{}_{}'.format(M, sr_cnt, it))
 				SaveRes('G', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
@@ -331,7 +333,7 @@ def main():
 				eval(sr_info_res, G_res, PL, params)
 
 				# Plot and log result
-				plot(sr_info_res, G_res, 'RGreedyc{}_{}_{}'.format(M, sr_cnt, it))
+				plot(sr_info_res, G_res, 'RGreedyc_{}_{}_{}'.format(M, sr_cnt, it))
 				SaveRes('Gc', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
@@ -355,7 +357,7 @@ def main():
 				eval(sr_info_res, G_res, PL, params)
 
 				# Plot and log result
-				plot(sr_info_res, G_res, 'RGreedye{}_{}_{}'.format(M, sr_cnt, it))
+				plot(sr_info_res, G_res, 'RGreedye_{}_{}_{}'.format(M, sr_cnt, it))
 				SaveRes('Ge', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
@@ -380,7 +382,7 @@ def main():
 				eval(sr_info_res, G_res, PL, params)
 
 				# Plot and log result
-				plot(sr_info_res, G_res, 'RGreedyce{}_{}_{}'.format(M, sr_cnt, it))
+				plot(sr_info_res, G_res, 'RGreedyce_{}_{}_{}'.format(M, sr_cnt, it))
 				SaveRes('Gce', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file

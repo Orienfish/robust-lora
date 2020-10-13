@@ -56,10 +56,10 @@ def plotClusters(X, labels, core_sample_indices, n_clusters):
 	             markeredgecolor='k', markersize=6)
 
 	plt.title('Estimated number of clusters: %d' % n_clusters)
-	plt.savefig('clusters.png')
-	plt.show()
+	plt.savefig('./vis/clusters.png')
+	# plt.show()
 
-def RClusterAlg(sr_info, G, PL, dist, N_kq, params, ClusterParams, GreedyParams):
+def RClusterAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, ClusterParams, GreedyParams):
 	'''
 	Call the cluster-based robust gateway placement algorithm
 
@@ -77,9 +77,12 @@ def RClusterAlg(sr_info, G, PL, dist, N_kq, params, ClusterParams, GreedyParams)
 		sr_info: sensor configuration
 		G: resulted gateway placement
 	'''
+	sr_info = np.copy(sr_info_ogn)
+	G = np.copy(G_ogn)
 	gw_cnt = G.shape[0]
 	n_clusters = 1
 	labels = np.zeros_like(sr_info[:, 0])
+	m_gateway = np.zeros_like(sr_info[:, 0])
 
 	# Clustering
 	if GreedyParams.cluster:
@@ -113,11 +116,13 @@ def RClusterAlg(sr_info, G, PL, dist, N_kq, params, ClusterParams, GreedyParams)
 			G_blob.shape[0], PL_blob.shape))
 
 		# Call greedy algorithm for this cluster
-		m_gateway, N_kq = \
+		sr_info_blob, G_blob, m_gateway, N_kq = \
 			RGreedy.RGreedyAlg(sr_info_blob, G_blob, PL_blob, dist, N_kq, params, GreedyParams)
 
 		# Fill the cluster result back into the original arrays
 		sr_info[sr_info_mask, :] = sr_info_blob
 		G[gw_mask, :] = G_blob
+		m_gateway[sr_info_mask] += m_gateway
 
-		main.plot(sr_info, G, 'cluster_{}'.format(ic))
+		# main.plot(sr_info, G, 'cluster_{}'.format(ic))
+	return sr_info, G, m_gateway, N_kq
