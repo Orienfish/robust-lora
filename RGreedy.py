@@ -305,8 +305,8 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 	m_gateway = UpdateConn(sr_info, G, PL, N_kq, params)
 	conn_cur = np.ones((sr_cnt,)) * params.M - m_gateway
 	uncover_old = np.sum(conn_cur[conn_cur > 0])
-	PDR_old = np.zeros((sr_cnt, 1))
-	Lifetime_old = np.zeros((sr_cnt, 1))
+	PDR_old = np.zeros((sr_cnt,))
+	Lifetime_old = np.zeros((sr_cnt,))
 	rounds = 0
 
 	# Start greedily place gateway
@@ -321,7 +321,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 		PL_remain = np.copy(PL)
 		if GreedyParams.end and uncover_old < params.M * sr_cnt * GreedyParams.end_thres:
 			gw_mask = np.zeros_like(G[:, 2], dtype=bool) # Clear gw mask
-			conn_cur = np.ones((sr_cnt, 1)) * params.M - m_gateway
+			conn_cur = np.ones((sr_cnt,)) * params.M - m_gateway
 			for j in range(gw_cnt):
 				for i in range(sr_cnt):
 					# Only keep the gateway that can cover uncovered end devices
@@ -385,9 +385,9 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 			# Benefit function: promote new connectivity and PDR, lifetime constraints
 			bnft_cov = uncover_old - uncover_new
 			bnft_pdr = GreedyParams.w_pdr * uncover_old * \
-				np.sum(PDR_cur - np.ones((sr_cnt, 1)) * params.PDR_th)
+				np.sum(PDR_cur - np.ones((sr_cnt,)) * params.PDR_th)
 			bnft_lifetime = GreedyParams.w_lifetime * uncover_old * \
-				np.sum(Lifetime_cur - np.ones((sr_cnt, 1)) * params.Lifetime_th)
+				np.sum(Lifetime_cur - np.ones((sr_cnt,)) * params.Lifetime_th)
 			bnft = bnft_cov + bnft_pdr + bnft_lifetime
 			logging.info('cov: {} pdr: {} lifetime: {}'.format(bnft_cov, bnft_pdr, bnft_lifetime))
 
