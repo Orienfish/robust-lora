@@ -249,7 +249,7 @@ def UpdateConn(sr_info, G, PL, N_kq, params):
 	sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
 
-	m_gateway = np.zeros((sr_cnt, 1))
+	m_gateway = np.zeros((sr_cnt,))
 	gw_placed = G[:, 2]
 	if np.sum(gw_placed) == 0:
 		# No placed gateway
@@ -303,7 +303,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 	# Update current gateway connectivity at each end node, since there might be
 	# gateway placement already in the G
 	m_gateway = UpdateConn(sr_info, G, PL, N_kq, params)
-	conn_cur = np.ones((sr_cnt, 1)) * params.M - m_gateway
+	conn_cur = np.ones((sr_cnt,)) * params.M - m_gateway
 	uncover_old = np.sum(conn_cur[conn_cur > 0])
 	PDR_old = np.zeros((sr_cnt, 1))
 	Lifetime_old = np.zeros((sr_cnt, 1))
@@ -380,7 +380,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 				Lifetime_cur[sr_idx] = Lifetime_i
 						
 			# Calculate benefit of placing gateway at this location
-			conn_cur = np.ones((sr_cnt, 1)) * params.M - m_gateway_cur
+			conn_cur = np.ones((sr_cnt,)) * params.M - m_gateway_cur
 			uncover_new = np.sum(conn_cur[conn_cur > 0])
 			# Benefit function: promote new connectivity and PDR, lifetime constraints
 			bnft_cov = uncover_old - uncover_new

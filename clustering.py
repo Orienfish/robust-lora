@@ -116,13 +116,15 @@ def RClusterAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, ClusterParams, Greed
 			G_blob.shape[0], PL_blob.shape))
 
 		# Call greedy algorithm for this cluster
-		sr_info_blob, G_blob, m_gateway, N_kq = \
+		sr_info_blob, G_blob, m_gateway_blob, N_kq = \
 			RGreedy.RGreedyAlg(sr_info_blob, G_blob, PL_blob, dist, N_kq, params, GreedyParams)
+
+		print(m_gateway.shape, m_gateway_blob.shape)
 
 		# Fill the cluster result back into the original arrays
 		sr_info[sr_info_mask, :] = sr_info_blob
 		G[gw_mask, :] = G_blob
-		m_gateway[sr_info_mask] += m_gateway
+		m_gateway[sr_info_mask] += m_gateway_blob
 
 		# main.plot(sr_info, G, 'cluster_{}'.format(ic))
 	return sr_info, G, m_gateway, N_kq
