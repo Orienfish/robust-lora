@@ -78,7 +78,7 @@ int main (int argc, char *argv[])
   bool adrEnabled = false;
   int nDevices = 0;
   int nGateways = 0;
-  int nPeriods = 24*3; // 1 day
+  int nPeriods = 24*3*365; // 1 year
   std::string adrType = "ns3::AdrComponent";
 
   CommandLine cmd;
