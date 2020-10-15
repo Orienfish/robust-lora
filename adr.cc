@@ -105,6 +105,7 @@ int main (int argc, char *argv[])
 
   // LogComponentEnable ("AdrExample", LOG_LEVEL_ALL);
   // LogComponentEnable ("SimpleEndDeviceLoraPhy", LOG_LEVEL_ALL);
+  // LogComponentEnable ("SimpleGatewayLoraPhy", LOG_LEVEL_ALL);
   // LogComponentEnable ("LoraChannel", LOG_LEVEL_ALL); 
   // LogComponentEnable ("PropagationLossModel", LOG_LEVEL_ALL);
   // LogComponentEnable ("LoraPacketTracker", LOG_LEVEL_ALL);
@@ -354,6 +355,10 @@ int main (int argc, char *argv[])
   Simulator::Run ();
   Simulator::Destroy ();
 
+  /////////////////////
+  // Logging Results //
+  /////////////////////
+
   std::cout << "CountMacPacketGlobally: Sent Received" << std::endl;
   std::cout << tracker.CountMacPacketsGlobally (Seconds (0), simulationTime) << std::endl;
   std::cout << "CountMacPacketsGloballyCpsr: Sent Received" << std::endl;
@@ -362,16 +367,19 @@ int main (int argc, char *argv[])
   for (int edId = 0; edId < nDevices; ++edId)
   {
     std::cout << tracker.PrintMacPacketsCpsrPerEd (Seconds (0), simulationTime, edId) << " "
-              << tracker.PrintMacPacketsPerEd (Seconds (0), simulationTime, edId) << std::endl;
+              << tracker.PrintPhyPacketsPerEd (Seconds (0), simulationTime, edId) << std::endl;
   }
-
-  /*
-  std::cout << "TOTAL RECEIVED INTERFERED NO_MORE_RECEIVERS UNDER_SENSITIVITY LOST_BECAUSE_TX" << std::endl;
+  
+  std::cout << "PrintPhyPacketsPerGw:" << std::endl 
+            << "TOTAL RECEIVED INTERFERED NO_MORE_RECEIVERS UNDER_SENSITIVITY LOST_BECAUSE_TX" << std::endl;
   for (int gwId = nDevices; gwId < nDevices + nGateways; ++gwId)
   {
     std::cout << tracker.PrintPhyPacketsPerGw (Seconds (0), simulationTime, gwId) << std::endl;
   }
+  std::cout << std::endl;
 
+  std::cout << "PrintPhyPacketsPerGwEd:" << std::endl 
+            << "TOTAL RECEIVED INTERFERED NO_MORE_RECEIVERS UNDER_SENSITIVITY LOST_BECAUSE_TX" << std::endl;
   for (int edId = 0; edId < nDevices; ++edId)
   {
     for (int gwId = nDevices; gwId < nDevices + nGateways; ++gwId)
@@ -380,8 +388,7 @@ int main (int argc, char *argv[])
     }
     std::cout << std::endl;
   }
-  */
-
+  
   std::cout << CalObjectiveValue (endDevices, gateways, tracker, Seconds (0), simulationTime, "nodeEE.txt") << std::endl;
   
 
@@ -543,24 +550,29 @@ std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
     Ptr<Node> object = *j;
     int edId = object->GetId();
 
-    // Get packet delivery ratio
-    std::vector<int> packetEd = tracker.CountPhyPacketsPerEd (startTime, stopTime, edId);
-    double pdr = (double) packetEd.at (1) / packetEd.at (0);
+    // Get packet delivery ratio on Phy layer
+    std::vector<int> packetEdPhy = tracker.CountPhyPacketsPerEd (startTime, stopTime, edId);
+    double pdrPhy = (double) packetEdPhy.at (1) / packetEdPhy.at (0);
+
+    // Get packet delivery ratio on Mac layer under cpsr
+    std::vector<int> packetEdMac = tracker.CountMacPacketsCpsrPerEd (startTime, stopTime, edId);
+    double pdrMac = (double) packetEdMac.at (1) / packetEdMac.at (0);
 
     // Get energy consumption per sent packet
-    double energyPerPkt = energyVec.at (edId) / packetEd.at (0);
+    double energyPerPkt = energyVec.at (edId) / packetEdMac.at (0);
 
     // Estimate lifetime
     double lifetimeYrs = (stopTime.GetSeconds() - startTime.GetSeconds()) / 3600 / 24 / 365
       * E_cap_J / energyVec.at (edId) ;
 
     // Push back energy efficiency
-    double nodeEE = pdr / energyPerPkt;
+    double nodeEE = pdrMac / energyPerPkt;
     EEVec.push_back (nodeEE);
 
     outputFile << object->GetId () <<  " "
-               << packetEd.at (1) << " " << packetEd.at (0) << " "
-               << pdr << " " << energyPerPkt << " " << lifetimeYrs << " "
+               << packetEdPhy.at (1) << " " << packetEdPhy.at (0) << " " << pdrPhy << " "
+               << packetEdMac.at (1) << " " << packetEdMac.at (0) << " " << pdrMac << " "
+               << energyPerPkt << " " << lifetimeYrs << " "
                << nodeEE << std::endl;
   }
 
