@@ -53,6 +53,8 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
                           NodeContainer gateways,
                           EnergySourceContainer sources,
                           std::string filename);
+void EnableGatewaySwitch(NodeContainer gateways, Time interval, int nDownGateways, 
+                         std::vector<uint32_t> lastDownGatewayIdx);
 void RecordTotalEnergyConsumption (NodeContainer endDevices,
                                    EnergySourceContainer sources);
 double CalObjectiveValue (NodeContainer endDevices,
@@ -78,7 +80,9 @@ int main (int argc, char *argv[])
   bool adrEnabled = false;
   int nDevices = 0;
   int nGateways = 0;
-  int nPeriods = 24*3; // 1 month
+  int nPeriods = 24*3*30; // 1 month
+  int nGatewayDownPeriods = 24; // 1 day
+  int nDownGateways = 0;
   std::string adrType = "ns3::AdrComponent";
 
   CommandLine cmd;
@@ -95,7 +99,9 @@ int main (int argc, char *argv[])
   cmd.AddValue ("AdrEnabled", "Whether to enable ADR", adrEnabled);
   cmd.AddValue ("nDevices", "Number of devices to simulate", nDevices);
   cmd.AddValue ("nGateways", "Number of gateways to simulate", nDevices);
-  cmd.AddValue ("PeriodsToSimulate", "Number of periods to simulate", nPeriods);
+  cmd.AddValue ("nPeriods", "Number of periods to simulate", nPeriods);
+  cmd.AddValue ("nGatewayDownPeriods", "Number of periods to switch down gateways", nGatewayDownPeriods);
+  cmd.AddValue ("nDownGateway", "Number of gateways to switch down in each period", nGatewayDownPeriods);
   cmd.Parse (argc, argv);
 
 
@@ -340,7 +346,10 @@ int main (int argc, char *argv[])
 
   // Activate printing of ED MAC parameters
   Time stateSamplePeriod = Seconds (1200);
+  Time downPeriod = Seconds (1200 * nGatewayDownPeriods);
+  std::vector<uint32_t> lastDownGatewayIdx;
   EnablePeriodicDeviceStatusPrinting (endDevices, gateways, sources, "nodeData.txt", stateSamplePeriod);
+  EnableGatewaySwitch (gateways, downPeriod, nDownGateways, lastDownGatewayIdx);
   helper.EnablePeriodicPhyPerformancePrinting (gateways, "phyPerformance.txt", stateSamplePeriod);
   helper.EnablePeriodicGlobalPerformancePrinting ("globalPerformance.txt", stateSamplePeriod);
 
@@ -486,14 +495,80 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
   for (NodeContainer::Iterator j = gateways.Begin (); j != gateways.End (); ++j)
   {
     Ptr<Node> object = *j;
+    int nodeId = object->GetId();
+
+    // Get position
     Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
+    NS_ASSERT (position != 0);
     Vector pos = position->GetPosition ();
+
+    // Get netDevice
+    Ptr<NetDevice> netDevice = object->GetDevice (0);
+    Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+    NS_ASSERT (loraNetDevice != 0);
+
+    // Get phy status
+    Ptr<SimpleGatewayLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<SimpleGatewayLoraPhy> ();
+    bool status = phy->GetStatus ();
+
     outputFile << currentTime.GetSeconds () << " "
                << object->GetId () <<  " "
                << pos.x << " " << pos.y << " " << pos.z << " "
-               << "-1 -1 -1" << std::endl;
+               << status << " -1 -1" << std::endl;
   }
   outputFile.close ();
+}
+
+// Schudule periodic events to switch on/off gateways
+void EnableGatewaySwitch(NodeContainer gateways, Time interval, int nDownGateways, 
+  std::vector<uint32_t> lastDownGatewayIdx)
+{
+  // Reset the gateways turned down in the last period
+  for (int i = 0; i < lastDownGatewayIdx.size(); ++i)
+  {
+    uint32_t gwIdx = lastDownGatewayIdx[i];
+    Ptr<Node> object = gateways.Get (gwIdx);
+
+    // Get netDevice
+    Ptr<NetDevice> netDevice = object->GetDevice (0);
+    Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+    NS_ASSERT (loraNetDevice != 0);
+
+    // Set phy status
+    Ptr<SimpleGatewayLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<SimpleGatewayLoraPhy> ();
+    phy->SetStatus (true);
+  }
+
+  // Select new gateways to turn down
+  uint32_t gwCnt = gateways.GetN ();
+  std::vector<uint32_t> downGatewayIdx;
+  Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
+  for (int i = 0; i < nDownGateways; ++i)
+  {
+    uint32_t gwIdx = x->GetInteger (0, gwCnt-1);
+    // If gateway has already been selected, select a new gateway
+    if (std::find(downGatewayIdx.begin(), downGatewayIdx.end(), gwIdx) != downGatewayIdx.end())
+    {
+      continue;
+    }
+    downGatewayIdx.push_back (gwIdx);
+
+    Ptr<Node> object = gateways.Get (gwIdx);
+
+    // Get netDevice
+    Ptr<NetDevice> netDevice = object->GetDevice (0);
+    Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+    NS_ASSERT (loraNetDevice != 0);
+
+    // Set phy status
+    Ptr<SimpleGatewayLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<SimpleGatewayLoraPhy> ();
+    phy->SetStatus (false);
+
+    std::cout << "gw idx to turn down: " << gwIdx << std::endl;
+  }
+
+  Simulator::Schedule (interval, &EnableGatewaySwitch, gateways, interval, 
+    nDownGateways, downGatewayIdx);
 }
 
 // Record the total energy consumption at each end device in the global vector energyVec
