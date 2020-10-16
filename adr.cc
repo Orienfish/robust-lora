@@ -101,7 +101,7 @@ int main (int argc, char *argv[])
   cmd.AddValue ("nGateways", "Number of gateways to simulate", nDevices);
   cmd.AddValue ("nPeriods", "Number of periods to simulate", nPeriods);
   cmd.AddValue ("nGatewayDownPeriods", "Number of periods to switch down gateways", nGatewayDownPeriods);
-  cmd.AddValue ("nDownGateway", "Number of gateways to switch down in each period", nGatewayDownPeriods);
+  cmd.AddValue ("nDownGateways", "Number of gateways to switch down in each period", nGatewayDownPeriods);
   cmd.Parse (argc, argv);
 
 
