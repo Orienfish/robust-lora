@@ -173,6 +173,11 @@ def init(params):
 		for q in range(CH_cnt):
 			N_kq[str(k) + '_' + str(q)] = []
 
+	# Save the end device locations and candidate gateway locations
+	G[:, 2] = 1
+	SaveInfo(sr_info, G, 'init')
+	G[:, 2] = 0
+
 	return sr_info, G, PL, dist, N_kq
 
 def eval(sr_info_res, G_res, PL, params):
