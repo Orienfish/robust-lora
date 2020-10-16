@@ -80,8 +80,8 @@ int main (int argc, char *argv[])
   bool adrEnabled = false;
   int nDevices = 0;
   int nGateways = 0;
-  int nPeriods = 24*3*30; // 1 month
-  int nGatewayDownPeriods = 24; // 1 day
+  int nPeriods = 24*3*30; // 1 month, per period is 20 min
+  int nGatewayDownPeriods = 24*3; // 1 day, per period is 20 min
   int nDownGateways = 0;
   std::string adrType = "ns3::AdrComponent";
 
