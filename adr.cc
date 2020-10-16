@@ -53,16 +53,16 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
                           NodeContainer gateways,
                           EnergySourceContainer sources,
                           std::string filename);
-void EnableGatewaySwitch(NodeContainer gateways, Time interval, int nDownGateways, 
+void EnableGatewaySwitch(NodeContainer gateways, Time interval, int nDownGateways,
                          std::vector<uint32_t> lastDownGatewayIdx);
 void RecordTotalEnergyConsumption (NodeContainer endDevices,
                                    EnergySourceContainer sources);
 double CalObjectiveValue (NodeContainer endDevices,
                           NodeContainer gateways,
-                          LoraPacketTracker& tracker, 
+                          LoraPacketTracker& tracker,
                           Time startTime, Time stopTime, std::string filename);
 std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
-                                         LoraPacketTracker& tracker, 
+                                         LoraPacketTracker& tracker,
                                          Time startTime, Time stopTime, std::string filename);
 
 // Parameters in calculating the objective value
@@ -112,7 +112,7 @@ int main (int argc, char *argv[])
   // LogComponentEnable ("AdrExample", LOG_LEVEL_ALL);
   // LogComponentEnable ("SimpleEndDeviceLoraPhy", LOG_LEVEL_ALL);
   // LogComponentEnable ("SimpleGatewayLoraPhy", LOG_LEVEL_ALL);
-  // LogComponentEnable ("LoraChannel", LOG_LEVEL_ALL); 
+  // LogComponentEnable ("LoraChannel", LOG_LEVEL_ALL);
   // LogComponentEnable ("PropagationLossModel", LOG_LEVEL_ALL);
   // LogComponentEnable ("LoraPacketTracker", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkServer", LOG_LEVEL_ALL);
@@ -198,7 +198,7 @@ int main (int argc, char *argv[])
     NS_LOG_ERROR ("Unable to open file " << srlocFile);
     return -1;
   }
-  
+
   endDevices.Create (nDevices);
   mobilityEd.Install (endDevices);
 
@@ -222,7 +222,7 @@ int main (int argc, char *argv[])
         if (line.size() > 0) {
             std::vector < std::string > coordinates = split(line, ' ');
             double x = atof(coordinates.at(0).c_str());
-            double y = atof(coordinates.at(1).c_str());            
+            double y = atof(coordinates.at(1).c_str());
             positionAllocGw->Add (Vector (x, y, 15.0) );
             nGateways ++;
         }
@@ -378,8 +378,8 @@ int main (int argc, char *argv[])
     std::cout << tracker.PrintMacPacketsCpsrPerEd (Seconds (0), simulationTime, edId) << " "
               << tracker.PrintPhyPacketsPerEd (Seconds (0), simulationTime, edId) << std::endl;
   }
-  
-  std::cout << "PrintPhyPacketsPerGw:" << std::endl 
+
+  std::cout << "PrintPhyPacketsPerGw:" << std::endl
             << "TOTAL RECEIVED INTERFERED NO_MORE_RECEIVERS UNDER_SENSITIVITY LOST_BECAUSE_TX" << std::endl;
   for (int gwId = nDevices; gwId < nDevices + nGateways; ++gwId)
   {
@@ -387,7 +387,7 @@ int main (int argc, char *argv[])
   }
   std::cout << std::endl;
 
-  std::cout << "PrintPhyPacketsPerGwEd:" << std::endl 
+  std::cout << "PrintPhyPacketsPerGwEd:" << std::endl
             << "TOTAL RECEIVED INTERFERED NO_MORE_RECEIVERS UNDER_SENSITIVITY LOST_BECAUSE_TX" << std::endl;
   for (int edId = 0; edId < nDevices; ++edId)
   {
@@ -397,16 +397,16 @@ int main (int argc, char *argv[])
     }
     std::cout << std::endl;
   }
-  
+
   std::cout << CalObjectiveValue (endDevices, gateways, tracker, Seconds (0), simulationTime, "nodeEE.txt") << std::endl;
-  
+
 
   return 0;
 }
 
 
 // split implementation for reading from external text files
-std::vector < std::string > split(std::string const & str, const char delim) 
+std::vector < std::string > split(std::string const & str, const char delim)
 {
     std::vector < std::string > result;
 
@@ -455,7 +455,7 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
   }
 
   Time currentTime = Simulator::Now();
-  
+
   // Iterate through all end devices
   for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
   {
@@ -483,7 +483,7 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
     Ptr<DeviceEnergyModel> LoRaRadioModelPtr = SourcePtr->FindDeviceEnergyModels("ns3::LoraRadioEnergyModel").Get(0);
     NS_ASSERT (LoRaRadioModelPtr != 0);
     double energy_consumption = LoRaRadioModelPtr->GetTotalEnergyConsumption();
-    
+
     outputFile << currentTime.GetSeconds () << " "
                << object->GetId () <<  " "
                << pos.x << " " << pos.y << " " << pos.z << " "
@@ -495,7 +495,6 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
   for (NodeContainer::Iterator j = gateways.Begin (); j != gateways.End (); ++j)
   {
     Ptr<Node> object = *j;
-    int nodeId = object->GetId();
 
     // Get position
     Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
@@ -520,11 +519,11 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
 }
 
 // Schudule periodic events to switch on/off gateways
-void EnableGatewaySwitch(NodeContainer gateways, Time interval, int nDownGateways, 
+void EnableGatewaySwitch(NodeContainer gateways, Time interval, int nDownGateways,
   std::vector<uint32_t> lastDownGatewayIdx)
 {
   // Reset the gateways turned down in the last period
-  for (int i = 0; i < lastDownGatewayIdx.size(); ++i)
+  for (unsigned int i = 0; i < lastDownGatewayIdx.size(); ++i)
   {
     uint32_t gwIdx = lastDownGatewayIdx[i];
     Ptr<Node> object = gateways.Get (gwIdx);
@@ -567,7 +566,7 @@ void EnableGatewaySwitch(NodeContainer gateways, Time interval, int nDownGateway
     std::cout << "gw idx to turn down: " << gwIdx << std::endl;
   }
 
-  Simulator::Schedule (interval, &EnableGatewaySwitch, gateways, interval, 
+  Simulator::Schedule (interval, &EnableGatewaySwitch, gateways, interval,
     nDownGateways, downGatewayIdx);
 }
 
@@ -596,7 +595,7 @@ void RecordTotalEnergyConsumption (NodeContainer endDevices,
 // Calculate the objective value in the ICIOT paper
 double CalObjectiveValue (NodeContainer endDevices,
                           NodeContainer gateways,
-                          LoraPacketTracker& tracker, 
+                          LoraPacketTracker& tracker,
                           Time startTime, Time stopTime, std::string filename)
 {
   std::vector<double> EEVec = CalEnergyEfficiency(endDevices, tracker, startTime, stopTime, filename);
@@ -610,7 +609,7 @@ double CalObjectiveValue (NodeContainer endDevices,
 
 // Calculate the energy efficiency across all end devices
 std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
-                                         LoraPacketTracker& tracker, 
+                                         LoraPacketTracker& tracker,
                                          Time startTime, Time stopTime, std::string filename)
 {
   std::vector<double> EEVec;
