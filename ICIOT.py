@@ -9,7 +9,6 @@ import propagation
 ########################################
 # ICIOT Alg
 ########################################
-alpha = 0.05       # Weight parameter in the objective function
 
 def GetCij(sr_info, G, PL, params):
 	'''
@@ -174,7 +173,7 @@ def DeviceConfiguration(sr_info, G, PL, params):
 
 	return sr_info
 
-def ICIOTAlg(sr_info_ogn, G_ogn, PL, params):
+def ICIOTAlg(sr_info_ogn, G_ogn, PL, params, ICIOTParams):
 	'''
 	Call the ICIOT gateway placement algorithm
 
@@ -183,6 +182,7 @@ def ICIOTAlg(sr_info_ogn, G_ogn, PL, params):
 		G: original read-only gateway placement
 		PL: path loss matrix between sensors and potential gateways
 		params: important parameters
+		ICIOTParams: important parameters for this ICIOT algorithm
 
 	Returns:
 		sr_info: sensor configuration
@@ -195,9 +195,7 @@ def ICIOTAlg(sr_info_ogn, G_ogn, PL, params):
 	gw_cnt = G.shape[0]
 
 	# Start the greedy gateway placement algorithm
-	#for rounds in range(params.desired_gw_cnt):
-	rounds = 0
-	while True:
+	for rounds in range(ICIOTParams.desired_gw_cnt):
 		obj_old = -np.inf
 		next_idx = -1
 		next_sr_info = None
@@ -229,9 +227,9 @@ def ICIOTAlg(sr_info_ogn, G_ogn, PL, params):
 
 			# Calculate objective value
 			gw_place = G[:, 2] # A binary vector indicating gw placement
-			obj = np.sum(EE) / sr_cnt - alpha * np.sum(gw_place) / params.desired_gw_cnt
+			obj = np.sum(EE) / sr_cnt - ICIOTParams.alpha * np.sum(gw_place) / gw_cnt
 			logging.debug("obj1: {}".format(np.sum(EE) / sr_cnt))
-			logging.debug("obj2: {}".format(alpha * np.sum(gw_place) / gw_cnt))
+			logging.debug("obj2: {}".format(ICIOTParams.alpha * np.sum(gw_place) / gw_cnt))
 			logging.debug("obj: {}".format(obj))
 
 			# plot(sr_info, G)
@@ -251,11 +249,11 @@ def ICIOTAlg(sr_info_ogn, G_ogn, PL, params):
 		sr_info = np.copy(next_sr_info)
 		logging.info("Placed gateway #{} at grid {} [{},{}]".format( \
 			rounds, next_idx, G[next_idx, 0], G[next_idx, 1]))
+		print(next_PDR)
 
-		# If the packet deliver ratio at each end device is ensured, end the loop
+		# If the packet deliver ratio at each end device is ensured, end the loop earlier
 		if np.min(next_PDR) >= params.PDR_th:
 			break
 
-		rounds += 1
-
+		
 	return sr_info, G

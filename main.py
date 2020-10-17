@@ -79,12 +79,16 @@ class ClusterParams:
 
 # Parameters for the greedy algorithm
 class GreedyParams:
-	desired_gw_cnt = 10 # Desired gateways to place by ICIOT alg
 	w_pdr = 1e-4	    # Weight for PDR
 	w_lifetime = 0.5e-4	# Weight for lifetime
 	cluster = False		# Whether use the clustering-based acceleration
 	end = False			# Whether use the end-of-exploration acceleration
 	end_thres = 0.3		# The threshold to kick off end-of-exploration acceleration
+
+# Parameters for the ICIOT algorithm
+class ICIOTParams:
+	desired_gw_cnt = 12 # Number of desired gateways
+	alpha = 1       	# Weight parameter in the objective function
 
 # Parameters for the genetic algorithm
 class GeneticParams:
@@ -98,12 +102,12 @@ class GeneticParams:
 class run:
 	iteration = 1
 	M = [1, 2, 3] #[3, 2, 1]
-	RGreedy = True		# Pure greedy algorithm
-	RGreedy_c = True	# With cluster-based acceleration
-	RGreedy_e = True 	# With end-of-exploration acceleration
-	RGreedy_ce = True	# With both accleration techniques
+	RGreedy = False		# Pure greedy algorithm
+	RGreedy_c = False	# With cluster-based acceleration
+	RGreedy_e = False 	# With end-of-exploration acceleration
+	RGreedy_ce = False	# With both accleration techniques
 	RGenetic = False
-	ICIOT = False
+	ICIOT = True
 
 def init(params):
 	'''
@@ -417,11 +421,13 @@ def main():
 
 		if run.ICIOT:
 			st_time = time.time()
-			sr_info_res, G_res = ICIOT.ICIOTAlg(sr_info, G, PL, params)
+			sr_info_res, G_res = ICIOT.ICIOTAlg(sr_info, G, PL, params, ICIOTParams)
 			run_time = time.time() - st_time
 
 			# This paper assumes all end devices share one channel
-			sr_info_res[:, 4] = np.ones((1, sr_cnt))
+			# We randomly allocate channels to make it the same as our assumption
+			for i in range(sr_cnt):
+				sr_info_res[i, 4] = random.randint(0, len(params.CH)-1)
 			print(sr_info_res)
 
 			eval(sr_info_res, G_res, PL, params)

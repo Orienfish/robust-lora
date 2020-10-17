@@ -77,7 +77,7 @@ GetRSSI.Grx = 0.0 # Reception antenna gain
 
 def main():
 	# Test and tune path loss model's parameter
-	d = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
+	d = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 20000, 30000, 40000]
 	# ICIOT
 	loss_log = list(map(lambda di: LogDistancePathLossModel(d=di, ver='ICIOT'), d))
 	Prx_log_ICIOT = [GetRSSI(20, lossi) for lossi in loss_log]
