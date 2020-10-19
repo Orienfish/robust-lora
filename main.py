@@ -123,7 +123,7 @@ def init(params):
 		dist: distance matrix
 	'''
 	sr_info = []				# [x, y, SF, Ptx, CH]
-	coor = ReadData.ReadFile('./data/dataLA.csv', [33.6711, -118.5911])
+	coor = ReadData.ReadFile('./data/dataLA.csv', [33.5466, -118.7025])
 	for i in range(coor.shape[0]):	
 		k = -1 #random.randint(0, len(params.SF)-1) # SFk
 		q = -1 # random.randint(0, len(params.CH)-1) # Channel q
