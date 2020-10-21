@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import logging
 import os
 import time
+import sys
 logging.basicConfig(level=logging.INFO)
 
 import ICIOT
@@ -14,6 +15,10 @@ import RGenetic
 import propagation
 import ReadData
 import clustering
+
+dataFile = './data/dataLA.csv'
+origin = [33.5466, -118.7025]
+PLFile = None # './data/path_loss_mat.npy'
 
 
 ########################################
@@ -101,13 +106,13 @@ class GeneticParams:
 # which algorithm to run
 class run:
 	iteration = 1
-	M = [1, 2, 3] #[3, 2, 1]
-	RGreedy = False		# Pure greedy algorithm
+	M = [1] #[3, 2, 1]
+	RGreedy = False	# Pure greedy algorithm
 	RGreedy_c = False	# With cluster-based acceleration
-	RGreedy_e = False 	# With end-of-exploration acceleration
+	RGreedy_e = True	# With end-of-exploration acceleration
 	RGreedy_ce = False	# With both accleration techniques
 	RGenetic = False
-	ICIOT = True
+	ICIOT = False
 
 def init(params):
 	'''
@@ -123,7 +128,11 @@ def init(params):
 		dist: distance matrix
 	'''
 	sr_info = []				# [x, y, SF, Ptx, CH]
-	coor = ReadData.ReadFile('./data/dataLA.csv', [33.5466, -118.7025])
+	if dataFile == None:
+		print('dataFile is not provided!')
+		sys.exit()
+
+	coor = ReadData.ReadFile(dataFile, origin)
 	for i in range(coor.shape[0]):	
 		k = -1 #random.randint(0, len(params.SF)-1) # SFk
 		q = -1 # random.randint(0, len(params.CH)-1) # Channel q
@@ -156,7 +165,7 @@ def init(params):
 
 	# Generate path loss and distance matrix between sensor i and 
 	# candidate gateway j
-	PL = np.zeros((sr_cnt, gw_cnt))
+	PL = np.zeros((sr_cnt, gw_cnt))	
 	dist = np.zeros((sr_cnt, gw_cnt))
 	for i in range(sr_cnt):
 		for j in range(gw_cnt):
@@ -165,6 +174,8 @@ def init(params):
 			dist[i, j] = np.sqrt(np.sum((loc1 - loc2)**2))
 			PL[i, j] = propagation.LogDistancePathLossModel(d=dist[i, j], \
 				ver=params.LogPropVer)
+	if PLFile != None: # If PL is provided
+		PL = np.load(PLFile).T
 	# print(PL)
 
 	# Use a dictionary to record the list of nodes using the SFk and channel q

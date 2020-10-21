@@ -6,6 +6,7 @@ import logging
 import copy
 
 import propagation
+import main
 
 ########################################
 # Robust-Driven Greedy Alg
@@ -270,7 +271,7 @@ def UpdateConn(sr_info, G, PL, N_kq, params):
 				# and collision-possible nodes N_kq
 				succ, PDR_i, Lifetime_i = DeviceConfiguration(sr_info, \
 					sr_info, G, PL, N_kq, m_gateway, params, sr_idx, gw_idx)
-				logging.info('succ: {} PDR_i: {} Lifetime_i: {}'.format(succ, PDR_i, Lifetime_i))
+				logging.debug('succ: {} PDR_i: {} Lifetime_i: {}'.format(succ, PDR_i, Lifetime_i))
 
 	return m_gateway
 
@@ -303,8 +304,8 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 	# Update current gateway connectivity at each end node, since there might be
 	# gateway placement already in the G
 	m_gateway = UpdateConn(sr_info, G, PL, N_kq, params)
-	conn_cur = np.ones((sr_cnt,)) * params.M - m_gateway
-	uncover_old = np.sum(conn_cur[conn_cur > 0])
+	conn = np.ones((sr_cnt,)) * params.M - m_gateway
+	uncover_old = np.sum(conn[conn > 0])
 	PDR_old = np.zeros((sr_cnt,))
 	Lifetime_old = np.zeros((sr_cnt,))
 	rounds = 0
@@ -317,15 +318,19 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 
 		# If uncover count is lower than the threshold, fire end-of-exploration acceleration
 		G_remain = np.copy(G)
-		gw_mask = np.ones_like(G[:, 2], dtype=bool)
+		gw_mask = np.ones_like(G[:, 2], dtype=bool) # Gw mask showing candidate gateways
 		PL_remain = np.copy(PL)
+		print(conn)
+		print(sr_info[conn > 0, :][:, 2])
 		if GreedyParams.end and uncover_old < params.M * sr_cnt * GreedyParams.end_thres:
 			gw_mask = np.zeros_like(G[:, 2], dtype=bool) # Clear gw mask
-			conn_cur = np.ones((sr_cnt,)) * params.M - m_gateway
 			for j in range(gw_cnt):
+				if G_remain[j, 2]: # A gateway has been placed
+					continue
+
 				for i in range(sr_cnt):
 					# Only keep the gateway that can cover uncovered end devices
-					if conn_cur[i] > 0 and \
+					if conn[i] > 0 and \
 						propagation.GetRSSI(params.Ptx_max, PL[i, j]) >= params.RSSI_k[-1]:
 						# If the RSSI under max tx power exceeds the minimum RSSI threshold,
 						# we reckon this gateway has the probability of covering uncovered end devices 
@@ -334,8 +339,12 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 						break
 			G_remain = G_remain[gw_mask, :]
 			PL_remain = PL_remain[:, gw_mask]
+
+			G_remain_plot = np.copy(G_remain)
+			G_remain_plot[:, 2] = 1
+			main.plot(sr_info[conn > 0], G_remain_plot, 'rounds{}ending'.format(rounds))
 		
-		logging.info('Remained candidate sr: {} gw: {}'.format(sr_cnt, G_remain.shape[0]))
+		logging.info('Remained sr: {} gw: {}'.format(sr_cnt, G_remain.shape[0]))
 		
 		# The following operation is run on sr_info, G_remain and PL_remain
 		remained_cnt = G_remain.shape[0]
@@ -367,9 +376,12 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 
 				# Try to assign the minimum SF and channel based on the current sr_info
 				# and collision-possible nodes N_kq
+				G_total = np.copy(G)
+				G_total[gw_mask, :] = G_remain
 				succ, PDR_i, Lifetime_i = DeviceConfiguration(sr_info_cur, \
-					sr_info, G_remain, PL_remain, N_kq_cur, m_gateway_cur, params, sr_idx, gw_idx)
+					sr_info, G_total, PL, N_kq_cur, m_gateway_cur, params, sr_idx, gw_idx)
 				logging.debug('succ: {} PDR_i: {} Lifetime_i: {}'.format(succ, PDR_i, Lifetime_i))
+				G_remain = G_total[gw_mask, :]
 				
 				if not succ:
 					# All assignment attempts are failed, no more assignment can be made
@@ -398,6 +410,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 				best_sr_info = sr_info_cur
 				best_N_kq = N_kq_cur
 				best_m_gateway = m_gateway_cur
+				best_conn = conn_cur
 				best_uncover = uncover_new
 				best_PDR = PDR_cur
 				best_Lifetime = Lifetime_cur
@@ -424,13 +437,16 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 		sr_info = best_sr_info
 		N_kq = best_N_kq
 		m_gateway = best_m_gateway
+		conn = best_conn
 		uncover_old = best_uncover
 		PDR_old = best_PDR
 		Lifetime_old = best_Lifetime
 
 		logging.info('Placed gateway #{} at grid {} [{},{}]'.format( \
-			rounds, best_idx, G[best_idx, 0], G[best_idx, 1]))
+			rounds, best_idx, G_remain[best_idx, 0], G_remain[best_idx, 1]))
 		logging.info('Uncover: {}'.format(uncover_old))
+		print(m_gateway)
+		main.plot(sr_info, G, 'rounds{}-RGreedy'.format(rounds))
 
 		# Check if m-gateway connectivity has been met at all end nodes
 		# If so, terminate the placement process
