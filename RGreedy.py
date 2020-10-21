@@ -320,8 +320,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 		G_remain = np.copy(G)
 		gw_mask = np.ones_like(G[:, 2], dtype=bool) # Gw mask showing candidate gateways
 		PL_remain = np.copy(PL)
-		print(conn)
-		print(sr_info[conn > 0, :][:, 2])
+
 		if GreedyParams.end and uncover_old < params.M * sr_cnt * GreedyParams.end_thres:
 			gw_mask = np.zeros_like(G[:, 2], dtype=bool) # Clear gw mask
 			for j in range(gw_cnt):
@@ -342,7 +341,6 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 
 			G_remain_plot = np.copy(G_remain)
 			G_remain_plot[:, 2] = 1
-			main.plot(sr_info[conn > 0], G_remain_plot, 'rounds{}ending'.format(rounds))
 		
 		logging.info('Remained sr: {} gw: {}'.format(sr_cnt, G_remain.shape[0]))
 		
@@ -401,7 +399,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 			bnft_lifetime = GreedyParams.w_lifetime * uncover_old * \
 				np.sum(Lifetime_cur - np.ones((sr_cnt,)) * params.Lifetime_th)
 			bnft = bnft_cov + bnft_pdr + bnft_lifetime
-			logging.info('cov: {} pdr: {} lifetime: {}'.format(bnft_cov, bnft_pdr, bnft_lifetime))
+			logging.debug('cov: {} pdr: {} lifetime: {}'.format(bnft_cov, bnft_pdr, bnft_lifetime))
 
 			# Update global best benefit value if necessary
 			if bnft > bnft_best:
@@ -416,7 +414,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 				best_Lifetime = Lifetime_cur
 
 			# Logging
-			logging.info('gw_loc: #{} {} Benefit: {} Max bnft: {} Max idx: {}'.format(\
+			logging.debug('gw_loc: #{} {} Benefit: {} Max bnft: {} Max idx: {}'.format(\
 				gw_idx, G[gw_idx, :2], bnft, bnft_best, best_idx))
 
 			# Reset
@@ -445,8 +443,6 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 		logging.info('Placed gateway #{} at grid {} [{},{}]'.format( \
 			rounds, best_idx, G_remain[best_idx, 0], G_remain[best_idx, 1]))
 		logging.info('Uncover: {}'.format(uncover_old))
-		print(m_gateway)
-		main.plot(sr_info, G, 'rounds{}-RGreedy'.format(rounds))
 
 		# Check if m-gateway connectivity has been met at all end nodes
 		# If so, terminate the placement process

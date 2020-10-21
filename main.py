@@ -106,13 +106,13 @@ class GeneticParams:
 # which algorithm to run
 class run:
 	iteration = 1
-	M = [1] #[3, 2, 1]
-	RGreedy = False	# Pure greedy algorithm
-	RGreedy_c = False	# With cluster-based acceleration
+	M = [1, 2, 3] #[3, 2, 1]
+	RGreedy = True  	# Pure greedy algorithm
+	RGreedy_c = True	# With cluster-based acceleration
 	RGreedy_e = True	# With end-of-exploration acceleration
-	RGreedy_ce = False	# With both accleration techniques
+	RGreedy_ce = True	# With both accleration techniques
 	RGenetic = False
-	ICIOT = False
+	ICIOT = True
 
 def init(params):
 	'''
@@ -423,7 +423,7 @@ def main():
 
 				# Plot and log result
 				plot(sr_info_res, G_res, 'RGenetic{}_{}_{}'.format(M, sr_cnt, it))
-				SaveRes(sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
+				SaveRes('Genetic', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
 				method = 'RGenetic_{}_{}_{}'.format(M, sr_cnt, it)
@@ -439,12 +439,13 @@ def main():
 			# We randomly allocate channels to make it the same as our assumption
 			for i in range(sr_cnt):
 				sr_info_res[i, 4] = random.randint(0, len(params.CH)-1)
-			print(sr_info_res)
 
+			# Print out PDR and lifetime at each end device
 			eval(sr_info_res, G_res, PL, params)
 
 			# Plot result
-			plot(sr_info_res, G_res, 'ICIOT')
+			plot(sr_info_res, G_res, 'ICIOT_{}_{}'.format(sr_cnt, it))
+			SaveRes('ICIOT', sr_cnt, 1, np.sum(G_res[:, 2]), run_time)
 
 			# Write sensor and gateway information to file
 			method = 'ICIOT_{}_{}'.format(sr_cnt, it)
