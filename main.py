@@ -18,7 +18,7 @@ import clustering
 
 dataFile = './data/dataLA.csv'
 origin = [33.5466, -118.7025]
-PLFile = None # './data/path_loss_mat.npy'
+PLFile = './data/path_loss_mat.npy'
 
 
 ########################################
@@ -174,9 +174,17 @@ def init(params):
 			dist[i, j] = np.sqrt(np.sum((loc1 - loc2)**2))
 			PL[i, j] = propagation.LogDistancePathLossModel(d=dist[i, j], \
 				ver=params.LogPropVer)
-	if PLFile != None: # If PL is provided
+	#np.savetxt('./data/PL_gen.csv', PL, delimiter=',')
+	avg = np.mean(PL)
+	print(avg)
+	# If PL is provided, overwrite the isomophic one
+	if PLFile != None:
 		PL = np.load(PLFile).T
-	# print(PL)
+		logging.info('Load PL mat: {}'.format(PL.shape))
+		#np.savetxt('./data/PL_import.csv', PL, delimiter=',')
+		avg_load = np.mean(PL)
+		print(avg_load)
+		PL = PL + 20.0
 
 	# Use a dictionary to record the list of nodes using the SFk and channel q
 	# Note that the dictionary only records the primary connection
@@ -224,19 +232,22 @@ def eval(sr_info_res, G_res, PL, params):
 	for idx in range(sr_cnt):
 		k = int(sr_info_res[idx, 2])	# SFk
 		q = int(sr_info_res[idx, 4])	# Channel q
-		label = str(k) + '_' + str(q)
-		N_kq[label].append(sr_info_res[idx, :])
+		if k != -1 and q != -1:
+			label = str(k) + '_' + str(q)
+			N_kq[label].append(sr_info_res[idx, :])
 
 	PDR, PDR_gw, lifetime = [], [], []
 	for idx in range(sr_cnt):
-		newPDR, newPDR_gw = RGreedy.GetPDR(sr_info_res, G_res, PL, N_kq, params, idx)
-		PDR.append(newPDR)
-		PDR_gw.append(newPDR_gw)
-
 		k = int(sr_info_res[idx, 2])	# SFk
-		# Find the index of closet Transmission power
-		Ptx_idx = np.abs(params.Ptx - sr_info_res[idx, 3]).argmin()
-		lifetime.append(RGreedy.GetLifetime(k, params.Ptx[Ptx_idx], newPDR, params))
+		q = int(sr_info_res[idx, 4])	# Channel q
+		if k != -1 and q != -1:
+			newPDR, newPDR_gw = RGreedy.GetPDR(sr_info_res, G_res, PL, N_kq, params, idx)
+			PDR.append(newPDR)
+			PDR_gw.append(newPDR_gw)
+
+			# Find the index of closet Transmission power
+			Ptx_idx = np.abs(params.Ptx - sr_info_res[idx, 3]).argmin()
+			lifetime.append(RGreedy.GetLifetime(k, params.Ptx[Ptx_idx], newPDR, params))
 
 	print(np.array(PDR_gw))
 	print(PDR)
