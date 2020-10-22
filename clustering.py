@@ -102,6 +102,9 @@ def RClusterAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, ClusterParams, Greed
 
 		gw_mask = np.zeros_like(G[:, 2], dtype=bool)
 		for j in range(gw_cnt):
+			if G[j, 2]: # A gateway has been placed
+				continue
+				
 			for i in range(sr_cnt_blob):
 				if propagation.GetRSSI(params.Ptx_max, PL[sr_info_mask, :][i, j]) >= params.RSSI_k[-1]:
 					# If the RSSI under max tx power exceeds the minimum RSSI threshold,
@@ -114,6 +117,9 @@ def RClusterAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, ClusterParams, Greed
 		PL_blob = PL[sr_info_mask, :][:, gw_mask]
 		logging.info('Size of this blob: sr: {} gw: {} PL: {}'.format(sr_cnt_blob, \
 			G_blob.shape[0], PL_blob.shape))
+		G_blob_plot = np.copy(G_blob)
+		G_blob_plot[:, 2] = 1
+		main.plot(sr_info_blob, G_blob_plot, 'cluster_{}pre'.format(ic))
 
 		# Call greedy algorithm for this cluster
 		sr_info_blob, G_blob, m_gateway_blob, N_kq = \
@@ -126,5 +132,5 @@ def RClusterAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, ClusterParams, Greed
 		G[gw_mask, :] = G_blob
 		m_gateway[sr_info_mask] += m_gateway_blob
 
-		# main.plot(sr_info, G, 'cluster_{}'.format(ic))
+		main.plot(sr_info, G, 'cluster_{}post'.format(ic))
 	return sr_info, G, m_gateway, N_kq

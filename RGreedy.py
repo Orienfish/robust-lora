@@ -338,14 +338,15 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 						break
 			G_remain = G_remain[gw_mask, :]
 			PL_remain = PL_remain[:, gw_mask]
-
-			G_remain_plot = np.copy(G_remain)
-			G_remain_plot[:, 2] = 1
 		
 		logging.info('Remained sr: {} gw: {}'.format(sr_cnt, G_remain.shape[0]))
 		
-		# The following operation is run on sr_info, G_remain and PL_remain
+		# No candidate gateways for the current blob, directly return
 		remained_cnt = G_remain.shape[0]
+		if remained_cnt == 0:
+			return sr_info, G, m_gateway, N_kq
+
+		# The following operation is run on sr_info, G_remain and PL_remain
 		for gw_idx in range(remained_cnt):
 			if G_remain[gw_idx, 2]: # A gateway has been placed at this location
 				continue
