@@ -44,6 +44,7 @@ void OnTxPowerChange (double oldTxPower, double newTxPower)
 }
 
 std::vector < std::string > split(std::string const & str, const char delim);
+void AddInterference(NodeContainer gateways, Time duration, double intfrPowerdBm);
 void EnablePeriodicDeviceStatusPrinting (NodeContainer endDevices,
                                          NodeContainer gateways,
                                          EnergySourceContainer sources,
@@ -80,9 +81,10 @@ int main (int argc, char *argv[])
   bool adrEnabled = false;
   int nDevices = 0;
   int nGateways = 0;
-  int nPeriods = 24*3*30; // 1 month, per period is 20 min
+  int nPeriods = 24*3; // 1 month, per period is 20 min
   int nGatewayDownPeriods = 24*3; // 1 day, per period is 20 min
   int nDownGateways = 0;
+  double intfrPowerdBm = -1000.0;
   std::string adrType = "ns3::AdrComponent";
 
   CommandLine cmd;
@@ -102,6 +104,7 @@ int main (int argc, char *argv[])
   cmd.AddValue ("nPeriods", "Number of periods to simulate", nPeriods);
   cmd.AddValue ("nGatewayDownPeriods", "Number of periods to switch down gateways", nGatewayDownPeriods);
   cmd.AddValue ("nDownGateways", "Number of gateways to switch down in each period", nDownGateways);
+  cmd.AddValue ("intfrPowerdBm", "Inference power in dBm", intfrPowerdBm);
   cmd.Parse (argc, argv);
 
 
@@ -128,7 +131,7 @@ int main (int argc, char *argv[])
   // LogComponentEnable ("AdrExploraSf", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrExploraAt", LOG_LEVEL_ALL);
   // LogComponentEnable ("EndDeviceLorawanMac", LOG_LEVEL_ALL);
-  // LogComponentEnable ("LoraRadioEnergyModel", LOG_LEVEL_ALL);
+  // LogComponentEnable ("LoraInterferenceHelper", LOG_LEVEL_ALL);
   LogComponentEnableAll (LOG_PREFIX_FUNC);
   LogComponentEnableAll (LOG_PREFIX_NODE);
   LogComponentEnableAll (LOG_PREFIX_TIME);
@@ -358,6 +361,9 @@ int main (int argc, char *argv[])
 
   Time simulationTime = Seconds (1200 * nPeriods);
 
+    // Add inteference
+  AddInterference(gateways, simulationTime, intfrPowerdBm);
+
   // Schedule an event at the end of simulation to record energy consumpton at each end device
   Simulator::Schedule (simulationTime, &RecordTotalEnergyConsumption, endDevices, sources);
   Simulator::Stop (simulationTime);
@@ -418,6 +424,42 @@ std::vector < std::string > split(std::string const & str, const char delim)
     }
 
     return result;
+}
+
+// Add interferences to each gateway on all SFs and channels
+void AddInterference(NodeContainer gateways, Time duration, double intfrPowerdBm)
+{
+  std::vector<uint8_t> SFArray = {7, 8, 9, 10};
+  std::vector<double> freqArray = {902.3, 902.5, 902.7, 902.9, 903.1, 903.3, 903.5, 903.7};
+
+  for (NodeContainer::Iterator j = gateways.Begin (); j != gateways.End (); ++j)
+  {
+    Ptr<Node> object = *j;
+
+    // Get position
+    Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
+    NS_ASSERT (position != 0);
+    Vector pos = position->GetPosition ();
+
+    // Get netDevice
+    Ptr<NetDevice> netDevice = object->GetDevice (0);
+    Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+    NS_ASSERT (loraNetDevice != 0);
+
+    // Get phy status
+    Ptr<SimpleGatewayLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<SimpleGatewayLoraPhy> ();
+    
+    // Iterate through all SFs and channels (frequencies)
+    for (std::vector<uint8_t>::iterator i = SFArray.begin ();
+         i < SFArray.end (); ++i)
+    {
+      for (std::vector<double>::iterator j = freqArray.begin ();
+           j < freqArray.end (); ++j)
+      {
+        phy->AddInterference(duration, intfrPowerdBm, *i, *j);
+      }
+    }
+  }
 }
 
 // Schedule periodic end devices' status printing - including energy
@@ -508,7 +550,7 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
 
     // Get phy status
     Ptr<SimpleGatewayLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<SimpleGatewayLoraPhy> ();
-    bool status = phy->GetStatus ();
+    bool status = phy->GetStatus (); // ON or OFF status of the gateway at the current time
 
     outputFile << currentTime.GetSeconds () << " "
                << object->GetId () <<  " "
@@ -523,9 +565,10 @@ void EnableGatewaySwitch(NodeContainer gateways, Time interval, int nDownGateway
   std::vector<uint32_t> lastDownGatewayIdx)
 {
   // Reset the gateways turned down in the last period
-  for (unsigned int i = 0; i < lastDownGatewayIdx.size(); ++i)
+  for (std::vector<uint32_t>::iterator i = lastDownGatewayIdx.begin ();
+       i < lastDownGatewayIdx.end (); ++i)
   {
-    uint32_t gwIdx = lastDownGatewayIdx[i];
+    uint32_t gwIdx = *i;
     Ptr<Node> object = gateways.Get (gwIdx);
 
     // Get netDevice
