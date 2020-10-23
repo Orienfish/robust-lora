@@ -132,7 +132,7 @@ def init(params):
 	# If dataFile is not provided, randomely generate
 	# Else, read from the data file
 	if dataFile == None:
-		coor = np.random.rand(params.sr_cnt, 2) # * params.L
+		coor = np.random.rand(params.sr_cnt, 2) * params.L
 		x_max = params.L
 		y_max = params.L
 	else:
