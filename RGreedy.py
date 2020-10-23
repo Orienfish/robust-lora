@@ -36,14 +36,6 @@ def GetLifetime(SFk, Ptx, PDR, params):
 	Lifetime = E_bat / P_R_TX                # Lifetime in h
 	return Lifetime / 24 / 365				 # Lifetime in year
 
-def TestLifetime(params):
-	SF_cnt = len(params.SF)
-	for sf in range(SF_cnt):
-		for ptx in params.Ptx:
-			print(sf, ptx, GetLifetime(sf, ptx, 1.0, params))
-
-	return
-
 
 def GetPDR(sr_info, G, PL, N_kq, params, idx):
 	'''

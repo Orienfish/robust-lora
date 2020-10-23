@@ -15,8 +15,9 @@ import RGenetic
 import propagation
 import ReadData
 import clustering
+import optInterface
 
-dataFile = './data/dataLA.csv'
+dataFile = None # './data/dataLA.csv'
 origin = [33.5466, -118.7025]
 PLFile = None #'./data/path_loss_mat.npy'
 
@@ -25,8 +26,8 @@ PLFile = None #'./data/path_loss_mat.npy'
 # Important parameters
 ########################################
 class params:
-	L = 60000			# Edge of analysis area in m
-	sr_cnt = 1000       # Number of end devices
+	L = 30000			# Edge of analysis area in m
+	sr_cnt = 100        # Number of end devices
 	gw_dist = 6000      # Distance between two gateways in m
 
 	# Version of log propagation model
@@ -128,11 +129,18 @@ def init(params):
 		dist: distance matrix
 	'''
 	sr_info = []				# [x, y, SF, Ptx, CH]
+	# If dataFile is not provided, randomely generate
+	# Else, read from the data file
 	if dataFile == None:
-		print('dataFile is not provided!')
-		sys.exit()
+		coor = np.random.rand(params.sr_cnt, 2) # * params.L
+		x_max = params.L
+		y_max = params.L
+	else:
+		coor = ReadData.ReadFile(dataFile, origin)
+		x_max = np.max(coor[:, 0])
+		y_max = np.max(coor[:, 1])
 
-	coor = ReadData.ReadFile(dataFile, origin)
+	# Fill in the coordinate date to the initial sensor info
 	for i in range(coor.shape[0]):	
 		k = -1 #random.randint(0, len(params.SF)-1) # SFk
 		q = -1 # random.randint(0, len(params.CH)-1) # Channel q
@@ -142,9 +150,7 @@ def init(params):
 	sr_info = np.array(sr_info)
 	# print(sr_info)
 	sr_cnt = sr_info.shape[0]
-	# Get the maximum range of the end device deployment
-	x_max = np.max(coor[:, 0])
-	y_max = np.max(coor[:, 1])
+	
 
 	# Generate the grid candidate set N and G with their x, y coordinates
 	# N for sensor placement and G for gateway placement
@@ -175,15 +181,11 @@ def init(params):
 			PL[i, j] = propagation.LogDistancePathLossModel(d=dist[i, j], \
 				ver=params.LogPropVer)
 	#np.savetxt('./data/PL_gen.csv', PL, delimiter=',')
-	avg = np.mean(PL)
-	print(avg)
 	# If PL is provided, overwrite the isomophic one
 	if PLFile != None:
 		PL = np.load(PLFile).T
 		logging.info('Load PL mat: {}'.format(PL.shape))
 		#np.savetxt('./data/PL_import.csv', PL, delimiter=',')
-		avg_load = np.mean(PL)
-		print(avg_load)
 		PL = PL + 20.0
 
 	# Use a dictionary to record the list of nodes using the SFk and channel q
@@ -197,11 +199,13 @@ def init(params):
 			N_kq[str(k) + '_' + str(q)] = []
 
 	# Save the end device locations and candidate gateway locations
-	G[:, 2] = 1
-	SaveInfo(sr_info, G, 'init')
-	G[:, 2] = 0
+	np.savetxt('./relaxOpt/sr_loc.csv', sr_info[:, :2], delimiter=',')
+	np.savetxt('./relaxOpt/gw_loc.csv', G[:, :2], delimiter=',')
 
-	# RGreedy.TestLifetime(params)
+	# optInterface.TestLifetime(params)
+	c_ijk = optInterface.GenerateCijk(sr_info, G, PL, params)
+	for k in range(SF_cnt):
+		np.savetxt('./relaxOpt/cijk_{}.csv'.format(k), c_ijk[:, :, k], delimiter=',')
 
 	return sr_info, G, PL, dist, N_kq
 
