@@ -81,7 +81,7 @@ int main (int argc, char *argv[])
   bool adrEnabled = false;
   int nDevices = 0;
   int nGateways = 0;
-  int nPeriods = 24*3; // 1 month, per period is 20 min
+  int nPeriods = 24*3*30; // 1 month, per period is 20 min
   int nGatewayDownPeriods = 24*3; // 1 day, per period is 20 min
   int nDownGateways = 0;
   double intfrPowerdBm = -1000.0;
@@ -436,11 +436,6 @@ void AddInterference(NodeContainer gateways, Time duration, double intfrPowerdBm
   {
     Ptr<Node> object = *j;
 
-    // Get position
-    Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
-    NS_ASSERT (position != 0);
-    Vector pos = position->GetPosition ();
-
     // Get netDevice
     Ptr<NetDevice> netDevice = object->GetDevice (0);
     Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
@@ -448,7 +443,7 @@ void AddInterference(NodeContainer gateways, Time duration, double intfrPowerdBm
 
     // Get phy status
     Ptr<SimpleGatewayLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<SimpleGatewayLoraPhy> ();
-    
+
     // Iterate through all SFs and channels (frequencies)
     for (std::vector<uint8_t>::iterator i = SFArray.begin ();
          i < SFArray.end (); ++i)
