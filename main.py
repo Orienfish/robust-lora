@@ -201,6 +201,8 @@ def init(params):
 	SaveInfo(sr_info, G, 'init')
 	G[:, 2] = 0
 
+	# RGreedy.TestLifetime(params)
+
 	return sr_info, G, PL, dist, N_kq
 
 def eval(sr_info_res, G_res, PL, params):
