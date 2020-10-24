@@ -9,6 +9,9 @@ warning('off','all');
 params.SF_cnt = 4;
 params.CH_cnt = 8;
 params.Ptx_cnt = 6;
+params.Tk = [0.098, 0.175, 0.329, 0.616];
+params.Time = 1200;
+params.PDRth = 0.8;
 
 M = 1;
 sr_loc = csvread('sr_loc.csv');
@@ -45,13 +48,12 @@ b = [b1; b2];
 % Linear equality constraint: Aeq * x = beq
 [Aeq, beq] = validConstraint(params);
 
-
 % Upper and lower bounds
 lb = zeros(params.var_cnt, 1);
 ub = ones(params.var_cnt, 1);
 
 % Call the optimal solver
-x = fmincon(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub);
+x = fmincon(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub, @(x)pdr(x, c_ijk, params));
 % [x,fval,INFO,output,lambda,states] = snsolve(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub);
 x
 
