@@ -31,7 +31,7 @@ class params:
 	gw_dist = 6000      # Distance between two gateways in m
 
 	# Version of log propagation model
-	LogPropVer = 'Dongare'
+	LogPropVer = 'ICIOT'
 
 	T = 1200			# Sampling period in s
 	
