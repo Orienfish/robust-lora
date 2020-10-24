@@ -53,13 +53,17 @@ lb = zeros(params.var_cnt, 1);
 ub = ones(params.var_cnt, 1);
 
 % Call the optimal solver
-x = fmincon(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub, @(x)pdr(x, c_ijk, params));
-% [x,fval,INFO,output,lambda,states] = snsolve(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub);
+tic
+%x = fmincon(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub, @(x)pdr(x, c_ijk, params));
+[x,fval,INFO,output,lambda,states] = snsolve(@(x)(f*x), x0, A, b, ...
+    Aeq, beq, lb, ub, @(x)pdr(x, c_ijk, params));
+exeTime = toc;
 x
 
 gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
 gw_mask = logical(round(gw_extract * x));
-gw_mask
+fprintf('Opt value: %f Placed gateway: %d Execution time: %f\n', ...
+    f*x, sum(gw_mask), exeTime);
 plot_solution(sr_loc, gw_loc(gw_mask, 1:end));
 
 % plot the solution in the grid space
