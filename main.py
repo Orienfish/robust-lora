@@ -7,6 +7,7 @@ import logging
 import os
 import time
 import sys
+import argparse
 logging.basicConfig(level=logging.INFO)
 
 import ICIOT
@@ -316,6 +317,16 @@ def SaveRes(method, sr_cnt, M, gw_cnt, time):
 # Main Process
 ########################################
 def main():
+	# Process command line arguments
+	parser = argparse.ArgumentParser(description='Run LoRa sensor deployment algs.')
+	parser.add_argument("--dataFile", dest='dataFile', \
+		help="path to data file of end devices locations")
+	parser.add_argument("--PLFile", dest='PLFile', \
+		help="path to PL file")
+	parser.add_argument("--sr_cnt", dest='params.sr_cnt', \
+		help="number of end devices")
+	args = parser.parse_args()
+
 	for it in range(run.iteration):
 		# Initialization
 		sr_info, G, PL, dist, N_kq = init(params)

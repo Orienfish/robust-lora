@@ -60,11 +60,13 @@ tic
 exeTime = toc;
 x
 
+% Print the results
 gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
 gw_mask = logical(round(gw_extract * x));
-fprintf('Opt value: %f Placed gateway: %d Execution time: %f\n', ...
-    f*x, sum(gw_mask), exeTime);
-plot_solution(sr_loc, gw_loc(gw_mask, 1:end));
+fid = fopen('result.txt', 'a+');
+fprintf(fid, '%f,%d,%f\n', f*x, sum(gw_mask), exeTime);
+fclose(fid);
+% plot_solution(sr_loc, gw_loc(gw_mask, 1:end));
 
 % plot the solution in the grid space
 function plot_solution(sr_loc, gw_loc)
