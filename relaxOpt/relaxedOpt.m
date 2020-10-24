@@ -12,8 +12,8 @@ params.Ptx_cnt = 6;
 params.Tk = [0.098, 0.175, 0.329, 0.616];
 params.Time = 1200;
 params.PDRth = 0.8;
+params.M = 1;
 
-M = 1;
 sr_loc = csvread('sr_loc.csv');
 gw_loc = csvread('gw_loc.csv');
 params.sr_cnt = size(sr_loc, 1);
@@ -27,7 +27,7 @@ end
 
 % Variable
 params.var_cnt = params.gw_cnt + params.sr_cnt * (params.SF_cnt + params.CH_cnt + params.Ptx_cnt);
-gw_mask = [ones(params.gw_cnt, 1); zeros(params.var_cnt-params.gw_cnt, 1)];
+gw_mask = [ones(1, params.gw_cnt, 1), zeros(1, params.var_cnt-params.gw_cnt)];
 % (st, ed]
 params.gw_st = 0; params.gw_ed = params.gw_cnt;
 params.sf_st = params.gw_ed; params.sf_ed = params.sf_st + params.SF_cnt * params.sr_cnt;
@@ -36,11 +36,11 @@ params.tp_st = params.ch_ed; params.tp_ed = params.tp_st + params.Ptx_cnt * para
 x0 = zeros(params.var_cnt, 1);
 
 % Objective function
-f = gw_mask.';
+f = gw_mask;
 
 % Linear inequality constraint: A * x <= b
 A1 = - [c_ijk(1:end, 1:end, params.SF_cnt), zeros(params.sr_cnt, params.var_cnt-params.gw_cnt)];
-b1 = - M * ones(params.sr_cnt, 1);
+b1 = - params.M * ones(params.sr_cnt, 1);
 [A2, b2] = lifetimeConstraint(params);
 A = [A1; A2];
 b = [b1; b2];

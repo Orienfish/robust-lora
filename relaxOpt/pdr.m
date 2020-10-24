@@ -39,10 +39,10 @@ for i = 1:params.sr_cnt
     sf_i = x(params.sf_st + (i-1) * params.SF_cnt + 1 : ...
         params.sf_st + i * params.SF_cnt);
     hi(i) = 1 - exp(-2 * (params.Tk * sf_i) * Ni / params.Time);
-    for k = 1:params.SF_cnt
-        fprintf('%f ', sf_i(k));
-    end
-    fprintf('Collision probability: %f\n', hi);
+    %for k = 1:params.SF_cnt
+    %    fprintf('%f ', sf_i(k));
+    %end
+    %fprintf('Collision probability: %f\n', hi);
 end
 
 % Compute transmission reliability from i to j
@@ -63,6 +63,7 @@ for i = 1:params.sr_cnt
     P = 1 - Pij(i, 1:end)' .* g;
     PDRi(i) = 1 - prod(P);
 end
+PDRi'
 
 c = params.PDRth - PDRi;
 ceq = [];
