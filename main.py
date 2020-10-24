@@ -323,9 +323,10 @@ def main():
 		help="path to data file of end devices locations")
 	parser.add_argument("--PLFile", dest='PLFile', \
 		help="path to PL file")
-	parser.add_argument("--sr_cnt", dest='params.sr_cnt', \
+	parser.add_argument("--sr_cnt", dest='sr_cnt', type=int, \
 		help="number of end devices")
 	args = parser.parse_args()
+	params.sr_cnt = args.sr_cnt
 
 	for it in range(run.iteration):
 		# Initialization
