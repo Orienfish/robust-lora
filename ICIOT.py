@@ -249,7 +249,7 @@ def ICIOTAlg(sr_info_ogn, G_ogn, PL, params, ICIOTParams):
 		sr_info = np.copy(next_sr_info)
 		logging.info("Placed gateway #{} at grid {} [{},{}]".format( \
 			rounds, next_idx, G[next_idx, 0], G[next_idx, 1]))
-		print(next_PDR)
+		# print(next_PDR)
 
 		# If the packet deliver ratio at each end device is ensured, end the loop earlier
 		if np.min(next_PDR) >= params.PDR_th:
