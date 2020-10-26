@@ -1,7 +1,7 @@
 #!/bin/bash
 
-cp ~/Github/robust-lora/bag/sr_RGreedy_1_100_0.txt ./sr_loc.txt
-cp ~/Github/robust-lora/res/gw_RGreedy_1_100_0.txt ./gw_loc.txt
+cp ./bag/sr_RGreedy_1_100_0.txt ./sr_loc.txt
+cp ./bag/gw_RGreedy_1_100_0.txt ./gw_loc.txt
 destlog=logG
 start=`date +%s`
 ./waf --run "adr --MType=Confirmed" > "$destlog" 2>&1
@@ -13,8 +13,8 @@ mv ./nodeEE.txt ./res/nodeEEG.txt
 mv ./globalPerformance.txt ./res/globalPerformanceG.txt
 mv ./phyPerformance.txt ./res/phyPerformanceG.txt
 
-cp ~/Github/robust-lora/res/sr_ICIOT_100_0.txt ./sr_loc.txt
-cp ~/Github/robust-lora/res/gw_ICIOT_100_0.txt ./gw_loc.txt
+cp ./bag/sr_ICIOT_100_0.txt ./sr_loc.txt
+cp ./bag/gw_ICIOT_100_0.txt ./gw_loc.txt
 destlog=logI
 start=`date +%s`
 ./waf --run "adr --MType=Confirmed" > "$destlog" 2>&1
@@ -26,8 +26,8 @@ mv ./nodeEE.txt ./res/nodeEEI.txt
 mv ./globalPerformance.txt ./res/globalPerformanceI.txt
 mv ./phyPerformance.txt ./res/phyPerformanceI.txt
 
-cp ~/Github/robust-lora/res/sr_relaxOpt.txt ./sr_loc.txt
-cp ~/Github/robust-lora/res/gw_relaxOpt.txt ./gw_loc.txt
+cp ./bag/sr_relaxOpt.txt ./sr_loc.txt
+cp ./bag/gw_relaxOpt.txt ./gw_loc.txt
 destlog=logO
 start=`date +%s`
 ./waf --run "adr --MType=Confirmed" > "$destlog" 2>&1
