@@ -1,5 +1,7 @@
 % Call SNOPT for the relaxed version of the problem
 setenv('SNOPT_LICENSE','~/Github/snopt-matlab/snopt7.lic');
+addpath('~/Github/snopt-matlab/');
+addpath('~/Github/snopt-matlab/util/');
 clc;
 clear;
 close all;
