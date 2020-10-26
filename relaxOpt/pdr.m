@@ -34,8 +34,7 @@ for i = 1:params.sr_cnt
             end
         end
     end
-    % Get the current SF selection at i by finding the index of the max
-    % element
+    % Get the current SF selection at i
     sf_i = x(params.sf_st + (i-1) * params.SF_cnt + 1 : ...
         params.sf_st + i * params.SF_cnt);
     hi(i) = 1 - exp(-2 * (params.Tk * sf_i) * Ni / params.Time);

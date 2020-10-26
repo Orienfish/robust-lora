@@ -18,7 +18,7 @@ import ReadData
 import clustering
 import optInterface
 
-dataFile = './data/dataLA.csv'
+dataFile = None # './data/dataLA.csv'
 origin = [33.5466, -118.7025]
 PLFile = None #'./data/path_loss_mat.npy'
 
