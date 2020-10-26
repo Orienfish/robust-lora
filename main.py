@@ -18,7 +18,7 @@ import ReadData
 import clustering
 import optInterface
 
-dataFile = None # './data/dataLA.csv'
+dataFile = './data/dataLA.csv'
 origin = [33.5466, -118.7025]
 PLFile = None #'./data/path_loss_mat.npy'
 
@@ -109,12 +109,12 @@ class GeneticParams:
 class run:
 	iteration = 1
 	M = [1] #[1, 2, 3] #[3, 2, 1]
-	RGreedy = True  	# Pure greedy algorithm
+	RGreedy = False  	# Pure greedy algorithm
 	RGreedy_c = False	# With cluster-based acceleration
 	RGreedy_e = False	# With end-of-exploration acceleration
 	RGreedy_ce = False	# With both accleration techniques
 	RGenetic = False
-	ICIOT = False
+	ICIOT = True
 
 def init(params):
 	'''
@@ -325,8 +325,13 @@ def main():
 		help="path to PL file")
 	parser.add_argument("--sr_cnt", dest='sr_cnt', type=int, \
 		help="number of end devices")
+	parser.add_argument("--desired_gw_cnt", dest='desired_gw_cnt', type=int, \
+		help="desired number of gateways in the ICIOT algorithm")
 	args = parser.parse_args()
-	params.sr_cnt = args.sr_cnt
+	if args.sr_cnt:
+		params.sr_cnt = args.sr_cnt
+	elif args.desired_gw_cnt:
+		ICIOTParams.desired_gw_cnt = args.desired_gw_cnt
 
 	for it in range(run.iteration):
 		# Initialization
