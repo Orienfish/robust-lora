@@ -1,10 +1,11 @@
-function [c, ceq] = pdr(x, c_ijk, params)
+function [c, ceq] = pdr(x, c_ijks, params)
 % Evaluate PDR
 % 
 % Args:
 %   x: variables including gateway placement and SF, channel and tx power
 %      configuration
-%   c_ijk: a binary matrix showing feasibility of i reaching j with SF k
+%   c_ijks: a binary matrix showing feasibility of i reaching j with SF k
+%           and Tx Power s
 %   params: important parameters
 %
 % Return:
@@ -45,14 +46,19 @@ for i = 1:params.sr_cnt
 end
 
 % Compute transmission reliability from i to j
-% combining collision probability hi and reachability c_ijk
+% combining collision probability hi and reachability c_ijks
 Pij = zeros(params.sr_cnt, params.gw_cnt);
 for i = 1:params.sr_cnt
     sf_i = x(params.sf_st + (i-1) * params.SF_cnt + 1 : ...
         params.sf_st + i * params.SF_cnt);
+    tp_i = x(params.tp_st + (i-1) * params.TP_cnt + 1 : ...
+        params.tp_st + i * params.TP_cnt);
+    % Get a SF_cnt * TP_cnt matrix showing the result of every pair
+    sfk_tps = sf_i * reshape(tp_i, [1, params.TP_cnt]);
     for j = 1:params.gw_cnt
-        c_ij = c_ijk(i, j, 1:end);
-        Pij(i, j) = reshape(c_ij, [1, 4]) * sf_i * (1 - hi(i));
+        c_ij = c_ijks(i, j, 1:end, 1:end); % c_ij is SF_cnt * TP_cnt
+        c_ij = squeeze(c_ij); % Remove dimension of length 1
+        Pij(i, j) = sum(sfk_tps .* c_ij, 'all') * (1 - hi(i));
     end
 end
 

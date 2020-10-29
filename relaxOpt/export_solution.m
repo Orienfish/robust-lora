@@ -24,13 +24,13 @@ function export_solution(x, sr_loc, gw_loc, params)
         %[val, ch] = max(ch_i);
         %ch = ch - 1; % Change from starting from 1 to starting from 0
         % Find the assigned tx power as the index of the max value
-        tp_i = x(params.tp_st + (i-1) * params.Ptx_cnt + 1 : ...
-            params.tp_st + i * params.Ptx_cnt);
+        tp_i = x(params.tp_st + (i-1) * params.TP_cnt + 1 : ...
+            params.tp_st + i * params.TP_cnt);
         [val, tp] = max(tp_i);
         tp = params.Ptx_array(tp);
         
-        fprintf(fid, '%f %f %d 20.0\n', sr_loc(i, 1), sr_loc(i, 2), ...
-            sf);
+        fprintf(fid, '%f %f %d %f\n', sr_loc(i, 1), sr_loc(i, 2), ...
+            sf, tp);
     end
     fclose(fid);
 end

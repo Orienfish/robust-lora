@@ -15,10 +15,10 @@ def TestLifetime(params):
 
 	return
 
-def GenerateCijk(sr_info, G, PL, params):
+def GenerateCijks(sr_info, G, PL, params):
 	'''
-	Generate the c_ijk matrix denoting the reachability from devices to
-	gateways using SF k
+	Generate the c_ijkq matrix denoting the reachability from devices to
+	gateways using SF k and transmission power s
 
 	Args:
 		sr_loc: sensor information
@@ -32,13 +32,16 @@ def GenerateCijk(sr_info, G, PL, params):
 	sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
 	SF_cnt = len(params.SF)
-	c_ijk = np.zeros((sr_cnt, gw_cnt, SF_cnt))
+	TP_cnt = len(params.Ptx)
+	c_ijks = np.zeros((sr_cnt, gw_cnt, SF_cnt, TP_cnt))
 
 	for i in range(sr_cnt):
 		for j in range(gw_cnt):
 			for k in range(SF_cnt):
-				if propagation.GetRSSI(params.Ptx_max, PL[i, j]) > \
-					params.RSSI_k[k]:
-					c_ijk[i, j, k] = 1
+				for s in range(TP_cnt):
+					# Note that Ptx array in params is in reverse order
+					if propagation.GetRSSI(params.Ptx[TP_cnt-s-1], PL[i, j]) > \
+						params.RSSI_k[k]:
+						c_ijks[i, j, k, s] = 1
 
-	return c_ijk
+	return c_ijks

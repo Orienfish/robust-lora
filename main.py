@@ -204,9 +204,9 @@ def init(params):
 	np.savetxt('./relaxOpt/gw_loc.csv', G[:, :2], delimiter=',')
 
 	# optInterface.TestLifetime(params)
-	c_ijk = optInterface.GenerateCijk(sr_info, G, PL, params)
-	for k in range(SF_cnt):
-		np.savetxt('./relaxOpt/cijk_{}.csv'.format(k), c_ijk[:, :, k], delimiter=',')
+	c_ijks = optInterface.GenerateCijks(sr_info, G, PL, params)
+	c_ijks = np.reshape(c_ijks, (-1))
+	np.savetxt('./relaxOpt/cijks.csv', c_ijks, fmt='%i', delimiter=',')
 
 	return sr_info, G, PL, dist, N_kq
 
