@@ -29,8 +29,8 @@ function export_solution(x, sr_loc, gw_loc, params)
         [val, tp] = max(tp_i);
         tp = params.Ptx_array(tp);
         
-        fprintf(fid, '%f %f %d %f\n', sr_loc(i, 1), sr_loc(i, 2), ...
-            sf, tp);
+        fprintf(fid, '%f %f %d 20.0\n', sr_loc(i, 1), sr_loc(i, 2), ...
+            sf);
     end
     fclose(fid);
 end
