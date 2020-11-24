@@ -18,9 +18,9 @@ import ReadData
 import clustering
 import optInterface
 
-dataFile = None # './data/dataLA.csv'
+dataFile = None # '../data/dataLA.csv'
 origin = [33.5466, -118.7025]
-PLFile = None #'./data/path_loss_mat.npy'
+PLFile = None # '../data/path_loss_mat.npy'
 
 
 ########################################
@@ -200,15 +200,15 @@ def init(params):
 			N_kq[str(k) + '_' + str(q)] = []
 
 	# Save the end device locations and candidate gateway locations
-	np.savetxt('./relaxOpt/sr_loc.csv', sr_info[:, :2], delimiter=',')
-	np.savetxt('./relaxOpt/gw_loc.csv', G[:, :2], delimiter=',')
+	np.savetxt('../relaxOpt/sr_loc.csv', sr_info[:, :2], delimiter=',')
+	np.savetxt('../relaxOpt/gw_loc.csv', G[:, :2], delimiter=',')
 
 	# optInterface.TestLifetime(params)
 	c_ijks = optInterface.GenerateCijks(sr_info, G, PL, params)
 	Ptx_cnt = len(params.Ptx)
 	for k in range(SF_cnt):
 		for q in range(Ptx_cnt):
-			np.savetxt('./relaxOpt/cijk_{}_{}.csv'.format(k, q), \
+			np.savetxt('../relaxOpt/cijk_{}_{}.csv'.format(k, q), \
 				c_ijks[:, :, k, q], fmt='%d', delimiter=',')
 
 	return sr_info, G, PL, dist, N_kq
