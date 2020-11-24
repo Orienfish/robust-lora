@@ -21,10 +21,14 @@ sr_loc = csvread('sr_loc.csv');
 gw_loc = csvread('gw_loc.csv');
 params.sr_cnt = size(sr_loc, 1);
 params.gw_cnt = size(gw_loc, 1);
-c_ijks = csvread('cijks.csv');
-c_ijks = reshape(c_ijks, [params.sr_cnt, params.gw_cnt, params.SF_cnt, ...
-    params.TP_cnt]);
-
+c_ijks = zeros(params.sr_cnt, params.gw_cnt, params.SF_cnt, params.TP_cnt);
+for i = 0:params.SF_cnt-1
+    for j = 0:params.TP_cnt-1
+        f = 'cijk_' + string(i) + '_' + string(j) + '.csv';
+        d = csvread(f);
+        c_ijks(1:end, 1:end, i+1, j+1) = d;
+    end
+end
 
 % Variable
 params.var_cnt = params.gw_cnt + params.sr_cnt * (params.SF_cnt + params.CH_cnt + params.TP_cnt);
