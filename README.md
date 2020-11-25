@@ -13,8 +13,8 @@ MATLAB 2020a + [SNOPT 7.7](https://ccom.ucsd.edu/~optimizers/solvers/snopt/)
 ```
 .
 ├── LICENSE
-├── README.md    // this file
-├── alg          // algorithms to for LoRa gateway placement and device configuration
+├── README.md    // This file
+├── alg          // Algorithms for LoRa gateway placement and device configuration
 ├── data         // End device location and how to generate path loss matrix 
 ├── ns3-exp      // Scripts to test in ns3
 └── relaxOpt     // MATLAB scripts to call SNOPT to optimally solve the relaxed problem
