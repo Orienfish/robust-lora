@@ -44,7 +44,7 @@ python3 ./alg/main.py
 
 To run the ns-3 simulations, first install [ns3-3.31](https://www.nsnam.org/releases/ns-3-31/).
 
-Then, clone our modified lorawan module and copy the test script to `./scratch`
+Then, clone our modified lorawan module and copy the test script
 
 ```bash
 cd root-of-ns3/ns-3.31/src
