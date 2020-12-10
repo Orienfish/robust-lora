@@ -12,6 +12,50 @@ import main
 # Robust-Driven Greedy Alg
 ########################################
 
+class Best:
+    '''
+    Object to keep track of data from best gateway placement
+    
+    Arg:
+        bnft: initial benefit (= negative infinity)
+    '''
+    def __init__(self, bnft):
+        self.bnft = bnft
+        self.idx = 0
+        self.sr_info = 0
+        self.N_kq = 0
+        self.m_gateway = 0
+        self.conn = 0
+        self.uncover = 0
+        self.PDR = 0
+        self.Lifetime = 0
+    
+    '''
+    Update data for best gateway placement
+    Args:
+        bnft: highest benefit of a gateway placement that has been considered
+        gw_idx: index of current gateway that has the highest benefit
+        sr_info: complete sensor/end device configuration of gateway with the highest benefit
+        N_kq: dictionary recording the list of nodes using SFk and channel q of gateway with the highest benefit
+        m_gateway: m-gateway connectivity at each end device of gateway with the highest benefit
+        conn: //
+        uncover: //
+        PDR: packet delivery ratio due to the configuraton
+        Lifetime: lifetime of the device due to the configuration
+    '''
+    def update(self, bnft, gw_idx, sr_info, N_kq, m_gateway, conn, unconver, PDR, Lifetime):
+        self.bnft = bnft
+        self.idx = gw_idx
+        self.sr_info = sr_info
+        self.N_kq = N_kq
+        self.m_gateway = m_gateway
+        self.conn = conn
+        self.uncover = uncover
+        self.PDR = PDR
+        self.Lifetime = Lifetime
+        
+    
+
 def GetLifetime(SFk, Ptx, PDR, params):
 	'''
 	Calculate the lifetime of node using SF and Ptx using the formula in 
@@ -315,7 +359,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 	while True:
 
 		# Variables to record the best gateway location in the current round
-		bnft_best = -np.inf
+		best_conditions = Best(-np.inf)
 
 		# If uncover count is lower than the threshold, fire end-of-exploration acceleration
 		G_remain = np.copy(G)
@@ -404,20 +448,12 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 			logging.info('cov: {} pdr: {} lifetime: {}'.format(bnft_cov, bnft_pdr, bnft_lifetime))
 
 			# Update global best benefit value if necessary
-			if bnft > bnft_best:
-				bnft_best = bnft
-				best_idx = gw_idx
-				best_sr_info = sr_info_cur
-				best_N_kq = N_kq_cur
-				best_m_gateway = m_gateway_cur
-				best_conn = conn_cur
-				best_uncover = uncover_new
-				best_PDR = PDR_cur
-				best_Lifetime = Lifetime_cur
+			if bnft > Best.bnft:
+				best_conditions.update(bnft, gw_idx, sr_info_cur, N_kq_cur, m_gateway_cur, conn_cur, uncover_new, PDR_cur, Lifetime_cur)
 
 			# Logging
 			logging.info('gw_loc: #{} {} Benefit: {} Max bnft: {} Max idx: {}'.format(\
-				gw_idx, G[gw_idx, :2], bnft, bnft_best, best_idx))
+				gw_idx, G[gw_idx, :2], bnft, Best.bnft, Best.idx))
 
 			# Reset
 			G_remain[gw_idx, 2] = 0
@@ -427,23 +463,23 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 			#	break
 
 		# Check if there is no benefit to gain, end the searching while loop
-		if uncover_old - best_uncover == 0:
+		if uncover_old - Best_uncover == 0:
 			logging.info('No more gateway placement can provide m-gateway connectivity benefit!')
 			break
 
 		# Place a gateway at next_idx with the max benefit and update info
-		G_remain[best_idx, 2] = 1
+		G_remain[Best.idx, 2] = 1
 		G[gw_mask, :] = G_remain # Copy G_remain to G
-		sr_info = best_sr_info
-		N_kq = best_N_kq
-		m_gateway = best_m_gateway
-		conn = best_conn
-		uncover_old = best_uncover
-		PDR_old = best_PDR
-		Lifetime_old = best_Lifetime
+		sr_info = Best.sr_info
+		N_kq = Best.N_kq
+		m_gateway = Best.m_gateway
+		conn = Best.conn
+		uncover_old = Best.uncover
+		PDR_old = Best.PDR
+		Lifetime_old = Best.Lifetime
 
 		logging.info('Placed gateway #{} at grid {} [{},{}]'.format( \
-			rounds, best_idx, G_remain[best_idx, 0], G_remain[best_idx, 1]))
+			rounds, Best.idx, G_remain[Best.idx, 0], G_remain[Best.idx, 1]))
 		logging.info('Uncover: {}'.format(uncover_old))
 
 		# Check if m-gateway connectivity has been met at all end nodes
