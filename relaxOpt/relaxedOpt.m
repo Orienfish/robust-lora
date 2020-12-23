@@ -1,5 +1,5 @@
 % Call SNOPT for the relaxed version of the problem
-setenv('SNOPT_LICENSE','~/Github/snopt-matlab/snopt7.lic');
+setenv('SNOPT_LICENSE','/home/xiaofan/Github/snopt-matlab/snopt7.lic');
 addpath('~/Github/snopt-matlab/');
 addpath('~/Github/snopt-matlab/util/');
 clc;
@@ -64,7 +64,7 @@ tic
 [x,fval,INFO,output,lambda,states] = snsolve(@(x)(f*x), x0, A, b, ...
     Aeq, beq, lb, ub, @(x)pdr(x, c_ijks, params));
 exeTime = toc;
-x
+%x
 
 % Print the results
 gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
