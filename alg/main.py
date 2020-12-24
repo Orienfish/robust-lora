@@ -276,6 +276,8 @@ def plot(sr_info, G, version):
 	plt.scatter(G[:, 0], G[:, 1], s=G[:, 2]*50, c=color, marker='^')
 	plt.xlabel('X (m)'); plt.ylabel('Y (m)');
 	# plt.legend()
+	if not os.path.exists('vis'):
+		os.makedirs('vis')
 	filename = './vis/vis_{}.png'.format(version)
 	plt.savefig(filename)
 	# plt.show()
@@ -291,8 +293,8 @@ def SaveInfo(sr_info, G, method):
 	'''
 	sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
-        if not os.path.exists('res'):
-            os.makedirs('res')
+	if not os.path.exists('res'):
+		os.makedirs('res')
 
 	# Write sensor and gateway information to file
 	filename = './res/sr_{}.txt'.format(method)
@@ -313,8 +315,8 @@ def SaveInfo(sr_info, G, method):
 
 def SaveRes(method, sr_cnt, M, gw_cnt, time):
 	# Log results
-        if not os.path.exists('res'):
-            os.makedirs('res')
+	if not os.path.exists('res'):
+		os.makedirs('res')
 	with open('res/res.txt', 'a') as out:
 		out.write(method + ' ' + str(sr_cnt) + ' ' + str(M) + ' ' + \
 			str(gw_cnt) + ' ' + str(time) + '\n')

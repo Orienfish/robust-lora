@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for sr_cnt in 1 2 3 4 5
+for sr_cnt in 1 2 3 4 5 6 7 8 9 10
 do
 	echo "$sr_cnt"
 	python3 ../alg/main.py # --sr_cnt $sr_cnt
