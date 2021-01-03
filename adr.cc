@@ -73,12 +73,14 @@ double E_cap_J = 23760;        // Battery capacity in J
 std::vector<double> energyVec; // A vector to store total energy consumption at each end device
 std::string srlocFile = "sr_loc.txt"; // Sensor location file
 std::string gwlocFile = "gw_loc.txt"; // Gateway location file
+std::string PLFile = "path_loss_mat.txt"; // Path loss file
 
 int main (int argc, char *argv[])
 {
 
   bool verbose = false;
   bool adrEnabled = false;
+  bool matrixPLEnabled = true;
   int nDevices = 0;
   int nGateways = 0;
   int nPeriods = 24*3*30; // 1 month, per period is 20 min
@@ -94,11 +96,12 @@ int main (int argc, char *argv[])
   // cmd.AddValue ("MultiplePacketsCombiningMethod",
   //              "ns3::AdrComponent::MultiplePacketsCombiningMethod");
   // cmd.AddValue ("HistoryRange", "ns3::AdrComponent::HistoryRange");
+  cmd.AddValue ("AdrEnabled", "Whether to enable ADR", adrEnabled);
+  cmd.AddValue ("MatrixPLEnabled", "Whether to enable land-type path loss", matrixPLEnabled);
   cmd.AddValue ("MType", "ns3::EndDeviceLorawanMac::MType");
   cmd.AddValue ("EDDRAdaptation", "ns3::EndDeviceLorawanMac::EnableEDDataRateAdaptation");
   cmd.AddValue ("ChangeTransmissionPower",
                 "ns3::AdrComponent::ChangeTransmissionPower");
-  cmd.AddValue ("AdrEnabled", "Whether to enable ADR", adrEnabled);
   cmd.AddValue ("nDevices", "Number of devices to simulate", nDevices);
   cmd.AddValue ("nGateways", "Number of gateways to simulate", nDevices);
   cmd.AddValue ("nPeriods", "Number of periods to simulate", nPeriods);
@@ -138,30 +141,6 @@ int main (int argc, char *argv[])
 
   // Set the EDs to require Data Rate control from the NS
   Config::SetDefault ("ns3::EndDeviceLorawanMac::DRControl", BooleanValue (true));
-
-
-
-  //////////////////////////////////////
-  // Create a simple wireless channel //
-  //////////////////////////////////////
-
-  Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
-  loss->SetPathLossExponent (2.1495);
-  loss->SetReference (140, 105.5729);
-
-  Ptr<NormalRandomVariable> x = CreateObject<NormalRandomVariable> ();
-  x->SetAttribute ("Mean", DoubleValue (0));
-  x->SetAttribute ("Variance", DoubleValue (100.0724));
-
-  Ptr<RandomPropagationLossModel> randomLoss = CreateObject<RandomPropagationLossModel> ();
-  randomLoss->SetAttribute ("Variable", PointerValue (x));
-
-  loss->SetNext (randomLoss);
-
-  Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
-
-  Ptr<LoraChannel> channel = CreateObject<LoraChannel> (loss, delay);
-
 
 
   ////////////////
@@ -241,6 +220,86 @@ int main (int argc, char *argv[])
 
   gateways.Create (nGateways);
   mobilityGw.Install (gateways);
+
+  //////////////////////////////////////
+  // Create a simple wireless channel //
+  //////////////////////////////////////
+  Ptr<LoraChannel> channel;
+  if (!matrixPLEnabled) // Use log path loss initialization
+  {
+    Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
+    loss->SetPathLossExponent (2.1495);
+    loss->SetReference (140, 105.5729);
+
+    Ptr<NormalRandomVariable> x = CreateObject<NormalRandomVariable> ();
+    x->SetAttribute ("Mean", DoubleValue (0));
+    x->SetAttribute ("Variance", DoubleValue (100.0724));
+    Ptr<RandomPropagationLossModel> randomLoss = CreateObject<RandomPropagationLossModel> ();
+    randomLoss->SetAttribute ("Variable", PointerValue (x));
+
+    loss->SetNext (randomLoss);
+
+    Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
+
+    channel = CreateObject<LoraChannel> (loss, delay);
+  }
+  else // Use predetermined matrix path loss according to land types
+  {
+    // Read path loss matrix from text file
+    std::ifstream PathLossFile(PLFile);
+    std::vector< std::vector<double> > PL; // Path loss matrix
+    if (PathLossFile.is_open())
+    {
+      NS_LOG_DEBUG ("Read from path loss file.");
+      std::string line;
+      int curSrIdx = 0;
+      while (std::getline(PathLossFile, line)) {
+          if (line.size() > 0) {
+              std::vector<std::string> pl = split(line, ' ');
+              for (std::vector<std::string>::iterator i = pl.begin (); i != pl.end (); ++i)
+              {
+                PL[curSrIdx].push_back(atof((*i).c_str()));
+              }
+          }
+          curSrIdx ++;
+      }
+    }
+    else
+    {
+      NS_LOG_ERROR ("Unable to open file " << PLFile);
+      return -1;
+    }
+
+    Ptr<MatrixPropagationLossModel> loss = CreateObject<MatrixPropagationLossModel> ();
+    for (NodeContainer::Iterator ed = endDevices.Begin (); ed != endDevices.End (); ++ed)
+    {
+      Ptr<Node> edObject = *ed;
+      int edId = edObject->GetId();
+      Ptr<MobilityModel> edPos = edObject->GetObject<MobilityModel> ();
+      NS_ASSERT (edPos != 0);
+      for (NodeContainer::Iterator gw = gateways.Begin (); gw != gateways.End (); ++gw)
+      {
+        Ptr<Node> gwObject = *gw;
+        int gwId = gwObject->GetId() - nDevices; // gateway IDs counts after end devices
+        Ptr<MobilityModel> gwPos = gwObject->GetObject<MobilityModel> ();
+        NS_ASSERT (gwPos != 0);
+        loss->SetLoss (edPos, gwPos, PL[edId][gwId], false);
+        std::cout << PL[edId][gwId] << std::endl;
+      }
+    }
+
+    Ptr<NormalRandomVariable> x = CreateObject<NormalRandomVariable> ();
+    x->SetAttribute ("Mean", DoubleValue (0));
+    x->SetAttribute ("Variance", DoubleValue (100.0724));
+    Ptr<RandomPropagationLossModel> randomLoss = CreateObject<RandomPropagationLossModel> ();
+    randomLoss->SetAttribute ("Variable", PointerValue (x));
+
+    loss->SetNext (randomLoss);
+
+    Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
+
+    channel = CreateObject<LoraChannel> (loss, delay);
+  }
 
 
 
