@@ -18,9 +18,9 @@ import ReadData
 import clustering
 import optInterface
 
-dataFile = None # '../data/dataLA.csv'
+dataFile = './data/dataLA.csv'
 origin = [33.5466, -118.7025]
-PLFile = None # '../data/path_loss_mat.npy'
+PLFile = './data/path_loss_mat.npy'
 
 
 ########################################
@@ -35,7 +35,7 @@ class params:
 	LogPropVer = 'ICIOT'
 
 	T = 1200			# Sampling period in s
-	
+
 	# Spreading Factors options
 	SF = ['SF7', 'SF8', 'SF9', 'SF10']
 	# RSSI threshold of SF7, 8, 9, 10 in dBm
@@ -109,12 +109,12 @@ class GeneticParams:
 class run:
 	iteration = 1
 	M = [1] #[1, 2, 3] #[3, 2, 1]
-	RGreedy = False  	# Pure greedy algorithm
+	RGreedy = True  	# Pure greedy algorithm
 	RGreedy_c = False	# With cluster-based acceleration
 	RGreedy_e = False	# With end-of-exploration acceleration
 	RGreedy_ce = False	# With both accleration techniques
 	RGenetic = False
-	ICIOT = True
+	ICIOT = False
 
 def init(params):
 	'''
@@ -142,7 +142,7 @@ def init(params):
 		y_max = np.max(coor[:, 1])
 
 	# Fill in the coordinate date to the initial sensor info
-	for i in range(coor.shape[0]):	
+	for i in range(coor.shape[0]):
 		k = -1 #random.randint(0, len(params.SF)-1) # SFk
 		q = -1 # random.randint(0, len(params.CH)-1) # Channel q
 		new_loc = [coor[i, 0], coor[i, 1], k, params.Ptx_max, q]
@@ -151,7 +151,7 @@ def init(params):
 	sr_info = np.array(sr_info)
 	# print(sr_info)
 	sr_cnt = sr_info.shape[0]
-	
+
 
 	# Generate the grid candidate set N and G with their x, y coordinates
 	# N for sensor placement and G for gateway placement
@@ -170,9 +170,9 @@ def init(params):
 	# print(G)
 	gw_cnt = G.shape[0]
 
-	# Generate path loss and distance matrix between sensor i and 
+	# Generate path loss and distance matrix between sensor i and
 	# candidate gateway j
-	PL = np.zeros((sr_cnt, gw_cnt))	
+	PL = np.zeros((sr_cnt, gw_cnt))
 	dist = np.zeros((sr_cnt, gw_cnt))
 	for i in range(sr_cnt):
 		for j in range(gw_cnt):
@@ -200,15 +200,15 @@ def init(params):
 			N_kq[str(k) + '_' + str(q)] = []
 
 	# Save the end device locations and candidate gateway locations
-	np.savetxt('../relaxOpt/sr_loc.csv', sr_info[:, :2], delimiter=',')
-	np.savetxt('../relaxOpt/gw_loc.csv', G[:, :2], delimiter=',')
+	np.savetxt('./relaxOpt/sr_loc.csv', sr_info[:, :2], delimiter=',')
+	np.savetxt('./relaxOpt/gw_loc.csv', G[:, :2], delimiter=',')
 
 	# optInterface.TestLifetime(params)
 	c_ijks = optInterface.GenerateCijks(sr_info, G, PL, params)
 	Ptx_cnt = len(params.Ptx)
 	for k in range(SF_cnt):
 		for q in range(Ptx_cnt):
-			np.savetxt('../relaxOpt/cijk_{}_{}.csv'.format(k, q), \
+			np.savetxt('./relaxOpt/cijk_{}_{}.csv'.format(k, q), \
 				c_ijks[:, :, k, q], fmt='%d', delimiter=',')
 
 	return sr_info, G, PL, dist, N_kq
@@ -226,7 +226,7 @@ def eval(sr_info_res, G_res, PL, params):
 	Return:
 		PDR: an array of PDR at each end device
 		PDR_gw: a matrix of PDR between end device-gateway pair
-		lifetime: an array of lifetime at each end device 
+		lifetime: an array of lifetime at each end device
 	'''
 	sr_cnt = sr_info_res.shape[0]
 	SF_cnt = len(params.SF)
@@ -234,7 +234,7 @@ def eval(sr_info_res, G_res, PL, params):
 
 	# Init N_kq: the number of nodes using the same SF and channel
 	N_kq = dict()
-	for k in range(SF_cnt): 
+	for k in range(SF_cnt):
 		for q in range(CH_cnt):
 			N_kq[str(k) + '_' + str(q)] = []
 
@@ -276,6 +276,8 @@ def plot(sr_info, G, version):
 	plt.scatter(G[:, 0], G[:, 1], s=G[:, 2]*50, c=color, marker='^')
 	plt.xlabel('X (m)'); plt.ylabel('Y (m)');
 	# plt.legend()
+	if not os.path.exists('vis'):
+		os.makedirs('vis')
 	filename = './vis/vis_{}.png'.format(version)
 	plt.savefig(filename)
 	# plt.show()
@@ -291,6 +293,8 @@ def SaveInfo(sr_info, G, method):
 	'''
 	sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
+	if not os.path.exists('res'):
+		os.makedirs('res')
 
 	# Write sensor and gateway information to file
 	filename = './res/sr_{}.txt'.format(method)
@@ -311,7 +315,9 @@ def SaveInfo(sr_info, G, method):
 
 def SaveRes(method, sr_cnt, M, gw_cnt, time):
 	# Log results
-	with open('./res/res.txt', 'a') as out:
+	if not os.path.exists('res'):
+		os.makedirs('res')
+	with open('res/res.txt', 'a') as out:
 		out.write(method + ' ' + str(sr_cnt) + ' ' + str(M) + ' ' + \
 			str(gw_cnt) + ' ' + str(time) + '\n')
 
@@ -465,7 +471,7 @@ def main():
 				# Write sensor and gateway information to file
 				method = 'RGenetic_{}_{}_{}'.format(M, sr_cnt, it)
 				SaveInfo(sr_info_res, G_res, method)
-					
+
 
 		if run.ICIOT:
 			st_time = time.time()
