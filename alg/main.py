@@ -18,9 +18,9 @@ import ReadData
 import clustering
 import optInterface
 
-dataFile = None # '../data/dataLA.csv'
+dataFile = '../data/dataLA.csv'
 origin = [33.5466, -118.7025]
-PLFile = None # '../data/path_loss_mat.npy'
+PLFile = '../data/path_loss_mat.npy'
 
 
 ########################################
@@ -282,13 +282,14 @@ def plot(sr_info, G, version):
 	plt.savefig(filename)
 	# plt.show()
 
-def SaveInfo(sr_info, G, method):
+def SaveInfo(sr_info, G, PL, method):
 	'''
 	Save the generated solution to text file
 
 	Args:
 		sr_info: generated sensor/end device configuration solution
 		G: generated gateway placement solution
+		PL: path losses between end devices and selected gateways
 		method: a string showing the algorithm, to be added to file name
 	'''
 	sr_cnt = sr_info.shape[0]
@@ -312,6 +313,13 @@ def SaveInfo(sr_info, G, method):
 			if G[i, 2]:
 				out.write(str(round(G[i, 0], 2)) + ' ' + \
 					str(round(G[i, 1], 2)) + '\n')
+	filename = './res/pl_{}.txt'.format(method)
+	with open (filename, 'w') as out:
+		for i in range(sr_cnt):
+			for j in range(gw_cnt):
+				if G[j, 2]:
+					out.write(str(round(PL[i, j], 6)) + ' ')
+			out.write('\n')
 
 def SaveRes(method, sr_cnt, M, gw_cnt, time):
 	# Log results
@@ -374,7 +382,7 @@ def main():
 
 				# Write sensor and gateway information to file
 				method = 'RGreedy_{}_{}_{}'.format(M, sr_cnt, it)
-				SaveInfo(sr_info_res, G_res, method)
+				SaveInfo(sr_info_res, G_res, PL, method)
 
 			# Greedy algorithm with cluster-based acceleration
 			if run.RGreedy_c:
@@ -399,7 +407,7 @@ def main():
 
 				# Write sensor and gateway information to file
 				method = 'RGreedyc_{}_{}_{}'.format(M, sr_cnt, it)
-				SaveInfo(sr_info_res, G_res, method)
+				SaveInfo(sr_info_res, G_res, PL, method)
 
 			# Greedy algorithm with end-of-exploration acceleration
 			if run.RGreedy_e:
@@ -423,7 +431,7 @@ def main():
 
 				# Write sensor and gateway information to file
 				method = 'RGreedye_{}_{}_{}'.format(M, sr_cnt, it)
-				SaveInfo(sr_info_res, G_res, method)
+				SaveInfo(sr_info_res, G_res, PL, method)
 
 			# Greedy algorithm with both acceleration techniques
 			if run.RGreedy_ce:
@@ -448,7 +456,7 @@ def main():
 
 				# Write sensor and gateway information to file
 				method = 'RGreedyce_{}_{}_{}'.format(M, sr_cnt, it)
-				SaveInfo(sr_info_res, G_res, method)
+				SaveInfo(sr_info_res, G_res, PL, method)
 
 
 			if run.RGenetic:
@@ -470,7 +478,7 @@ def main():
 
 				# Write sensor and gateway information to file
 				method = 'RGenetic_{}_{}_{}'.format(M, sr_cnt, it)
-				SaveInfo(sr_info_res, G_res, method)
+				SaveInfo(sr_info_res, G_res, PL, method)
 
 
 		if run.ICIOT:
@@ -492,7 +500,7 @@ def main():
 
 			# Write sensor and gateway information to file
 			method = 'ICIOT_{}_{}'.format(sr_cnt, it)
-			SaveInfo(sr_info_res, G_res, method)
+			SaveInfo(sr_info_res, G_res, PL, method)
 
 
 if __name__ == '__main__':
