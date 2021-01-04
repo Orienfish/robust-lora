@@ -73,7 +73,7 @@ double E_cap_J = 23760;        // Battery capacity in J
 std::vector<double> energyVec; // A vector to store total energy consumption at each end device
 std::string srlocFile = "sr_loc.txt"; // Sensor location file
 std::string gwlocFile = "gw_loc.txt"; // Gateway location file
-std::string PLFile = "path_loss_mat.txt"; // Path loss file
+std::string PLFile = "pl_mat.txt"; // Path loss file
 
 int main (int argc, char *argv[])
 {
@@ -225,6 +225,7 @@ int main (int argc, char *argv[])
   // Create a simple wireless channel //
   //////////////////////////////////////
   Ptr<LoraChannel> channel;
+  std::vector< std::vector<double> > PL(nDevices); // Path loss matrix
   if (!matrixPLEnabled) // Use log path loss initialization
   {
     Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
@@ -245,9 +246,8 @@ int main (int argc, char *argv[])
   }
   else // Use predetermined matrix path loss according to land types
   {
-    // Read path loss matrix from text file
+    // Load path loss matrix from text file
     std::ifstream PathLossFile(PLFile);
-    std::vector< std::vector<double> > PL; // Path loss matrix
     if (PathLossFile.is_open())
     {
       NS_LOG_DEBUG ("Read from path loss file.");
@@ -284,7 +284,7 @@ int main (int argc, char *argv[])
         Ptr<MobilityModel> gwPos = gwObject->GetObject<MobilityModel> ();
         NS_ASSERT (gwPos != 0);
         loss->SetLoss (edPos, gwPos, PL[edId][gwId], false);
-        std::cout << PL[edId][gwId] << std::endl;
+        // std::cout << edId << " " << gwId << " " << PL[edId][gwId] << std::endl;
       }
     }
 
