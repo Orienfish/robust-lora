@@ -16,7 +16,7 @@ The result from the running the GLNet code should be uploaded to Google drive an
 ### Step 2: Convert GLNet result from png to npy file 
 
 1. Open pngToNp.ipynb in Google Colab. *Make sure the code in block 2 navigates to where GLNet-master is located.*
-2. Run the 3 blocks of code
+2. Run the 3 blocks of code.
 
 ### Step 3: Generate PL matrix 
 
