@@ -297,6 +297,16 @@ def SaveInfo(sr_info, G, PL, method):
 	if not os.path.exists('res'):
 		os.makedirs('res')
 
+	# Add info to the method label
+	flagData = ''
+	flagPL = ''
+	if dataFile:
+		flagData = 'd'
+	if PLFile:
+		flagPL = 'p'
+	method = '{}{}{}'.format(method, flagData, flagPL)
+
+
 	# Write sensor and gateway information to file
 	filename = './res/sr_{}.txt'.format(method)
 	with open (filename, 'w') as out:
