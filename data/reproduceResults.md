@@ -1,6 +1,6 @@
-# How to Reproduce LoRA experiement results 
+# How to reproduce LoRA experiement results 
 
-Clone robust-lora and GLNet repositories from Github
+Clone robust-lora and GLNet repositories from Github.
 
 ### Step 1: Reproduce GLNet result 
 
@@ -18,7 +18,7 @@ The result from the running the GLNet code should be uploaded to Google drive an
 1. Open pngToNp.ipynb in Google Colab. *Make sure the code in block 2 navigates to where GLNet-master is located.*
 2. Run the 3 blocks of code
 
-### Step 3: Generate PL Matrix 
+### Step 3: Generate PL matrix 
 
 1. Copy "entire_seg_map.npy" created in Step 2 into robust-lora/data folder. 
 2. Run the command `python-3 ./alg/main.py` to generate the potential gateway and sensor locations.
