@@ -264,7 +264,7 @@ def eval(sr_info_res, G_res, PL, params):
 	print(lifetime)
 	return PDR, PDR_gw, lifetime
 
-def plot(sr_info, G, version):
+def plot(sr_info, G, method):
 	# Visualize the placement and device configuration
 	# sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
@@ -278,7 +278,17 @@ def plot(sr_info, G, version):
 	# plt.legend()
 	if not os.path.exists('vis'):
 		os.makedirs('vis')
-	filename = './vis/vis_{}.png'.format(version)
+
+	# Add info to the method label
+	flagData = ''
+	flagPL = ''
+	if dataFile:
+		flagData = 'd'
+	if PLFile:
+		flagPL = 'p'
+	method = '{}{}{}'.format(method, flagData, flagPL)
+
+	filename = './vis/vis_{}.png'.format(method)
 	plt.savefig(filename)
 	# plt.show()
 
