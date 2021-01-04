@@ -80,7 +80,7 @@ int main (int argc, char *argv[])
 
   bool verbose = false;
   bool adrEnabled = false;
-  bool matrixPLEnabled = true;
+  bool matrixPLEnabled = false;
   int nDevices = 0;
   int nGateways = 0;
   int nPeriods = 24*3*30; // 1 month, per period is 20 min
