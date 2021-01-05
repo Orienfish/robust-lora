@@ -403,7 +403,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 			bnft_lifetime = GreedyParams.w_lifetime * uncover_old * \
 				np.sum(Lifetime_cur - np.ones((sr_cnt,)) * params.Lifetime_th)
 			bnft = bnft_cov + bnft_pdr + bnft_lifetime
-			logging.info('cov: {} pdr: {} lifetime: {}'.format(bnft_cov, bnft_pdr, bnft_lifetime))
+			logging.debug('cov: {} pdr: {} lifetime: {}'.format(bnft_cov, bnft_pdr, bnft_lifetime))
 
 			# Update global best benefit value if necessary
 			if bnft > bnft_best:
@@ -418,7 +418,7 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 				best_Lifetime = Lifetime_cur
 
 			# Logging
-			logging.info('gw_loc: #{} {} Benefit: {} Max bnft: {} Max idx: {}'.format(\
+			logging.debug('gw_loc: #{} {} Benefit: {} Max bnft: {} Max idx: {}'.format(\
 				gw_idx, G[gw_idx, :2], bnft, bnft_best, best_idx))
 
 			# Reset
