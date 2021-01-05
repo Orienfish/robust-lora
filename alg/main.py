@@ -27,9 +27,9 @@ PLFile = None # '../data/path_loss_mat.npy'
 # Important parameters
 ########################################
 class params:
-	L = 30000			# Edge of analysis area in m
-	sr_cnt = 100        # Number of end devices
-	gw_dist = 6000      # Distance between two gateways in m
+	L = 80000			# Edge of analysis area in m
+	sr_cnt = 1000        # Number of end devices
+	gw_dist = 4000      # Distance between two gateways in m
 
 	# Version of log propagation model
 	LogPropVer = 'ICIOT'
