@@ -18,9 +18,9 @@ import ReadData
 import clustering
 import optInterface
 
-dataFile = None # '../data/dataLA.csv'
+dataFile = '../data/dataLA.csv'
 origin = [33.5466, -118.7025]
-PLFile = None # '../data/path_loss_mat.npy'
+PLFile = '../data/path_loss_mat.npy'
 
 
 ########################################
@@ -32,7 +32,7 @@ class params:
 	gw_dist = 4000      # Distance between two gateways in m
 
 	# Version of log propagation model
-	LogPropVer = 'ICIOT'
+	LogPropVer = 'Dongare'
 
 	T = 1200			# Sampling period in s
 
@@ -114,7 +114,7 @@ class run:
 	RGreedy_e = False	# With end-of-exploration acceleration
 	RGreedy_ce = False	# With both accleration techniques
 	RGenetic = False
-	ICIOT = True
+	ICIOT = False
 
 def init(params):
 	'''
@@ -264,7 +264,7 @@ def eval(sr_info_res, G_res, PL, params):
 	print(lifetime)
 	return PDR, PDR_gw, lifetime
 
-def plot(sr_info, G, version):
+def plot(sr_info, G, method):
 	# Visualize the placement and device configuration
 	# sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
@@ -278,23 +278,44 @@ def plot(sr_info, G, version):
 	# plt.legend()
 	if not os.path.exists('vis'):
 		os.makedirs('vis')
-	filename = './vis/vis_{}.png'.format(version)
+
+	# Add info to the method label
+	flagData = ''
+	flagPL = ''
+	if dataFile:
+		flagData = 'd'
+	if PLFile:
+		flagPL = 'p'
+	method = '{}{}{}'.format(method, flagData, flagPL)
+
+	filename = './vis/vis_{}.png'.format(method)
 	plt.savefig(filename)
 	# plt.show()
 
-def SaveInfo(sr_info, G, method):
+def SaveInfo(sr_info, G, PL, method):
 	'''
 	Save the generated solution to text file
 
 	Args:
 		sr_info: generated sensor/end device configuration solution
 		G: generated gateway placement solution
+		PL: path losses between end devices and selected gateways
 		method: a string showing the algorithm, to be added to file name
 	'''
 	sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
 	if not os.path.exists('res'):
 		os.makedirs('res')
+
+	# Add info to the method label
+	flagData = ''
+	flagPL = ''
+	if dataFile:
+		flagData = 'd'
+	if PLFile:
+		flagPL = 'p'
+	method = '{}{}{}'.format(method, flagData, flagPL)
+
 
 	# Write sensor and gateway information to file
 	filename = './res/sr_{}.txt'.format(method)
@@ -312,6 +333,13 @@ def SaveInfo(sr_info, G, method):
 			if G[i, 2]:
 				out.write(str(round(G[i, 0], 2)) + ' ' + \
 					str(round(G[i, 1], 2)) + '\n')
+	filename = './res/pl_{}.txt'.format(method)
+	with open (filename, 'w') as out:
+		for i in range(sr_cnt):
+			for j in range(gw_cnt):
+				if G[j, 2]:
+					out.write(str(round(PL[i, j], 6)) + ' ')
+			out.write('\n')
 
 def SaveRes(method, sr_cnt, M, gw_cnt, time):
 	# Log results
@@ -374,7 +402,7 @@ def main():
 
 				# Write sensor and gateway information to file
 				method = 'RGreedy_{}_{}_{}'.format(M, sr_cnt, it)
-				SaveInfo(sr_info_res, G_res, method)
+				SaveInfo(sr_info_res, G_res, PL, method)
 
 			# Greedy algorithm with cluster-based acceleration
 			if run.RGreedy_c:
@@ -399,7 +427,7 @@ def main():
 
 				# Write sensor and gateway information to file
 				method = 'RGreedyc_{}_{}_{}'.format(M, sr_cnt, it)
-				SaveInfo(sr_info_res, G_res, method)
+				SaveInfo(sr_info_res, G_res, PL, method)
 
 			# Greedy algorithm with end-of-exploration acceleration
 			if run.RGreedy_e:
@@ -423,7 +451,7 @@ def main():
 
 				# Write sensor and gateway information to file
 				method = 'RGreedye_{}_{}_{}'.format(M, sr_cnt, it)
-				SaveInfo(sr_info_res, G_res, method)
+				SaveInfo(sr_info_res, G_res, PL, method)
 
 			# Greedy algorithm with both acceleration techniques
 			if run.RGreedy_ce:
@@ -448,7 +476,7 @@ def main():
 
 				# Write sensor and gateway information to file
 				method = 'RGreedyce_{}_{}_{}'.format(M, sr_cnt, it)
-				SaveInfo(sr_info_res, G_res, method)
+				SaveInfo(sr_info_res, G_res, PL, method)
 
 
 			if run.RGenetic:
@@ -470,7 +498,7 @@ def main():
 
 				# Write sensor and gateway information to file
 				method = 'RGenetic_{}_{}_{}'.format(M, sr_cnt, it)
-				SaveInfo(sr_info_res, G_res, method)
+				SaveInfo(sr_info_res, G_res, PL, method)
 
 
 		if run.ICIOT:
@@ -487,12 +515,13 @@ def main():
 			eval(sr_info_res, G_res, PL, params)
 
 			# Plot result
-			plot(sr_info_res, G_res, 'ICIOT_{}_{}'.format(sr_cnt, it))
+			plot(sr_info_res, G_res, 'ICIOT_{}_{}_{}'.format(ICIOTParams.desired_gw_cnt, \
+				sr_cnt, it))
 			SaveRes('ICIOT', sr_cnt, 1, np.sum(G_res[:, 2]), run_time)
 
 			# Write sensor and gateway information to file
-			method = 'ICIOT_{}_{}'.format(sr_cnt, it)
-			SaveInfo(sr_info_res, G_res, method)
+			method = 'ICIOT_{}_{}_{}'.format(ICIOTParams.desired_gw_cnt, sr_cnt, it)
+			SaveInfo(sr_info_res, G_res, PL, method)
 
 
 if __name__ == '__main__':
