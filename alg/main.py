@@ -32,7 +32,7 @@ class params:
 	gw_dist = 6000      # Distance between two gateways in m
 
 	# Version of log propagation model
-	LogPropVer = 'ICIOT'
+	LogPropVer = 'Dongare'
 
 	T = 1200			# Sampling period in s
 
@@ -114,7 +114,7 @@ class run:
 	RGreedy_e = False	# With end-of-exploration acceleration
 	RGreedy_ce = False	# With both accleration techniques
 	RGenetic = False
-	ICIOT = True
+	ICIOT = False
 
 def init(params):
 	'''
@@ -515,11 +515,12 @@ def main():
 			eval(sr_info_res, G_res, PL, params)
 
 			# Plot result
-			plot(sr_info_res, G_res, 'ICIOT_{}_{}'.format(sr_cnt, it))
+			plot(sr_info_res, G_res, 'ICIOT_{}_{}_{}'.format(ICIOTParams.desired_gw_cnt, \
+				sr_cnt, it))
 			SaveRes('ICIOT', sr_cnt, 1, np.sum(G_res[:, 2]), run_time)
 
 			# Write sensor and gateway information to file
-			method = 'ICIOT_{}_{}'.format(sr_cnt, it)
+			method = 'ICIOT_{}_{}_{}'.format(ICIOTParams.desired_gw_cnt, sr_cnt, it)
 			SaveInfo(sr_info_res, G_res, PL, method)
 
 
