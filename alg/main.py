@@ -19,14 +19,6 @@ import clustering
 import optInterface
 import utils
 
-dataFile = '../data/dataLA.csv'			# End device locations
-origin = [33.5466, -118.7025]
-PLFile = None # '../data/path_loss_mat.npy'	# Path loss between each device-gw pair
-GwAbleFile = '../data/gw_able.npy'		# Whether placing gateway at a location is allowed
-# Create flag w.r.t. file status
-flagData = 'd' if dataFile else ''
-flagPL = 'p' if PLFile else ''
-
 ########################################
 # Important parameters
 ########################################
@@ -83,6 +75,14 @@ class params:
 	PDR_th = 0.8		# PDR threshold at each end node
 	Lifetime_th = 2		# Lifetime threshold at each end node in years
 
+	# the given data files and bool variables showing whether or not to use them
+	dataFile = '../data/dataLA.csv'			# End device locations
+	origin = [33.5466, -118.7025]
+	PLFile = '../data/path_loss_mat.npy'	# Path loss between each device-gw pair
+	GwAbleFile = '../data/gw_able.npy'		# Whether placing gateway at a location is allowed
+	data = False							# Whether to use the dataFile of end device locations
+	PL = False								# Whether to use the PLFile of path loss matrix
+
 # Parameters for the DBSCAN clustering algorithm
 class ClusterParams:
 	eps = 5000			# Distance of neighborhood
@@ -134,16 +134,16 @@ def init(params):
 		dist: distance matrix
 	'''
 	sr_info = []				# [x, y, SF, Ptx, CH]
-	# If dataFile is not provided, randomely generate
-	# Else, read from the data file
-	if dataFile == None:
+	# If dataFile is provided, reaf from the data file
+	# Else, randomly generate the end devices locations
+	if params.data:
+		coor = ReadData.ReadFile(params.dataFile, params.origin)
+		x_max = np.max(coor[:, 0])
+		y_max = np.max(coor[:, 1])
+	else:
 		coor = np.random.rand(params.sr_cnt, 2) * params.L
 		x_max = params.L
 		y_max = params.L
-	else:
-		coor = ReadData.ReadFile(dataFile, origin)
-		x_max = np.max(coor[:, 0])
-		y_max = np.max(coor[:, 1])
 
 	# Fill in the coordinate date to the initial sensor info
 	for i in range(coor.shape[0]):
@@ -162,7 +162,7 @@ def init(params):
 	G = []				# [x, y, placed or not, can place or not]
 	x_gw = params.gw_dist / 2
 	y_gw = params.gw_dist / 2
-	gw_able = np.load(GwAbleFile)
+	gw_able = np.load(params.GwAbleFile)
 	gw_idx = 0
 	while x_gw < x_max:
 		while y_gw < y_max:
@@ -188,16 +188,15 @@ def init(params):
 			dist[i, j] = np.sqrt(np.sum((loc1 - loc2)**2))
 			PL[i, j] = propagation.LogDistancePathLossModel(d=dist[i, j], \
 				ver=params.LogPropVer)
-	#np.savetxt('./data/PL_gen.csv', PL, delimiter=',')
-	# If PL is provided, overwrite the isomophic one
-	if PLFile != None:
-		PL = np.load(PLFile).T
+	# If PL file is provided, overwrite the isomophic one
+	if params.PL:
+		PL = np.load(params.PLFile).T
 		logging.info('Load PL mat: {}'.format(PL.shape))
-		#np.savetxt('./data/PL_import.csv', PL, delimiter=',')
 		PL = PL + 10.0
 		#plt.figure()
 		#plt.plot(np.reshape(dist, (-1)), -np.reshape(PL, (-1)), '.')
 		#plt.show()
+	#np.savetxt('./data/PL.csv', PL, delimiter=',')
 
 	# Use a dictionary to record the list of nodes using the SFk and channel q
 	# Note that the dictionary only records the primary connection
@@ -228,18 +227,25 @@ def init(params):
 # Main Process
 ########################################
 def main():
-	global dataFile, PLFile
 	# Process command line arguments
 	parser = argparse.ArgumentParser(description='Run LoRa sensor deployment algs.')
+	parser.add_argument("--data", dest='data', nargs='?', const=True, default=False, type=bool, \
+		help="whether to use given dataFile of end devices locations")
+	parser.add_argument("--PL", dest='PL', nargs='?', const=True, default=False, type=bool, \
+		help="whether to use given PLFile of path loss matrix")
 	parser.add_argument("--sr_cnt", dest='sr_cnt', type=int, \
 		help="number of end devices")
-	parser.add_argument("--RGreedy", dest='RGreedy', type=bool, \
+	parser.add_argument("--RGreedy", dest='RGreedy', nargs='?', const=True, default=False, type=bool, \
 		help="whether to run the RGreedy alg")
-	parser.add_argument("--ICIOT", dest='ICIOT', type=bool, \
+	parser.add_argument("--ICIOT", dest='ICIOT', nargs='?', const=True, default=False, type=bool, \
 		help="whether to run the ICIOT alg")
 	parser.add_argument("--desired_gw_cnt", dest='desired_gw_cnt', type=int, \
 		help="desired number of gateways in the ICIOT algorithm")
 	args = parser.parse_args()
+	if args.data:
+		params.data = args.data
+	if args.PL:
+		params.PL = args.PL
 	if args.sr_cnt:
 		params.sr_cnt = args.sr_cnt
 	if args.RGreedy:
@@ -248,6 +254,12 @@ def main():
 		run.ICIOT = args.ICIOT
 	if args.desired_gw_cnt:
 		ICIOTParams.desired_gw_cnt = args.desired_gw_cnt
+	print(args.data, args.PL, args.RGreedy, args.ICIOT)
+
+	# Create flag w.r.t. file usage status for labeling results
+	flagData = 'd' if params.data else ''
+	flagPL = 'p' if params.PL else ''
+	print(flagData, flagPL)
 
 	for it in range(run.iteration):
 		# Initialization
@@ -281,7 +293,7 @@ def main():
 				utils.SaveRes('G', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
-				utils.SaveInfo(sr_info_res, G_res, PL, method)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params)
 
 			# Greedy algorithm with cluster-based acceleration
 			if run.RGreedy_c:
@@ -306,7 +318,7 @@ def main():
 				utils.SaveRes('Gc', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
-				utils.SaveInfo(sr_info_res, G_res, PL, method)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params)
 
 			# Greedy algorithm with end-of-exploration acceleration
 			if run.RGreedy_e:
@@ -330,7 +342,7 @@ def main():
 				utils.SaveRes('Ge', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
-				utils.SaveInfo(sr_info_res, G_res, PL, method)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params)
 
 			# Greedy algorithm with both acceleration techniques
 			if run.RGreedy_ce:
@@ -355,7 +367,7 @@ def main():
 				utils.SaveRes('Gce', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
-				utils.SaveInfo(sr_info_res, G_res, PL, method)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params)
 
 
 			if run.RGenetic:
@@ -377,7 +389,7 @@ def main():
 				utils.SaveRes('Genetic', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
-				utils.SaveInfo(sr_info_res, G_res, PL, method)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params)
 
 
 		if run.ICIOT:
@@ -401,7 +413,7 @@ def main():
 
 			# Write sensor and gateway information to file
 
-			utils.SaveInfo(sr_info_res, G_res, PL, method)
+			utils.SaveInfo(sr_info_res, G_res, PL, method, params)
 
 
 if __name__ == '__main__':

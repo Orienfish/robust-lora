@@ -75,7 +75,7 @@ def plot(sr_info, G, method):
 	plt.savefig(filename)
 	# plt.show()
 
-def SaveInfo(sr_info, G, PL, method):
+def SaveInfo(sr_info, G, PL, method, params):
 	'''
 	Save the generated solution to text file
 
@@ -106,7 +106,15 @@ def SaveInfo(sr_info, G, PL, method):
 			if G[i, 2]:
 				out.write(str(round(G[i, 0], 2)) + ' ' + \
 					str(round(G[i, 1], 2)) + '\n')
+
 	filename = './res/pl_{}.txt'.format(method)
+	# if PL file is not provided, we need to extract the ground-truth PL
+	# like the process in the initialization function init()
+	if not params.PL:
+		PL = np.load(params.PLFile).T
+		logging.info('Load PL mat: {}'.format(PL.shape))
+		PL = PL + 10.0
+
 	with open (filename, 'w') as out:
 		for i in range(sr_cnt):
 			for j in range(gw_cnt):
