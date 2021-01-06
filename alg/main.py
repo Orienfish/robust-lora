@@ -254,12 +254,10 @@ def main():
 		run.ICIOT = args.ICIOT
 	if args.desired_gw_cnt:
 		ICIOTParams.desired_gw_cnt = args.desired_gw_cnt
-	print(args.data, args.PL, args.RGreedy, args.ICIOT)
 
 	# Create flag w.r.t. file usage status for labeling results
 	flagData = 'd' if params.data else ''
 	flagPL = 'p' if params.PL else ''
-	print(flagData, flagPL)
 
 	for it in range(run.iteration):
 		# Initialization

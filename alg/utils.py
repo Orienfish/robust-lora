@@ -2,6 +2,7 @@
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+import logging
 
 import RGreedy
 
@@ -112,7 +113,6 @@ def SaveInfo(sr_info, G, PL, method, params):
 	# like the process in the initialization function init()
 	if not params.PL:
 		PL = np.load(params.PLFile).T
-		logging.info('Load PL mat: {}'.format(PL.shape))
 		PL = PL + 10.0
 
 	with open (filename, 'w') as out:
