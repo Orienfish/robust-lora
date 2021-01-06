@@ -28,9 +28,9 @@ mv ./nodeEE.txt ./res/nodeEEPL-G.txt
 mv ./globalPerformance.txt ./res/globalPerformancePL-G.txt
 mv ./phyPerformance.txt ./res/phyPerformancePL-G.txt
 
-cp ./bag-pl/sr_ICIOT_7_264dp.txt ./sr_loc.txt
-cp ./bag-pl/gw_ICIOT_7_264dp.txt ./gw_loc.txt
-cp ./bag-pl/pl_ICIOT_7_264dp.txt ./pl_mat.txt
+cp ./bag-pl/sr_ICIOT_6_264_0dp.txt ./sr_loc.txt
+cp ./bag-pl/gw_ICIOT_6_264_0dp.txt ./gw_loc.txt
+cp ./bag-pl/pl_ICIOT_6_264_0dp.txt ./pl_mat.txt
 destlog=logPL-IP
 start=`date +%s`
 ./waf --run "adr --MType=Confirmed --MatrixPLEnabled" > "$destlog" 2>&1
@@ -42,9 +42,9 @@ mv ./nodeEE.txt ./res/nodeEEPL-IP.txt
 mv ./globalPerformance.txt ./res/globalPerformancePL-IP.txt
 mv ./phyPerformance.txt ./res/phyPerformancePL-IP.txt
 
-cp ./bag-pl/sr_ICIOT_8_264d.txt ./sr_loc.txt
-cp ./bag-pl/gw_ICIOT_8_264d.txt ./gw_loc.txt
-cp ./bag-pl/pl_ICIOT_8_264d.txt ./pl_mat.txt
+cp ./bag-pl/sr_ICIOT_8_264_0d.txt ./sr_loc.txt
+cp ./bag-pl/gw_ICIOT_8_264_0d.txt ./gw_loc.txt
+cp ./bag-pl/pl_ICIOT_8_264_0d.txt ./pl_mat.txt
 destlog=logPL-I
 start=`date +%s`
 ./waf --run "adr --MType=Confirmed --MatrixPLEnabled" > "$destlog" 2>&1
