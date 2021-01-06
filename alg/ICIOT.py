@@ -200,7 +200,8 @@ def ICIOTAlg(sr_info_ogn, G_ogn, PL, params, ICIOTParams):
 		next_idx = -1
 		next_sr_info = None
 		for idx in range(gw_cnt):
-			if G[idx, 2]: # A gateway has been placed at this location
+			if G[idx, 2] or not G[idx, 3]: # A gateway has been placed at this location or
+										   # the candidate location cannot hold gateway
 				continue
 			# Try to place gateway at this location
 			logging.debug("Try to place a gateway at {}".format(idx))

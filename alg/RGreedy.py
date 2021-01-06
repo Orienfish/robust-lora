@@ -325,7 +325,8 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 		if GreedyParams.end and uncover_old < params.M * sr_cnt * GreedyParams.end_thres:
 			gw_mask = np.zeros_like(G[:, 2], dtype=bool) # Clear gw mask
 			for j in range(gw_cnt):
-				if G_remain[j, 2]: # A gateway has been placed
+				if G_remain[j, 2] or not G_remain[j, 3]: # A gateway has been placed at this location or
+													     # the candidate location cannot hold gateway
 					continue
 
 				for i in range(sr_cnt):
@@ -349,7 +350,8 @@ def RGreedyAlg(sr_info_ogn, G_ogn, PL, dist, N_kq, params, GreedyParams):
 
 		# The following operation is run on sr_info, G_remain and PL_remain
 		for gw_idx in range(remained_cnt):
-			if G_remain[gw_idx, 2]: # A gateway has been placed at this location
+			if G_remain[gw_idx, 2] or not G_remain[gw_idx, 3]: # A gateway has been placed at this location or
+													 # the candidate location cannot hold gateway
 				continue
 
 			# Try to place gateway at gateway location idx and configure the sensor
