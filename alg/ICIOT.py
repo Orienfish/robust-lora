@@ -121,24 +121,35 @@ def DeviceConfiguration(sr_info, G, PL, params):
 	# print(N_k)
 	# Note the sum of N_k might not equal to sr_cnt, but this is fine
 
-	min_dist = np.ones((sr_cnt, 1)) * np.inf # the min distance of each 
-											 # end device to any deployed gateway
+	min_val = np.ones((sr_cnt, 1)) * np.inf # the min PL or distance of each 
+											# end device to any deployed gateway
 	gw_link = np.empty((sr_cnt, 1)) # associated gateway with each end device
 	# only keep the deployed gateways' row/column in G and PL
 	PL = PL[:, G[:, 2] == 1]
 	G = G[G[:, 2] == 1, :] 
 	gw_cnt = G.shape[0]	# number of deployed gateway
-	for i in range(sr_cnt):
-		for j in range(gw_cnt):
-			loc1 = sr_info[i, :2]
-			loc2 = G[j, :2]
-			cur_dist = np.sqrt(np.sum((loc1 - loc2)**2))
-			if cur_dist < min_dist[i]:
-				min_dist[i] = cur_dist
-				gw_link[i] = j
 
-	# Get the index of distance sorting
-	min_index = np.argsort(min_dist, axis=0)
+	# If using path loss matrix, sort according to path loss
+	# Else, sort according to distance
+	if params.PL:
+		# Get the min PL to gateways of each end device
+		# Get the min dist to gateways of each end device
+		for i in range(sr_cnt):
+			gw_link[i] = np.argmin(PL[i, :])
+			min_val[i] = PL[i, int(gw_link[i])]
+	else:
+		# Get the min dist to gateways of each end device
+		for i in range(sr_cnt):
+			for j in range(gw_cnt):
+				loc1 = sr_info[i, :2]
+				loc2 = G[j, :2]
+				cur_dist = np.sqrt(np.sum((loc1 - loc2)**2))
+				if cur_dist < min_val[i]:
+					min_val[i] = cur_dist
+					gw_link[i] = j
+
+	# Get the order of indexes resulting from sorting
+	min_index = np.argsort(min_val, axis=0)
 	# print(min_index)
 
 	# Assign SFs using EquiP strategy from the closest gateway
@@ -253,8 +264,9 @@ def ICIOTAlg(sr_info_ogn, G_ogn, PL, params, ICIOTParams):
 		# print(next_PDR)
 
 		# If the packet deliver ratio at each end device is ensured, end the loop earlier
-		if np.min(next_PDR) >= params.PDR_th:
-			break
+		#if np.min(next_PDR) >= params.PDR_th:
+		#	logging.info("All PDR have satisfied the threshold!")
+		#	break
 
 		
 	return sr_info, G
