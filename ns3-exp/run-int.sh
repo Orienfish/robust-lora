@@ -1,8 +1,8 @@
 #!/bin/bash
 
-cp ~/Github/robust-lora/res/sr_RGreedy_1_264_0dp.txt ./sr_loc.txt
-cp ~/Github/robust-lora/res/gw_RGreedy_1_264_0dp.txt ./gw_loc.txt
-cp ~/Github/robust-lora/res/pl_RGreedy_1_264_0dp.txt ./pl_mat.txt
+cp ~/Github/robust-lora/alg/res/sr_RGreedy_1_264_0dp.txt ./sr_loc.txt
+cp ~/Github/robust-lora/alg/res/gw_RGreedy_1_264_0dp.txt ./gw_loc.txt
+cp ~/Github/robust-lora/alg/res/pl_RGreedy_1_264_0dp.txt ./pl_mat.txt
 #destlog=log1
 #start=`date +%s`
 #./waf --run "adr --MType=Confirmed --MatrixPLEnabled" > "$destlog" 2>&1
@@ -36,9 +36,9 @@ mv ./nodeEE.txt ./res/nodeEE12.txt
 mv ./globalPerformance.txt ./res/globalPerformance12.txt
 mv ./phyPerformance.txt ./res/phyPerformance12.txt
 
-cp ~/Github/robust-lora/res/sr_RGreedy_2_264_0dp.txt ./sr_loc.txt
-cp ~/Github/robust-lora/res/gw_RGreedy_2_264_0dp.txt ./gw_loc.txt
-cp ~/Github/robust-lora/res/pl_RGreedy_2_264_0dp.txt ./pl_mat.txt
+cp ~/Github/robust-lora/alg/res/sr_RGreedy_2_264_0dp.txt ./sr_loc.txt
+cp ~/Github/robust-lora/alg/res/gw_RGreedy_2_264_0dp.txt ./gw_loc.txt
+cp ~/Github/robust-lora/alg/res/pl_RGreedy_2_264_0dp.txt ./pl_mat.txt
 #destlog=log2
 #start=`date +%s`
 #./waf --run "adr --MType=Confirmed --MatrixPLEnabled" > "$destlog" 2>&1
@@ -72,9 +72,9 @@ mv ./nodeEE.txt ./res/nodeEE22.txt
 mv ./globalPerformance.txt ./res/globalPerformance22.txt
 mv ./phyPerformance.txt ./res/phyPerformance22.txt
 
-cp ~/Github/robust-lora/res/sr_RGreedy_3_264_0dp.txt ./sr_loc.txt
-cp ~/Github/robust-lora/res/gw_RGreedy_3_264_0dp.txt ./gw_loc.txt
-cp ~/Github/robust-lora/res/pl_RGreedy_3_264_0dp.txt ./pl_mat.txt
+cp ~/Github/robust-lora/alg/res/sr_RGreedy_3_264_0dp.txt ./sr_loc.txt
+cp ~/Github/robust-lora/alg/res/gw_RGreedy_3_264_0dp.txt ./gw_loc.txt
+cp ~/Github/robust-lora/alg/res/pl_RGreedy_3_264_0dp.txt ./pl_mat.txt
 #destlog=log3
 #start=`date +%s`
 #./waf --run "adr --MType=Confirmed --MatrixPLEnabled" > "$destlog" 2>&1
@@ -108,9 +108,9 @@ mv ./nodeEE.txt ./res/nodeEE32.txt
 mv ./globalPerformance.txt ./res/globalPerformance32.txt
 mv ./phyPerformance.txt ./res/phyPerformance32.txt
 
-cp ~/Github/robust-lora/res/sr_ICIOT_6_264_0dp.txt ./sr_loc.txt
-cp ~/Github/robust-lora/res/gw_ICIOT_6_264_0dp.txt ./gw_loc.txt
-cp ~/Github/robust-lora/res/pl_ICIOT_6_264_0dp.txt ./pl_mat.txt
+cp ~/Github/robust-lora/alg/res/sr_ICIOT_6_264_0dp.txt ./sr_loc.txt
+cp ~/Github/robust-lora/alg/res/gw_ICIOT_6_264_0dp.txt ./gw_loc.txt
+cp ~/Github/robust-lora/alg/res/pl_ICIOT_6_264_0dp.txt ./pl_mat.txt
 #destlog=logiciot
 #start=`date +%s`
 #./waf --run "adr --MType=Confirmed --MatrixPLEnabled" > "$destlog" 2>&1
@@ -144,9 +144,9 @@ mv ./nodeEE.txt ./res/nodeEEiciot6-124.txt
 mv ./globalPerformance.txt ./res/globalPerformanceiciot6-124.txt
 mv ./phyPerformance.txt ./res/phyPerformanceiciot6-124.txt
 
-cp ~/Github/robust-lora/res/sr_ICIOT_9_264_0dp.txt ./sr_loc.txt
-cp ~/Github/robust-lora/res/gw_ICIOT_9_264_0dp.txt ./gw_loc.txt
-cp ~/Github/robust-lora/res/pl_ICIOT_9_264_0dp.txt ./pl_mat.txt
+cp ~/Github/robust-lora/alg/res/sr_ICIOT_9_264_0dp.txt ./sr_loc.txt
+cp ~/Github/robust-lora/alg/res/gw_ICIOT_9_264_0dp.txt ./gw_loc.txt
+cp ~/Github/robust-lora/alg/res/pl_ICIOT_9_264_0dp.txt ./pl_mat.txt
 #destlog=logiciot9
 #start=`date +%s`
 #./waf --run "adr --MType=Confirmed --MatrixPLEnabled" > "$destlog" 2>&1
@@ -180,9 +180,9 @@ mv ./nodeEE.txt ./res/nodeEEiciot9-124.txt
 mv ./globalPerformance.txt ./res/globalPerformanceiciot9-124.txt
 mv ./phyPerformance.txt ./res/phyPerformanceiciot9-124.txt
 
-cp ~/Github/robust-lora/res/sr_ICIOT_12_264_0dp.txt ./sr_loc.txt
-cp ~/Github/robust-lora/res/gw_ICIOT_12_264_0dp.txt ./gw_loc.txt
-cp ~/Github/robust-lora/res/pl_ICIOT_12_264_0dp.txt ./pl_mat.txt
+cp ~/Github/robust-lora/alg/res/sr_ICIOT_12_264_0dp.txt ./sr_loc.txt
+cp ~/Github/robust-lora/alg/res/gw_ICIOT_12_264_0dp.txt ./gw_loc.txt
+cp ~/Github/robust-lora/alg/res/pl_ICIOT_12_264_0dp.txt ./pl_mat.txt
 #destlog=logiciot12
 #start=`date +%s`
 #./waf --run "adr --MType=Confirmed --MatrixPLEnabled" > "$destlog" 2>&1
