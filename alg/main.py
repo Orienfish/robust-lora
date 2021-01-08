@@ -23,7 +23,7 @@ import utils
 # Important parameters
 ########################################
 class params:
-	L = 30000			# Edge of analysis area in m
+	L = 48000 # 30000			# Edge of analysis area in m
 	sr_cnt = 100        # Number of end devices
 	gw_dist = 6000      # Distance between two gateways in m
 
@@ -112,7 +112,7 @@ class GeneticParams:
 # which algorithm to run
 class run:
 	iteration = 1
-	M = [1] #[1, 2, 3] #[3, 2, 1]
+	M = [1, 2, 3] #[3, 2, 1]
 	RGreedy = False  	# Pure greedy algorithm
 	RGreedy_c = False	# With cluster-based acceleration
 	RGreedy_e = False	# With end-of-exploration acceleration

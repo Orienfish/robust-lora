@@ -111,7 +111,7 @@ def SaveInfo(sr_info, G, PL, method, params):
 	filename = './res/pl_{}.txt'.format(method)
 	# if PL file is not provided, we need to extract the ground-truth PL
 	# like the process in the initialization function init()
-	if not params.PL:
+	if params.data and not params.PL:
 		PL = np.load(params.PLFile).T
 		PL = PL + 10.0
 
