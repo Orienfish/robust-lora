@@ -5,7 +5,6 @@ import numpy as np
 mat_file = "./data/entire_seg_map.npy"
 entire_seg_map = np.load(mat_file)
 
-
 # Load gateway and sensor location data
 gw_loc_file = "./relaxOpt/gw_loc.csv"
 sr_loc_file = "./relaxOpt/sr_loc.csv"
@@ -51,6 +50,6 @@ for i in range(gw_num):
         # print("line_distance={}m, path_loss={}\n".format(line_distance, path_loss))
 
 
-mat_file = "./data/path_loss_mat2.npy"
+mat_file = "./data/path_loss_mat.npy"
 np.save(mat_file, path_loss_mat)
 print("Saving results to {}\n".format(mat_file))
