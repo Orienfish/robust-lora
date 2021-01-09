@@ -21,8 +21,12 @@ The result from the running the GLNet code should be uploaded to Google drive an
 ### Step 3: Generate PL matrix 
 
 1. Copy "entire_seg_map.npy" created in Step 2 into robust-lora/data folder. 
-2. Run the command `python-3 ./alg/main.py` to generate the potential gateway and sensor locations.
-3. Run the command `python-3 ./data/path-loss-est.py` to create path loss matrix. 
+2. Run the command `python3 ./alg/main.py` to generate the potential gateway and sensor locations.
+3. Run the command `python3 ./data/path_loss_est.py` to create path loss matrix. 
+
+### Step 4: Run Algorithms 
+
+1. Run the command `python3 ./alg/main.py` again and make sure ./data/path_loss_est.py is listed as the PL matrix used in ./alg/main.py. 
 
 
 
