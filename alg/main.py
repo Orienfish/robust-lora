@@ -193,9 +193,21 @@ def init(params):
 		PL = np.load(params.PLFile).T
 		logging.info('Load PL mat: {}'.format(PL.shape))
 		PL = PL + 10.0
-		#plt.figure()
-		#plt.plot(np.reshape(dist, (-1)), -np.reshape(PL, (-1)), '.')
-		#plt.show()
+
+		d = np.reshape(dist, (-1))
+		loss_bor = list(map(lambda di: propagation.LogDistancePathLossModel(d=di, ver='Bor'), d))
+		Prx_log_Bor = [propagation.GetRSSI(20, lossi) for lossi in loss_bor]
+		plt.figure(figsize=(7, 5))
+		plt.plot(d/1000, -np.reshape(PL, (-1)), 'b.', label='Land Cover-based Model')
+		plt.plot(d/1000, Prx_log_Bor, 'r.', label='Log-Normal Model')
+		plt.xlabel('Distance (km)', fontsize=16)
+		plt.ylabel('RSS (dBm)', fontsize=16)
+		plt.xticks(fontsize=16)
+		plt.yticks(fontsize=16)
+		plt.legend(fontsize=16)
+		plt.tight_layout()
+		plt.savefig('./pl-res.png', dpi=300)
+		# plt.show()
 	#np.savetxt('./data/PL.csv', PL, delimiter=',')
 
 	# Use a dictionary to record the list of nodes using the SFk and channel q
