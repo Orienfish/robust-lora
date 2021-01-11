@@ -52,9 +52,9 @@ def eval(sr_info_res, G_res, PL, params):
 			Ptx_idx = np.abs(params.Ptx - sr_info_res[idx, 3]).argmin()
 			lifetime.append(RGreedy.GetLifetime(k, params.Ptx[Ptx_idx], newPDR, params))
 
-	print(np.array(PDR_gw))
-	print(PDR)
-	print(lifetime)
+	#print(np.array(PDR_gw))
+	#print(PDR)
+	#print(lifetime)
 	return PDR, PDR_gw, lifetime
 
 def plot(sr_info, G, method):
@@ -111,7 +111,7 @@ def SaveInfo(sr_info, G, PL, method, params):
 	filename = './res/pl_{}.txt'.format(method)
 	# if PL file is not provided, we need to extract the ground-truth PL
 	# like the process in the initialization function init()
-	if not params.PL:
+	if params.data and not params.PL:
 		PL = np.load(params.PLFile).T
 		PL = PL + 10.0
 
