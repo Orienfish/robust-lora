@@ -83,7 +83,7 @@ int main (int argc, char *argv[])
   bool matrixPLEnabled = false;
   int nDevices = 0;
   int nGateways = 0;
-  int nPeriods = 24*3*30; // 1 month, per period is 20 min
+  int nPeriods = 24*3; // 1 month, per period is 20 min
   int nGatewayDownPeriods = 24*3; // 1 day, per period is 20 min
   int nDownGateways = 0;
   double intfrPowerdBm = -1000.0;
@@ -283,7 +283,8 @@ int main (int argc, char *argv[])
         int gwId = gwObject->GetId() - nDevices; // gateway IDs counts after end devices
         Ptr<MobilityModel> gwPos = gwObject->GetObject<MobilityModel> ();
         NS_ASSERT (gwPos != 0);
-        loss->SetLoss (edPos, gwPos, PL[edId][gwId], false);
+        // the last argument is set to true for symmetric path loss in each device-gateway pair
+        loss->SetLoss (edPos, gwPos, PL[edId][gwId], true);
         // std::cout << edId << " " << gwId << " " << PL[edId][gwId] << std::endl;
       }
     }
