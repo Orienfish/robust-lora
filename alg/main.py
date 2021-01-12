@@ -17,22 +17,18 @@ import propagation
 import ReadData
 import clustering
 import optInterface
-
-dataFile = './data/dataLA.csv'
-origin = [33.5466, -118.7025]
-PLFile = './data/path_loss_mat.npy'
-
+import utils
 
 ########################################
 # Important parameters
 ########################################
 class params:
-	L = 30000			# Edge of analysis area in m
+	L = 48000 # 30000			# Edge of analysis area in m
 	sr_cnt = 100        # Number of end devices
 	gw_dist = 6000      # Distance between two gateways in m
 
 	# Version of log propagation model
-	LogPropVer = 'ICIOT'
+	LogPropVer = 'Dongare'
 
 	T = 1200			# Sampling period in s
 
@@ -79,6 +75,14 @@ class params:
 	PDR_th = 0.8		# PDR threshold at each end node
 	Lifetime_th = 2		# Lifetime threshold at each end node in years
 
+	# the given data files and bool variables showing whether or not to use them
+	dataFile = '../data/dataLA.csv'			# End device locations
+	origin = [33.5466, -118.7025]
+	PLFile = '../data/path_loss_mat.npy'	# Path loss between each device-gw pair
+	GwAbleFile = '../data/gw_able.npy'		# Whether placing gateway at a location is allowed
+	data = False							# Whether to use the dataFile of end device locations
+	PL = False								# Whether to use the PLFile of path loss matrix
+
 # Parameters for the DBSCAN clustering algorithm
 class ClusterParams:
 	eps = 5000			# Distance of neighborhood
@@ -108,8 +112,8 @@ class GeneticParams:
 # which algorithm to run
 class run:
 	iteration = 1
-	M = [1] #[1, 2, 3] #[3, 2, 1]
-	RGreedy = True  	# Pure greedy algorithm
+	M = [1, 2, 3] #[3, 2, 1]
+	RGreedy = False  	# Pure greedy algorithm
 	RGreedy_c = False	# With cluster-based acceleration
 	RGreedy_e = False	# With end-of-exploration acceleration
 	RGreedy_ce = False	# With both accleration techniques
@@ -130,16 +134,16 @@ def init(params):
 		dist: distance matrix
 	'''
 	sr_info = []				# [x, y, SF, Ptx, CH]
-	# If dataFile is not provided, randomely generate
-	# Else, read from the data file
-	if dataFile == None:
+	# If dataFile is provided, reaf from the data file
+	# Else, randomly generate the end devices locations
+	if params.data:
+		coor = ReadData.ReadFile(params.dataFile, params.origin)
+		x_max = np.max(coor[:, 0])
+		y_max = np.max(coor[:, 1])
+	else:
 		coor = np.random.rand(params.sr_cnt, 2) * params.L
 		x_max = params.L
 		y_max = params.L
-	else:
-		coor = ReadData.ReadFile(dataFile, origin)
-		x_max = np.max(coor[:, 0])
-		y_max = np.max(coor[:, 1])
 
 	# Fill in the coordinate date to the initial sensor info
 	for i in range(coor.shape[0]):
@@ -155,13 +159,16 @@ def init(params):
 
 	# Generate the grid candidate set N and G with their x, y coordinates
 	# N for sensor placement and G for gateway placement
-	G = []				# [x, y, placed or not]
+	G = []				# [x, y, placed or not, can place or not]
 	x_gw = params.gw_dist / 2
 	y_gw = params.gw_dist / 2
+	gw_able = np.load(params.GwAbleFile)
+	gw_idx = 0
 	while x_gw < x_max:
 		while y_gw < y_max:
-			new_loc = [x_gw, y_gw, 0]
+			new_loc = [x_gw, y_gw, 0, gw_able[gw_idx]]
 			G.append(new_loc)
+			gw_idx += 1
 			y_gw += params.gw_dist
 		x_gw += params.gw_dist
 		y_gw = params.gw_dist / 2
@@ -181,13 +188,27 @@ def init(params):
 			dist[i, j] = np.sqrt(np.sum((loc1 - loc2)**2))
 			PL[i, j] = propagation.LogDistancePathLossModel(d=dist[i, j], \
 				ver=params.LogPropVer)
-	#np.savetxt('./data/PL_gen.csv', PL, delimiter=',')
-	# If PL is provided, overwrite the isomophic one
-	if PLFile != None:
-		PL = np.load(PLFile).T
+	# If PL file is provided, overwrite the isomophic one
+	if params.PL:
+		PL = np.load(params.PLFile).T
 		logging.info('Load PL mat: {}'.format(PL.shape))
-		#np.savetxt('./data/PL_import.csv', PL, delimiter=',')
-		PL = PL + 20.0
+		PL = PL + 10.0
+
+		d = np.reshape(dist, (-1))
+		loss_bor = list(map(lambda di: propagation.LogDistancePathLossModel(d=di, ver='Bor'), d))
+		Prx_log_Bor = [propagation.GetRSSI(20, lossi) for lossi in loss_bor]
+		plt.figure(figsize=(7, 5))
+		plt.plot(d/1000, -np.reshape(PL, (-1)), 'b.', label='Land Cover-based Model')
+		plt.plot(d/1000, Prx_log_Bor, 'r.', label='Log-Normal Model')
+		plt.xlabel('Distance (km)', fontsize=16)
+		plt.ylabel('RSS (dBm)', fontsize=16)
+		plt.xticks(fontsize=16)
+		plt.yticks(fontsize=16)
+		plt.legend(fontsize=16)
+		plt.tight_layout()
+		plt.savefig('./pl-res.png', dpi=300)
+		# plt.show()
+	#np.savetxt('./data/PL.csv', PL, delimiter=',')
 
 	# Use a dictionary to record the list of nodes using the SFk and channel q
 	# Note that the dictionary only records the primary connection
@@ -200,126 +221,18 @@ def init(params):
 			N_kq[str(k) + '_' + str(q)] = []
 
 	# Save the end device locations and candidate gateway locations
-	np.savetxt('./relaxOpt/sr_loc.csv', sr_info[:, :2], delimiter=',')
-	np.savetxt('./relaxOpt/gw_loc.csv', G[:, :2], delimiter=',')
+	np.savetxt('../relaxOpt/sr_loc.csv', sr_info[:, :2], delimiter=',')
+	np.savetxt('../relaxOpt/gw_loc.csv', G[:, :2], delimiter=',')
 
 	# optInterface.TestLifetime(params)
 	c_ijks = optInterface.GenerateCijks(sr_info, G, PL, params)
 	Ptx_cnt = len(params.Ptx)
 	for k in range(SF_cnt):
 		for q in range(Ptx_cnt):
-			np.savetxt('./relaxOpt/cijk_{}_{}.csv'.format(k, q), \
+			np.savetxt('../relaxOpt/cijk_{}_{}.csv'.format(k, q), \
 				c_ijks[:, :, k, q], fmt='%d', delimiter=',')
 
 	return sr_info, G, PL, dist, N_kq
-
-def eval(sr_info_res, G_res, PL, params):
-	'''
-	Evaluate the PDR and lifetime of the solution
-
-	Args:
-		sr_info_res: generated sensor/end device configuration
-		G_res: generated gateway placement
-		PL: path loss matrix
-		params: important parameters
-
-	Return:
-		PDR: an array of PDR at each end device
-		PDR_gw: a matrix of PDR between end device-gateway pair
-		lifetime: an array of lifetime at each end device
-	'''
-	sr_cnt = sr_info_res.shape[0]
-	SF_cnt = len(params.SF)
-	CH_cnt = len(params.CH)
-
-	# Init N_kq: the number of nodes using the same SF and channel
-	N_kq = dict()
-	for k in range(SF_cnt):
-		for q in range(CH_cnt):
-			N_kq[str(k) + '_' + str(q)] = []
-
-	# Fill in N_kq
-	for idx in range(sr_cnt):
-		k = int(sr_info_res[idx, 2])	# SFk
-		q = int(sr_info_res[idx, 4])	# Channel q
-		if k != -1 and q != -1:
-			label = str(k) + '_' + str(q)
-			N_kq[label].append(sr_info_res[idx, :])
-
-	PDR, PDR_gw, lifetime = [], [], []
-	for idx in range(sr_cnt):
-		k = int(sr_info_res[idx, 2])	# SFk
-		q = int(sr_info_res[idx, 4])	# Channel q
-		if k != -1 and q != -1:
-			newPDR, newPDR_gw = RGreedy.GetPDR(sr_info_res, G_res, PL, N_kq, params, idx)
-			PDR.append(newPDR)
-			PDR_gw.append(newPDR_gw)
-
-			# Find the index of closet Transmission power
-			Ptx_idx = np.abs(params.Ptx - sr_info_res[idx, 3]).argmin()
-			lifetime.append(RGreedy.GetLifetime(k, params.Ptx[Ptx_idx], newPDR, params))
-
-	print(np.array(PDR_gw))
-	print(PDR)
-	print(lifetime)
-	return PDR, PDR_gw, lifetime
-
-def plot(sr_info, G, version):
-	# Visualize the placement and device configuration
-	# sr_cnt = sr_info.shape[0]
-	gw_cnt = G.shape[0]
-	plt.figure()
-	colorList = ['tab:blue', 'tab:orange', 'tab:green', 'tab:purple', 'tab:gray']
-	color = [colorList[int(i)] for i in list(sr_info[:, 2])]
-	plt.scatter(sr_info[:, 0], sr_info[:, 1], c=color , s=5)
-	color = ['r' for i in range(gw_cnt)]
-	plt.scatter(G[:, 0], G[:, 1], s=G[:, 2]*50, c=color, marker='^')
-	plt.xlabel('X (m)'); plt.ylabel('Y (m)');
-	# plt.legend()
-	if not os.path.exists('vis'):
-		os.makedirs('vis')
-	filename = './vis/vis_{}.png'.format(version)
-	plt.savefig(filename)
-	# plt.show()
-
-def SaveInfo(sr_info, G, method):
-	'''
-	Save the generated solution to text file
-
-	Args:
-		sr_info: generated sensor/end device configuration solution
-		G: generated gateway placement solution
-		method: a string showing the algorithm, to be added to file name
-	'''
-	sr_cnt = sr_info.shape[0]
-	gw_cnt = G.shape[0]
-	if not os.path.exists('res'):
-		os.makedirs('res')
-
-	# Write sensor and gateway information to file
-	filename = './res/sr_{}.txt'.format(method)
-	with open (filename, 'w') as out:
-		for i in range(sr_cnt):
-			# Note: we need to convert SF to data rate (DR)
-			# SF7 - DR3, SF8 - DR2, SF9 - DR1, SF10 - DR0
-			out.write(str(round(sr_info[i, 0], 2)) + ' ' + \
-				str(round(sr_info[i, 1], 2)) + ' ' + \
-				str(int(3 - sr_info[i, 2])) + ' ' + \
-				str(round(sr_info[i, 3])) + '\n')
-	filename = './res/gw_{}.txt'.format(method)
-	with open (filename, 'w') as out:
-		for i in range(gw_cnt):
-			if G[i, 2]:
-				out.write(str(round(G[i, 0], 2)) + ' ' + \
-					str(round(G[i, 1], 2)) + '\n')
-
-def SaveRes(method, sr_cnt, M, gw_cnt, time):
-	# Log results
-	if not os.path.exists('res'):
-		os.makedirs('res')
-	with open('res/res.txt', 'a') as out:
-		out.write(method + ' ' + str(sr_cnt) + ' ' + str(M) + ' ' + \
-			str(gw_cnt) + ' ' + str(time) + '\n')
 
 
 ########################################
@@ -328,19 +241,35 @@ def SaveRes(method, sr_cnt, M, gw_cnt, time):
 def main():
 	# Process command line arguments
 	parser = argparse.ArgumentParser(description='Run LoRa sensor deployment algs.')
-	parser.add_argument("--dataFile", dest='dataFile', \
-		help="path to data file of end devices locations")
-	parser.add_argument("--PLFile", dest='PLFile', \
-		help="path to PL file")
+	parser.add_argument("--data", dest='data', nargs='?', const=True, default=False, type=bool, \
+		help="whether to use given dataFile of end devices locations")
+	parser.add_argument("--PL", dest='PL', nargs='?', const=True, default=False, type=bool, \
+		help="whether to use given PLFile of path loss matrix")
 	parser.add_argument("--sr_cnt", dest='sr_cnt', type=int, \
 		help="number of end devices")
+	parser.add_argument("--RGreedy", dest='RGreedy', nargs='?', const=True, default=False, type=bool, \
+		help="whether to run the RGreedy alg")
+	parser.add_argument("--ICIOT", dest='ICIOT', nargs='?', const=True, default=False, type=bool, \
+		help="whether to run the ICIOT alg")
 	parser.add_argument("--desired_gw_cnt", dest='desired_gw_cnt', type=int, \
 		help="desired number of gateways in the ICIOT algorithm")
 	args = parser.parse_args()
+	if args.data:
+		params.data = args.data
+	if args.PL:
+		params.PL = args.PL
 	if args.sr_cnt:
 		params.sr_cnt = args.sr_cnt
-	elif args.desired_gw_cnt:
+	if args.RGreedy:
+		run.RGreedy = args.RGreedy
+	if args.ICIOT:
+		run.ICIOT = args.ICIOT
+	if args.desired_gw_cnt:
 		ICIOTParams.desired_gw_cnt = args.desired_gw_cnt
+
+	# Create flag w.r.t. file usage status for labeling results
+	flagData = 'd' if params.data else ''
+	flagPL = 'p' if params.PL else ''
 
 	for it in range(run.iteration):
 		# Initialization
@@ -366,15 +295,15 @@ def main():
 				print(np.reshape(m_gateway_res, (1, -1)))
 
 				# Print out PDR and lifetime at each end device
-				eval(sr_info_res, G_res, PL, params)
+				utils.eval(sr_info_res, G_res, PL, params)
 
 				# Plot and log result
-				plot(sr_info_res, G_res, 'RGreedy_{}_{}_{}'.format(M, sr_cnt, it))
-				SaveRes('G', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
+				method = 'RGreedy_{}_{}_{}{}{}'.format(M, sr_cnt, it, flagData, flagPL)
+				utils.plot(sr_info_res, G_res, method)
+				utils.SaveRes('G', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
-				method = 'RGreedy_{}_{}_{}'.format(M, sr_cnt, it)
-				SaveInfo(sr_info_res, G_res, method)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params)
 
 			# Greedy algorithm with cluster-based acceleration
 			if run.RGreedy_c:
@@ -391,15 +320,15 @@ def main():
 				print(np.reshape(m_gateway_res, (1, -1)))
 
 				# Print out PDR and lifetime at each end device
-				eval(sr_info_res, G_res, PL, params)
+				utils.eval(sr_info_res, G_res, PL, params)
 
 				# Plot and log result
-				plot(sr_info_res, G_res, 'RGreedyc_{}_{}_{}'.format(M, sr_cnt, it))
-				SaveRes('Gc', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
+				method = 'RGreedyc_{}_{}_{}{}{}'.format(M, sr_cnt, it, flagData, flagPL)
+				utils.plot(sr_info_res, G_res, method)
+				utils.SaveRes('Gc', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
-				method = 'RGreedyc_{}_{}_{}'.format(M, sr_cnt, it)
-				SaveInfo(sr_info_res, G_res, method)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params)
 
 			# Greedy algorithm with end-of-exploration acceleration
 			if run.RGreedy_e:
@@ -415,15 +344,15 @@ def main():
 				print(np.reshape(m_gateway_res, (1, -1)))
 
 				# Print out PDR and lifetime at each end device
-				eval(sr_info_res, G_res, PL, params)
+				utils.eval(sr_info_res, G_res, PL, params)
 
 				# Plot and log result
-				plot(sr_info_res, G_res, 'RGreedye_{}_{}_{}'.format(M, sr_cnt, it))
-				SaveRes('Ge', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
+				method = 'RGreedye_{}_{}_{}{}{}'.format(M, sr_cnt, it, flagData, flagPL)
+				utils.plot(sr_info_res, G_res, method)
+				utils.SaveRes('Ge', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
-				method = 'RGreedye_{}_{}_{}'.format(M, sr_cnt, it)
-				SaveInfo(sr_info_res, G_res, method)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params)
 
 			# Greedy algorithm with both acceleration techniques
 			if run.RGreedy_ce:
@@ -440,15 +369,15 @@ def main():
 				print(np.reshape(m_gateway_res, (1, -1)))
 
 				# Print out PDR and lifetime at each end device
-				eval(sr_info_res, G_res, PL, params)
+				utils.eval(sr_info_res, G_res, PL, params)
 
 				# Plot and log result
-				plot(sr_info_res, G_res, 'RGreedyce_{}_{}_{}'.format(M, sr_cnt, it))
-				SaveRes('Gce', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
+				method = 'RGreedyce_{}_{}_{}{}{}'.format(M, sr_cnt, it, flagData, flagPL)
+				utils.plot(sr_info_res, G_res, method)
+				utils.SaveRes('Gce', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
-				method = 'RGreedyce_{}_{}_{}'.format(M, sr_cnt, it)
-				SaveInfo(sr_info_res, G_res, method)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params)
 
 
 			if run.RGenetic:
@@ -462,15 +391,15 @@ def main():
 				print(np.reshape(m_gateway_res, (1, -1)))
 
 				# Print out PDR and lifetime at each end device
-				eval(sr_info_res, G_res, PL, params)
+				utils.eval(sr_info_res, G_res, PL, params)
 
 				# Plot and log result
-				plot(sr_info_res, G_res, 'RGenetic{}_{}_{}'.format(M, sr_cnt, it))
-				SaveRes('Genetic', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
+				method = 'RGenetic_{}_{}_{}{}{}'.format(M, sr_cnt, it, flagData, flagPL)
+				utils.plot(sr_info_res, G_res, method)
+				utils.SaveRes('Genetic', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
-				method = 'RGenetic_{}_{}_{}'.format(M, sr_cnt, it)
-				SaveInfo(sr_info_res, G_res, method)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params)
 
 
 		if run.ICIOT:
@@ -484,15 +413,17 @@ def main():
 				sr_info_res[i, 4] = random.randint(0, len(params.CH)-1)
 
 			# Print out PDR and lifetime at each end device
-			eval(sr_info_res, G_res, PL, params)
+			utils.eval(sr_info_res, G_res, PL, params)
 
 			# Plot result
-			plot(sr_info_res, G_res, 'ICIOT_{}_{}'.format(sr_cnt, it))
-			SaveRes('ICIOT', sr_cnt, 1, np.sum(G_res[:, 2]), run_time)
+			method = 'ICIOT_{}_{}_{}{}{}'.format(ICIOTParams.desired_gw_cnt, sr_cnt, it, \
+				flagData, flagPL)
+			utils.plot(sr_info_res, G_res, method)
+			utils.SaveRes('ICIOT', sr_cnt, 1, np.sum(G_res[:, 2]), run_time)
 
 			# Write sensor and gateway information to file
-			method = 'ICIOT_{}_{}'.format(sr_cnt, it)
-			SaveInfo(sr_info_res, G_res, method)
+
+			utils.SaveInfo(sr_info_res, G_res, PL, method, params)
 
 
 if __name__ == '__main__':
