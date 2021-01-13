@@ -23,7 +23,7 @@ import utils
 # Important parameters
 ########################################
 class params:
-	L = 48000 # 30000			# Edge of analysis area in m
+	L = 30000			# Edge of analysis area in m
 	sr_cnt = 100        # Number of end devices
 	gw_dist = 6000      # Distance between two gateways in m
 
