@@ -1,17 +1,16 @@
 from utils import *
 import numpy as np
 
-# Load segmented map 
+# Load segmented map
 mat_file = "./data/entire_seg_map.npy"
 entire_seg_map = np.load(mat_file)
 
+# Load gateway and sensor location data
+gw_loc_file = "./relaxOpt/gw_loc.csv"
+sr_loc_file = "./relaxOpt/sr_loc.csv"
 
-# Load gateway and sensor location data 
-gw_loc_file = "./data/gw_init.txt"
-sr_loc_file = "./data/sr_init.txt"
-
-gw_loc_mat = np.loadtxt(gw_loc_file)
-sr_loc_mat = np.loadtxt(sr_loc_file)
+gw_loc_mat = np.genfromtxt(gw_loc_file, delimiter = ",")
+sr_loc_mat = np.genfromtxt(sr_loc_file, delimiter = ",")
 
 
 # (Lat, Lon) of upper-left and upper-right corners
@@ -26,7 +25,7 @@ print("Map resolution:{}".format(R))
 path_loss_mat = np.empty([gw_loc_mat.shape[0], sr_loc_mat.shape[0]])
 
 
-# Calculate path loss from gateway i to sensor j 
+# Calculate path loss from gateway i to sensor j
 gw_num = gw_loc_mat.shape[0]
 sr_num = sr_loc_mat.shape[0]
 

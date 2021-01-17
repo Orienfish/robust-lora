@@ -58,11 +58,28 @@ def path_loss_estimation(segmented_land_map, map_LU, map_RU, gateway_loc, sensor
         line_y_float = link_eq_slope*line_x_int+link_eq_delta
         line_y_int = np.floor(line_y_float+0.5).astype(int)
 
-    line_land_type = seg_map[line_y_int, line_x_int] # stores land type over the line
+    line_land_rgb = seg_map[line_y_int, line_x_int] # stores rgb color for land over the line
     line_loc_float = np.stack([line_x_int, line_y_float], axis=1) # coordinator of line
     line_loc_int = np.stack([line_x_int, line_y_int], axis=1)
 
-
+    ################ Convert RGB land type to predefined parameters ################
+    line_land_type = []
+    for i in range(0, len(line_land_rgb)):
+        if(np.array_equal(line_land_rgb[i], [0, 255, 255])): #if land type is urban
+            line_land_type.append(1)
+        elif(np.array_equal(line_land_rgb[i], [255, 255, 0])): #if land type is argiculuture
+            line_land_type.append(2)
+        elif(np.array_equal(line_land_rgb[i], [255, 0, 255])): #if land type is rangeland
+            line_land_type.append(3)
+        elif(np.array_equal(line_land_rgb[i], [0, 255, 0])): #if land type is forrest
+            line_land_type.append(4)
+        elif(np.array_equal(line_land_rgb[i], [0, 0, 255])): #if land type is water
+            line_land_type.append(5)
+        elif(np.array_equal(line_land_rgb[i], [255, 255, 255])): #if land type is barren
+            line_land_type.append(6)
+        else: #land type is unknown
+            line_land_type.append(0)
+        
     ################ Calculate path loss ################
     map_resolution = lat_lon_to_distance(origin=map_LU, destination=map_RU)/seg_map.shape[1]
 
