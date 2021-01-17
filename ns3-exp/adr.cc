@@ -56,46 +56,60 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
 void RecordTotalEnergyConsumption (NodeContainer endDevices,
                                    EnergySourceContainer sources);
 double CalObjectiveValue (NodeContainer endDevices,
-                          NodeContainer gateways,
-                          LoraPacketTracker& tracker, 
-                          Time startTime, Time stopTime, std::string filename);
+                          NodeContainer gateways, 
+                          LoraPacketTracker& tracker, Time startTime, Time stopTime);
 std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
-                                         LoraPacketTracker& tracker, 
-                                         Time startTime, Time stopTime, std::string filename);
+                            LoraPacketTracker& tracker, Time startTime, Time stopTime);
 
-// Parameters in calculating the objective value
-int M = 1;                     // Number of gateway candidate locations
-double alpha = 0.5;            // Weight
-double E_cap_J = 23760;        // Battery capacity in J
-std::vector<double> energyVec; // A vector to store total energy consumption at each end device
-std::string srlocFile = "sr_loc.txt"; // Sensor location file
-std::string gwlocFile = "gw_loc.txt"; // Gateway location file
+// parameters in calculating the objective value
+int M = 1;                     // number of gateway candidate locations
+double alpha = 0.5;            // weight
+std::vector<double> energyVec; // a vector to store total energy consumption at each end device
 
 int main (int argc, char *argv[])
 {
 
   bool verbose = false;
   bool adrEnabled = false;
-  int nDevices = 0;
-  int nGateways = 0;
-  int nPeriods = 24*3*365; // 1 year
+  bool initializeSF = true;
+  int nDevices = 1;
+  int nPeriods = 1;
+  double mobileNodeProbability = 0;
+  double sideLength = 10000;
+  int gatewayDistance = 5000;
+  double maxRandomLoss = 10;
+  int maxTransmissions = 8;
   std::string adrType = "ns3::AdrComponent";
 
   CommandLine cmd;
   cmd.AddValue ("verbose", "Whether to print output or not", verbose);
-  // cmd.AddValue ("MultipleGwCombiningMethod",
-  //              "ns3::AdrComponent::MultipleGwCombiningMethod");
-  // cmd.AddValue ("MultiplePacketsCombiningMethod",
-  //              "ns3::AdrComponent::MultiplePacketsCombiningMethod");
-  // cmd.AddValue ("HistoryRange", "ns3::AdrComponent::HistoryRange");
+  cmd.AddValue ("MultipleGwCombiningMethod",
+                "ns3::AdrComponent::MultipleGwCombiningMethod");
+  cmd.AddValue ("MultiplePacketsCombiningMethod",
+                "ns3::AdrComponent::MultiplePacketsCombiningMethod");
+  cmd.AddValue ("HistoryRange", "ns3::AdrComponent::HistoryRange");
   cmd.AddValue ("MType", "ns3::EndDeviceLorawanMac::MType");
   cmd.AddValue ("EDDRAdaptation", "ns3::EndDeviceLorawanMac::EnableEDDataRateAdaptation");
   cmd.AddValue ("ChangeTransmissionPower",
                 "ns3::AdrComponent::ChangeTransmissionPower");
   cmd.AddValue ("AdrEnabled", "Whether to enable ADR", adrEnabled);
   cmd.AddValue ("nDevices", "Number of devices to simulate", nDevices);
-  cmd.AddValue ("nGateways", "Number of gateways to simulate", nDevices);
   cmd.AddValue ("PeriodsToSimulate", "Number of periods to simulate", nPeriods);
+  cmd.AddValue ("sideLength",
+                "Length of the side of the rectangle nodes will be placed in",
+                sideLength);
+  cmd.AddValue ("maxRandomLoss",
+                "Maximum amount in dB of the random loss component",
+                maxRandomLoss);
+  cmd.AddValue ("gatewayDistance",
+                "Distance between gateways",
+                gatewayDistance);
+  cmd.AddValue ("initializeSF",
+                "Whether to initialize the SFs",
+                initializeSF);
+  cmd.AddValue ("MaxTransmissions",
+                "Maximum number of retransmissions on end devices",
+                maxTransmissions);
   cmd.Parse (argc, argv);
 
 
@@ -103,12 +117,11 @@ int main (int argc, char *argv[])
   // Logging //
   /////////////
 
-  // LogComponentEnable ("AdrExample", LOG_LEVEL_ALL);
-  // LogComponentEnable ("SimpleEndDeviceLoraPhy", LOG_LEVEL_ALL);
-  // LogComponentEnable ("SimpleGatewayLoraPhy", LOG_LEVEL_ALL);
-  // LogComponentEnable ("LoraChannel", LOG_LEVEL_ALL); 
-  // LogComponentEnable ("PropagationLossModel", LOG_LEVEL_ALL);
-  // LogComponentEnable ("LoraPacketTracker", LOG_LEVEL_ALL);
+  LogComponentEnable ("AdrExample", LOG_LEVEL_ALL);
+  LogComponentEnable ("SimpleEndDeviceLoraPhy", LOG_LEVEL_ALL);
+  LogComponentEnable ("LoraChannel", LOG_LEVEL_ALL); 
+  LogComponentEnable ("PropagationLossModel", LOG_LEVEL_ALL);
+  LogComponentEnable ("LoraPacketTracker", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkServer", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkController", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkScheduler", LOG_LEVEL_ALL);
@@ -117,12 +130,10 @@ int main (int argc, char *argv[])
   // LogComponentEnable ("AdrComponent", LOG_LEVEL_ALL);
   // LogComponentEnable ("ClassAEndDeviceLorawanMac", LOG_LEVEL_ALL);
   // LogComponentEnable ("LogicalLoraChannelHelper", LOG_LEVEL_ALL);
-  // LogComponentEnable ("GatewayLorawanMac", LOG_LEVEL_ALL);
   // LogComponentEnable ("MacCommand", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrExploraSf", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrExploraAt", LOG_LEVEL_ALL);
   // LogComponentEnable ("EndDeviceLorawanMac", LOG_LEVEL_ALL);
-  // LogComponentEnable ("LoraRadioEnergyModel", LOG_LEVEL_ALL);
   LogComponentEnableAll (LOG_PREFIX_FUNC);
   LogComponentEnableAll (LOG_PREFIX_NODE);
   LogComponentEnableAll (LOG_PREFIX_TIME);
@@ -137,17 +148,17 @@ int main (int argc, char *argv[])
   //////////////////////////////////////
 
   Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
-  loss->SetPathLossExponent (2.1495);
-  loss->SetReference (140, 105.5729);
+  loss->SetPathLossExponent (2.1);
+  loss->SetReference (1000, 130);
 
-  Ptr<NormalRandomVariable> x = CreateObject<NormalRandomVariable> ();
-  x->SetAttribute ("Mean", DoubleValue (0));
-  x->SetAttribute ("Variance", DoubleValue (100.0724));
+  Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
+  x->SetAttribute ("Min", DoubleValue (0.0));
+  x->SetAttribute ("Max", DoubleValue (maxRandomLoss));
 
-  Ptr<RandomPropagationLossModel> randomLoss = CreateObject<RandomPropagationLossModel> ();
-  randomLoss->SetAttribute ("Variable", PointerValue (x));
+  //Ptr<RandomPropagationLossModel> randomLoss = CreateObject<RandomPropagationLossModel> ();
+  //randomLoss->SetAttribute ("Variable", PointerValue (x));
 
-  loss->SetNext (randomLoss);
+  //loss->SetNext (randomLoss);
 
   Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
 
@@ -160,41 +171,71 @@ int main (int argc, char *argv[])
   ////////////////
 
   NodeContainer endDevices;
+  endDevices.Create (nDevices);
+
+  // End Device mobility
   MobilityHelper mobilityEd;
   Ptr<ListPositionAllocator> positionAllocEd = CreateObject<ListPositionAllocator> ();
+  positionAllocEd->Add (Vector (0.0, 100000.0, 0.0));
+  mobilityEd.SetPositionAllocator (positionAllocEd);
+  mobilityEd.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobilityEd.Install (endDevices);
 
-  // Read end nodes' locations from text file
-  std::ifstream EdLocationFile(srlocFile);
-  std::vector<int> DrVec;       // Data rate vector for end nodes
-  std::vector<double> TxPowVec; // Transmission power vector for end nodes
-  if (EdLocationFile.is_open())
+  // No exisiting end devices location file, then randomly generate locations and save it to the file
+  /*std::string file_name = "EdLocation_" + std::to_string(nDevices) + ".txt";
+  std::ifstream EdLocationFile(file_name);
+  if (EdLocationFile.fail()) // no such file exists
+  {
+    NS_LOG_DEBUG ("Randomly generate ed device locations and save to file.");
+    mobilityEd.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
+                                      "X", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
+                                                         ("Min", DoubleValue(-sideLength),
+                                                          "Max", DoubleValue(sideLength))),
+                                      "Y", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
+                                                         ("Min", DoubleValue(-sideLength),
+                                                          "Max", DoubleValue(sideLength))));
+    // Install mobility model on fixed nodes and output location
+    mobilityEd.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    std::ofstream OutputFile(file_name);
+    for (int i = 0; i < nDevices; ++i) {
+      mobilityEd.Install (endDevices.Get (i));
+      Ptr<MobilityModel> position = endDevices.Get (i) -> GetObject<MobilityModel> ();
+      Vector pos = position->GetPosition ();
+      OutputFile << pos.x << " " << pos.y << std::endl;
+    }
+    OutputFile.close();   
+  }
+  else // read from file
   {
     NS_LOG_DEBUG ("Read from existing ed device location file.");
     std::string line;
+    Ptr<ListPositionAllocator> positionAllocEd = CreateObject<ListPositionAllocator> ();
     while (std::getline(EdLocationFile, line)) {
         if (line.size() > 0) {
             std::vector < std::string > coordinates = split(line, ' ');
             double x = atof(coordinates.at(0).c_str());
             double y = atof(coordinates.at(1).c_str());
-            int DrCur = atof(coordinates.at(2).c_str());
-            double TxPowCur = atof(coordinates.at(3).c_str());
             positionAllocEd->Add (Vector (x, y, 0.0) );
-            DrVec.push_back(DrCur);
-            TxPowVec.push_back(TxPowCur);
-            nDevices ++;
         }
     }
     mobilityEd.SetPositionAllocator (positionAllocEd);
     mobilityEd.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-  }
-  else
-  {
-    NS_LOG_ERROR ("Unable to open file " << srlocFile);
-    return -1;
-  }
-  
-  endDevices.Create (nDevices);
-  mobilityEd.Install (endDevices);
+    mobilityEd.Install (endDevices);
+  }*/
+
+  // Install mobility model on mobile nodes
+  //mobilityEd.SetMobilityModel ("ns3::RandomWalk2dMobilityModel",
+  //                             "Bounds", RectangleValue (Rectangle (-sideLength, sideLength,
+  //                                                                  -sideLength, sideLength)),
+  //                             "Distance", DoubleValue (1000),
+  //                             "Speed", PointerValue (CreateObjectWithAttributes<UniformRandomVariable>
+  //                                                    ("Min", DoubleValue(minSpeed),
+  //                                                     "Max", DoubleValue(maxSpeed))));
+  //for (int i = fixedPositionNodes; i < (int) endDevices.GetN (); ++i)
+  //  {
+  //    mobilityEd.Install (endDevices.Get (i));
+  //  }
+
 
 
   ////////////////
@@ -202,35 +243,21 @@ int main (int argc, char *argv[])
   ////////////////
 
   NodeContainer gateways;
+  int nGateways = 1;
+  gateways.Create (nGateways);
 
   MobilityHelper mobilityGw;
   Ptr<ListPositionAllocator> positionAllocGw = CreateObject<ListPositionAllocator> ();
-
-  // Read gateway locations from text file
-  std::ifstream GwLocationFile(gwlocFile);
-  if (GwLocationFile.is_open())
-  {
-    NS_LOG_DEBUG ("Read from existing gw device location file.");
-    std::string line;
-    while (std::getline(GwLocationFile, line)) {
-        if (line.size() > 0) {
-            std::vector < std::string > coordinates = split(line, ' ');
-            double x = atof(coordinates.at(0).c_str());
-            double y = atof(coordinates.at(1).c_str());            
-            positionAllocGw->Add (Vector (x, y, 15.0) );
-            nGateways ++;
-        }
-    }
-    mobilityGw.SetPositionAllocator (positionAllocGw);
-    mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-  }
-  else
-  {
-    NS_LOG_ERROR ("Unable to open file " << gwlocFile);
-    return -1;
-  }
-
-  gateways.Create (nGateways);
+  positionAllocGw->Add (Vector (0.0, 0.0, 15.0));
+  //positionAllocGw->Add (Vector (-5000.0, -5000.0, 15.0));
+  //positionAllocGw->Add (Vector (-5000.0, 5000.0, 15.0));
+  //positionAllocGw->Add (Vector (5000.0, -5000.0, 15.0));
+  //positionAllocGw->Add (Vector (5000.0, 5000.0, 15.0));
+  mobilityGw.SetPositionAllocator (positionAllocGw);
+  mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  //Ptr<HexGridPositionAllocator> hexAllocator = CreateObject<HexGridPositionAllocator> (gatewayDistance / 2);
+  //mobilityGw.SetPositionAllocator (hexAllocator);
+  //mobilityGw.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobilityGw.Install (gateways);
 
 
@@ -252,7 +279,6 @@ int main (int argc, char *argv[])
   // Create the LoraNetDevices of the gateways
   phyHelper.SetDeviceType (LoraPhyHelper::GW);
   macHelper.SetDeviceType (LorawanMacHelper::GW);
-  macHelper.SetRegion (LorawanMacHelper::US);
   helper.Install (phyHelper, macHelper, gateways);
 
   // Create a LoraDeviceAddressGenerator
@@ -264,11 +290,10 @@ int main (int argc, char *argv[])
   phyHelper.SetDeviceType (LoraPhyHelper::ED);
   macHelper.SetDeviceType (LorawanMacHelper::ED_A);
   macHelper.SetAddressGenerator (addrGen);
-  macHelper.SetRegion (LorawanMacHelper::US);
+  macHelper.SetRegion (LorawanMacHelper::EU);
   NetDeviceContainer endDevicesNetDevices = helper.Install (phyHelper, macHelper, endDevices);
 
-  // Configure data rates and tx power
-  macHelper.SetParams (endDevices, DrVec, TxPowVec);
+
 
   /////////////////////////////////
   // Install applications in EDs //
@@ -278,6 +303,13 @@ int main (int argc, char *argv[])
   PeriodicSenderHelper appHelper = PeriodicSenderHelper ();
   appHelper.SetPeriod (Seconds (appPeriodSeconds));
   ApplicationContainer appContainer = appHelper.Install (endDevices);
+
+  // Do not set spreading factors up: we will wait for the NS to do this
+  if (initializeSF) 
+  {
+    macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
+  }
+
 
 
   ///////////////
@@ -306,19 +338,17 @@ int main (int argc, char *argv[])
   BasicEnergySourceHelper basicSourceHelper;
   LoraRadioEnergyModelHelper radioEnergyHelper;
 
-  // Configure energy source
-  basicSourceHelper.Set ("BasicEnergySourceInitialEnergyJ", DoubleValue (E_cap_J));
+  // configure energy source
+  basicSourceHelper.Set ("BasicEnergySourceInitialEnergyJ", DoubleValue (10000)); // Energy in J
   basicSourceHelper.Set ("BasicEnergySupplyVoltageV", DoubleValue (3.3));
 
-  // Data from Liando 2019
-  radioEnergyHelper.Set ("StandbyCurrentA", DoubleValue (0.02348 / 3.3));
-  // radioEnergyHelper.Set ("TxCurrentA", DoubleValue (0));
-  radioEnergyHelper.Set ("SleepCurrentA", DoubleValue ((0.00017465 + 0.0001) / 3.3));
-  radioEnergyHelper.Set ("RxCurrentA", DoubleValue (0.02348 / 3.3));
+  radioEnergyHelper.Set ("StandbyCurrentA", DoubleValue (0.0014));
+  radioEnergyHelper.Set ("TxCurrentA", DoubleValue (0.028));
+  radioEnergyHelper.Set ("SleepCurrentA", DoubleValue (0.0000015));
+  radioEnergyHelper.Set ("RxCurrentA", DoubleValue (0.0112));
 
-  // Use the radio Tx current model from Liando 2019.
-  radioEnergyHelper.SetTxCurrentModel ("ns3::LiandoLoraTxCurrentModel",
-                                       "Voltage", DoubleValue (3.3));
+  radioEnergyHelper.SetTxCurrentModel ("ns3::ConstantLoraTxCurrentModel",
+                                       "TxCurrent", DoubleValue (0.028));
 
   // install source on EDs' nodes
   EnergySourceContainer sources = basicSourceHelper.Install (endDevices);
@@ -355,42 +385,10 @@ int main (int argc, char *argv[])
   Simulator::Run ();
   Simulator::Destroy ();
 
-  /////////////////////
-  // Logging Results //
-  /////////////////////
-
-  std::cout << "CountMacPacketGlobally: Sent Received" << std::endl;
   std::cout << tracker.CountMacPacketsGlobally (Seconds (0), simulationTime) << std::endl;
-  std::cout << "CountMacPacketsGloballyCpsr: Sent Received" << std::endl;
   std::cout << tracker.CountMacPacketsGloballyCpsr (Seconds (0), simulationTime) << std::endl;
-
-  for (int edId = 0; edId < nDevices; ++edId)
-  {
-    std::cout << tracker.PrintMacPacketsCpsrPerEd (Seconds (0), simulationTime, edId) << " "
-              << tracker.PrintPhyPacketsPerEd (Seconds (0), simulationTime, edId) << std::endl;
-  }
-  
-  std::cout << "PrintPhyPacketsPerGw:" << std::endl 
-            << "TOTAL RECEIVED INTERFERED NO_MORE_RECEIVERS UNDER_SENSITIVITY LOST_BECAUSE_TX" << std::endl;
-  for (int gwId = nDevices; gwId < nDevices + nGateways; ++gwId)
-  {
-    std::cout << tracker.PrintPhyPacketsPerGw (Seconds (0), simulationTime, gwId) << std::endl;
-  }
-  std::cout << std::endl;
-
-  std::cout << "PrintPhyPacketsPerGwEd:" << std::endl 
-            << "TOTAL RECEIVED INTERFERED NO_MORE_RECEIVERS UNDER_SENSITIVITY LOST_BECAUSE_TX" << std::endl;
-  for (int edId = 0; edId < nDevices; ++edId)
-  {
-    for (int gwId = nDevices; gwId < nDevices + nGateways; ++gwId)
-    {
-      std::cout << tracker.PrintPhyPacketsPerGwEd (Seconds (0), simulationTime, gwId, edId) << std::endl;
-    }
-    std::cout << std::endl;
-  }
-  
-  std::cout << CalObjectiveValue (endDevices, gateways, tracker, Seconds (0), simulationTime, "nodeEE.txt") << std::endl;
-  
+  std::cout << tracker.PrintPhyPacketsPerGw (Seconds (0), simulationTime, nDevices) << std::endl;
+  std::cout << CalObjectiveValue (endDevices, gateways, tracker, Seconds (0), simulationTime) << std::endl;
 
   return 0;
 }
@@ -521,10 +519,9 @@ void RecordTotalEnergyConsumption (NodeContainer endDevices,
 // Calculate the objective value in the ICIOT paper
 double CalObjectiveValue (NodeContainer endDevices,
                           NodeContainer gateways,
-                          LoraPacketTracker& tracker, 
-                          Time startTime, Time stopTime, std::string filename)
+                          LoraPacketTracker& tracker, Time startTime, Time stopTime)
 {
-  std::vector<double> EEVec = CalEnergyEfficiency(endDevices, tracker, startTime, stopTime, filename);
+  std::vector<double> EEVec = CalEnergyEfficiency(endDevices, tracker, startTime, stopTime);
   int edCnt = endDevices.GetN();
   double EE = std::accumulate(EEVec.begin(), EEVec.end(), 0) / edCnt;
 
@@ -535,45 +532,31 @@ double CalObjectiveValue (NodeContainer endDevices,
 
 // Calculate the energy efficiency across all end devices
 std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
-                                         LoraPacketTracker& tracker, 
-                                         Time startTime, Time stopTime, std::string filename)
+                            LoraPacketTracker& tracker, Time startTime, Time stopTime)
 {
   std::vector<double> EEVec;
-  const char * c = filename.c_str ();
-  std::ofstream outputFile;
-  // Delete contents of the file as it is opened
-  outputFile.open (c, std::ofstream::out | std::ofstream::trunc);
 
   // Iterative through all end devices
   for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
   {
     Ptr<Node> object = *j;
     int edId = object->GetId();
+    NS_LOG_DEBUG ("Dealing with node ID " << edId);
 
-    // Get packet delivery ratio on Phy layer
-    std::vector<int> packetEdPhy = tracker.CountPhyPacketsPerEd (startTime, stopTime, edId);
-    double pdrPhy = (double) packetEdPhy.at (1) / packetEdPhy.at (0);
-
-    // Get packet delivery ratio on Mac layer under cpsr
-    std::vector<int> packetEdMac = tracker.CountMacPacketsCpsrPerEd (startTime, stopTime, edId);
-    double pdrMac = (double) packetEdMac.at (1) / packetEdMac.at (0);
+    // Get packet delivery ratio
+    std::vector<int> packetEd = tracker.CountPhyPacketsPerEd (startTime, stopTime, edId);
+    double pdr = packetEd.at (1) / packetEd.at (0);
+    NS_LOG_DEBUG ("Packet statistics: sent " << packetEd.at(0) << " received " << packetEd.at(1));
+    NS_LOG_DEBUG ("Packet delivery ratio " << pdr);
 
     // Get energy consumption per sent packet
-    double energyPerPkt = energyVec.at (edId) / packetEdMac.at (0);
-
-    // Estimate lifetime
-    double lifetimeYrs = (stopTime.GetSeconds() - startTime.GetSeconds()) / 3600 / 24 / 365
-      * E_cap_J / energyVec.at (edId) ;
+    double energyPerPkt = energyVec.at (edId) / packetEd.at (0);
+    NS_LOG_DEBUG ("Energy consumption per sent packet: " << energyPerPkt);
 
     // Push back energy efficiency
-    double nodeEE = pdrMac / energyPerPkt;
+    double nodeEE = pdr / energyPerPkt;
+    NS_LOG_DEBUG ("Energy efficiency: " << nodeEE);
     EEVec.push_back (nodeEE);
-
-    outputFile << object->GetId () <<  " "
-               << packetEdPhy.at (1) << " " << packetEdPhy.at (0) << " " << pdrPhy << " "
-               << packetEdMac.at (1) << " " << packetEdMac.at (0) << " " << pdrMac << " "
-               << energyPerPkt << " " << lifetimeYrs << " "
-               << nodeEE << std::endl;
   }
 
   return EEVec;
