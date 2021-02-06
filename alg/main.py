@@ -23,10 +23,20 @@ import utils
 # Important parameters
 ########################################
 class params:
-	L = 48000 # 30000			# Edge of analysis area in m
-	sr_cnt = 100
-            # Number of end devices
-	gw_dist = 6000      # Distance between two gateways in m
+
+	#indicate which dataset to use
+	LA = False
+	HPWREN = True
+
+	if HPWREN:
+		L = 48000 # 30000			# Edge of analysis area in m
+		sr_cnt = 1300               # Number of end devices
+		gw_dist = 7250              # Distance between two gateways in m
+	else:
+		L = 48000 #30000
+		sr_cnt = 100
+		gw_dist = 6000
+
 
 	# Version of log propagation model
 	LogPropVer = 'Dongare'
@@ -77,11 +87,18 @@ class params:
 	Lifetime_th = 2		# Lifetime threshold at each end node in years
 
 	# the given data files and bool variables showing whether or not to use them
-	dataFile = './data/dataLA.csv'			# End device locations
-	origin = [33.5466, -118.7025]
-	PLFile = './data/path_loss_mat.npy'	# Path loss between each device-gw pair
-	GwAbleFile = './data/gw_able.npy'		# Whether placing gateway at a location is allowed
-	data = False							# Whether to use the dataFile of end device locations
+	if HPWREN: 
+		dataFile = './data/HPWREN/dataHPWREN.csv'			
+		origin = [32.5451, -117.9608]
+		PLfile = '.data/LA/path_loss_mat.npy'
+		GwAbleFile = './data/HPWREN/gw_able.npy'
+	else:
+		dataFile = './data/LA/dataLA.csv'           			 # End device locations
+		origin = [33.5466, -118.7025]
+		PLFile = './data/LA/path_loss_mat.npy'    			   	 # Path loss between each device-gw pair
+		GwAbleFile = './data/LA/gw_able.npy'       			 # Whether placing gateway at a location is allowed
+
+	data = True							# Whether to use the dataFile of end device locations
 	PL = False								# Whether to use the PLFile of path loss matrix
 
 # Parameters for the DBSCAN clustering algorithm
