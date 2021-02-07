@@ -7,6 +7,8 @@ import random
 ################## USER ENTERED DATA #################
 img_name = './data/HPWREN/HPWREN.jpg'
 
+
+
 #in degrees
 lat_top = 33.825275
 lat_bottom = 32.45297
