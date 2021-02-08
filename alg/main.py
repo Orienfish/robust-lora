@@ -24,19 +24,9 @@ import utils
 ########################################
 class params:
 
-	#indicate which dataset to use
-	LA = False
-	HPWREN = True
-
-	if HPWREN:
-		L = 48000 # 30000			# Edge of analysis area in m
-		sr_cnt = 1300               # Number of end devices
-		gw_dist = 7250              # Distance between two gateways in m
-	else:
-		L = 48000 #30000
-		sr_cnt = 100
-		gw_dist = 6000
-
+	L = 48000 # 30000			# Edge of analysis area in m, use if dataFile not provided
+	sr_cnt = 100              # Number of end devices, use if dataFile not provided
+	gw_dist = 6000            # Distance between two gateways, use if dataFile not provided
 
 	# Version of log propagation model
 	LogPropVer = 'Dongare'
@@ -85,6 +75,10 @@ class params:
 
 	PDR_th = 0.8		# PDR threshold at each end node
 	Lifetime_th = 2		# Lifetime threshold at each end node in years
+
+	#indicate which dataset to use
+	LA = False
+	HPWREN = True
 
 	# the given data files and bool variables showing whether or not to use them
 	if HPWREN: 
