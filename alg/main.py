@@ -25,8 +25,10 @@ import utils
 class params:
 
 	L = 48000 # 30000			# Edge of analysis area in m, use if dataFile not provided
-	sr_cnt = 100              # Number of end devices, use if dataFile not provided
-	gw_dist = 6000            # Distance between two gateways, use if dataFile not provided
+	#sr_cnt = 100              # Number of end devices
+	#gw_dist = 6000            # Distance between two gateways, use if dataFile not provided
+        sr_cnt = 1300
+        gw_dist = 7250
 
 	# Version of log propagation model
 	LogPropVer = 'Dongare'
