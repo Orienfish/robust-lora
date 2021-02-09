@@ -2,7 +2,7 @@ from utils import *
 import numpy as np
 
 # Load segmented map
-mat_file = "./data/entire_seg_map.npy"
+mat_file = "./data/HPWREN/entire_seg_map.npy"
 entire_seg_map = np.load(mat_file)
 
 # Load gateway and sensor location data
@@ -50,6 +50,6 @@ for i in range(gw_num):
         # print("line_distance={}m, path_loss={}\n".format(line_distance, path_loss))
 
 
-mat_file = "./data/path_loss_mat.npy"
+mat_file = "./data/HPWREN/path_loss_mat.npy"
 np.save(mat_file, path_loss_mat)
 print("Saving results to {}\n".format(mat_file))
