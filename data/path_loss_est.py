@@ -14,10 +14,15 @@ sr_loc_mat = np.genfromtxt(sr_loc_file, delimiter = ",")
 
 
 # (Lat, Lon) of upper-left and upper-right corners
-#LU = (34.2331, -118.7025)
-#RU = (34.2331, -117.4719)
-LU = (33.7686, -118.0007)
-RU = (33.7968, -116.0380)
+HPWREN = True
+#default is coordinates for LA dataset
+
+if HPWREN:
+    LU = (33.7686, -118.0007)
+    RU = (33.7968, -116.0380)
+else:
+    LU = (34.2331, -118.7025)
+    RU = (34.2331, -117.4719)
 
 # Calculate map resolution
 R = lat_lon_to_distance(origin=LU, destination=RU)/entire_seg_map.shape[1]

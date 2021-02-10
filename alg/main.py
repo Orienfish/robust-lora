@@ -24,11 +24,19 @@ import utils
 ########################################
 class params:
 
+	#indicate which dataset to use, default LA dataset
+	LA = False
+	HPWREN = True
+
+
 	L = 48000 # 30000			# Edge of analysis area in m, use if dataFile not provided
-	#sr_cnt = 100              # Number of end devices
-	#gw_dist = 6000            # Distance between two gateways, use if dataFile not provided
-	sr_cnt = 1300
-	gw_dist = 7250
+
+	if HPWREN:
+		sr_cnt = 1300
+		gw_dist = 7250
+	else:
+		sr_cnt = 100              # Number of end devices
+		gw_dist = 6000            # Distance between two gateways, use if dataFile not provided
 
 	# Version of log propagation model
 	LogPropVer = 'Dongare'
@@ -78,15 +86,11 @@ class params:
 	PDR_th = 0.8		# PDR threshold at each end node
 	Lifetime_th = 2		# Lifetime threshold at each end node in years
 
-	#indicate which dataset to use
-	LA = False
-	HPWREN = True
-
 	# the given data files and bool variables showing whether or not to use them
 	if HPWREN: 
 		dataFile = './data/HPWREN/dataHPWREN.csv'			
 		origin = [32.5451, -117.9608]
-		PLfile = '.data/LA/path_loss_mat.npy'
+		PLFile = '.data/HPWREN/path_loss_mat.npy'
 		GwAbleFile = './data/HPWREN/gw_able.npy'
 	else:
 		dataFile = './data/LA/dataLA.csv'           			 # End device locations
@@ -95,7 +99,7 @@ class params:
 		GwAbleFile = './data/LA/gw_able.npy'       			 # Whether placing gateway at a location is allowed
 
 	data = True							# Whether to use the dataFile of end device locations
-	PL = False								# Whether to use the PLFile of path loss matrix
+	PL = True							# Whether to use the PLFile of path loss matrix
 
 # Parameters for the DBSCAN clustering algorithm
 class ClusterParams:
@@ -127,7 +131,7 @@ class GeneticParams:
 class run:
 	iteration = 1
 	M = [1, 2, 3] #[3, 2, 1]
-	RGreedy = False  	# Pure greedy algorithm
+	RGreedy = True  	# Pure greedy algorithm
 	RGreedy_c = False	# With cluster-based acceleration
 	RGreedy_e = False	# With end-of-exploration acceleration
 	RGreedy_ce = False	# With both accleration techniques
