@@ -90,7 +90,7 @@ class params:
 	if HPWREN: 
 		dataFile = './data/HPWREN/dataHPWREN.csv'			
 		origin = [32.5451, -117.9608]
-		PLFile = '.data/HPWREN/path_loss_mat.npy'
+		PLFile = './data/HPWREN/path_loss_mat.npy'
 		GwAbleFile = './data/HPWREN/gw_able.npy'
 	else:
 		dataFile = './data/LA/dataLA.csv'           			 # End device locations
