@@ -25,8 +25,8 @@ import utils
 class params:
 
 	#indicate which dataset to use, default LA dataset
-	LA = False
-	HPWREN = True
+	LA = True
+	HPWREN = False
 
 
 	L = 48000 # 30000			# Edge of analysis area in m, use if dataFile not provided
@@ -131,7 +131,7 @@ class GeneticParams:
 class run:
 	iteration = 1
 	M = [1, 2, 3] #[3, 2, 1]
-	RGreedy = True  	# Pure greedy algorithm
+	RGreedy = False  	# Pure greedy algorithm
 	RGreedy_c = False	# With cluster-based acceleration
 	RGreedy_e = False	# With end-of-exploration acceleration
 	RGreedy_ce = False	# With both accleration techniques

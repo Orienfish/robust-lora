@@ -3,6 +3,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+import time
 matplotlib.rcParams['figure.figsize'] = (20.0, 10.0)
 
 # Predefined parameters for various land types
