@@ -3,7 +3,7 @@ import numpy as np
 import time
 
 # Load segmented map
-mat_file = "./data/LA/entire_seg_map.npy"
+mat_file = "./data/HPWREN/entire_seg_map.npy"
 entire_seg_map = np.load(mat_file)
 
 # Load gateway and sensor location data
@@ -15,7 +15,7 @@ sr_loc_mat = np.genfromtxt(sr_loc_file, delimiter = ",")
 
 
 # (Lat, Lon) of upper-left and upper-right corners
-HPWREN = False
+HPWREN = True
 #default is coordinates for LA dataset
 
 if HPWREN:
@@ -60,6 +60,6 @@ for i in range(gw_num):
     gw_end = time.time() - gw_start
     print("Time to estimate PL of {}/{} gateway: {}".format(i+1, gw_num, gw_end))
 
-mat_file = "./data/LA/path_loss_mat.npy"
+mat_file = "./data/HPWREN/path_loss_mat.npy"
 np.save(mat_file, path_loss_mat)
 print("Saving results to {}\n".format(mat_file))

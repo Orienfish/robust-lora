@@ -25,8 +25,8 @@ import utils
 class params:
 
 	#indicate which dataset to use, default LA dataset
-	LA = True
-	HPWREN = False
+	LA = False
+	HPWREN = True
 
 
 	L = 48000 # 30000			# Edge of analysis area in m, use if dataFile not provided
