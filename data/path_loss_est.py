@@ -3,7 +3,7 @@ import numpy as np
 import time
 
 # Load segmented map
-mat_file = "./data/HPWREN/entire_seg_map.npy"
+mat_file = "./data/test/entire_seg_map.npy"
 entire_seg_map = np.load(mat_file)
 
 # Load gateway and sensor location data
@@ -61,6 +61,6 @@ for i in range(gw_num):
     print(gw_end)
     print("Time to estimate PL of {}/{} gateway: {}".format(i+1, gw_num, gw_end))
 
-mat_file = "./data/HPWREN/path_loss_mat.npy"
+mat_file = "./data/test/path_loss_mat.npy"
 np.save(mat_file, path_loss_mat)
 print("Saving results to {}\n".format(mat_file))
