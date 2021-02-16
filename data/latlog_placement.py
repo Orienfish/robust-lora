@@ -54,7 +54,8 @@ gw_able = np.array([ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
             
 #np.save("./data/HPWREN/gw_able.npy", gw_able)
 #print(np.load("./data/HPWREN/gw_able.npy"))
-            
+print(np.load("./data/HPWREN/entire_seg_map.npy"))
+
 #in meters
 mapwidth = 180263.28
 mapheight = 135562.06
@@ -65,7 +66,7 @@ sensor_num = 50
 
 #buffer for range to generate potential sensors in degrees (optimizes sensor placement)
 buf = 0.5
-
+'''
 ######################################################
 #open image
 im = plt.imread(img_name)
@@ -134,4 +135,4 @@ nplatlog_sen = np.asarray(latlog_sen)
 np.savetxt("./data/HPWREN/dataHPWREN.csv", nplatlog_sen, delimiter=",", header = "sensor")
 
 plt.show()
-
+'''
