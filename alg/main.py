@@ -26,7 +26,8 @@ class params:
 
 	#indicate which dataset to use, default LA dataset
 	LA = False
-	HPWREN = True
+	HPWREN = False
+	Test = True
 
 
 	L = 48000 # 30000			# Edge of analysis area in m, use if dataFile not provided
@@ -34,9 +35,12 @@ class params:
 	if HPWREN:
 		sr_cnt = 1300
 		gw_dist = 7250
-	else:
+	if LA:
 		sr_cnt = 100              # Number of end devices
 		gw_dist = 6000            # Distance between two gateways, use if dataFile not provided
+	else:
+		sr_cnt = 650
+		gw_dist = 7250
 
 	# Version of log propagation model
 	LogPropVer = 'Dongare'
@@ -92,14 +96,19 @@ class params:
 		origin = [32.5451, -117.9608]
 		PLFile = './data/HPWREN/path_loss_mat.npy'
 		GwAbleFile = './data/HPWREN/gw_able.npy'
-	else:
+	if LA:
 		dataFile = './data/LA/dataLA.csv'           			 # End device locations
 		origin = [33.5466, -118.7025]
-		PLFile = './data/LA/path_loss_mat.npy'    			   	 # Path loss between each device-gw pair
+		PLFile = './data/LA/path_loss_mat2.npy'    			   	 # Path loss between each device-gw pair
 		GwAbleFile = './data/LA/gw_able.npy'       			 # Whether placing gateway at a location is allowed
+	else:
+		dataFile = './data/test/dataHPWREN.csv'			
+		origin = [32.5451, -117.9608]
+		PLFile = './data/test/path_loss_mat.npy'
+		GwAbleFile = './data/test/gw_able.npy'
 
 	data = True							# Whether to use the dataFile of end device locations
-	PL = True							# Whether to use the PLFile of path loss matrix
+	PL = False						# Whether to use the PLFile of path loss matrix
 
 # Parameters for the DBSCAN clustering algorithm
 class ClusterParams:
@@ -131,7 +140,7 @@ class GeneticParams:
 class run:
 	iteration = 1
 	M = [1, 2, 3] #[3, 2, 1]
-	RGreedy = True  	# Pure greedy algorithm
+	RGreedy = False  	# Pure greedy algorithm
 	RGreedy_c = False	# With cluster-based acceleration
 	RGreedy_e = False	# With end-of-exploration acceleration
 	RGreedy_ce = False	# With both accleration techniques
