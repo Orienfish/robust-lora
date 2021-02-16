@@ -53,11 +53,12 @@ for i in range(gw_num):
         path_est_time = time.time()
         line_distance, path_loss = path_loss_estimation(segmented_land_map=entire_seg_map, map_LU=LU, map_RU=RU, gateway_loc=gateway_loc, sensor_loc=sensor_loc)
         path_est_time = time.time() - path_est_time
-        print("Time for path_loss_est function: {}".format(path_est_time))
+        #print("Time for path_loss_est function: {}".format(path_est_time))
         path_loss_mat[i, j] = path_loss
         
         # print("line_distance={}m, path_loss={}\n".format(line_distance, path_loss))
     gw_end = time.time() - gw_start
+    print(gw_end)
     print("Time to estimate PL of {}/{} gateway: {}".format(i+1, gw_num, gw_end))
 
 mat_file = "./data/HPWREN/path_loss_mat.npy"
