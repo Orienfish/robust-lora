@@ -25,8 +25,8 @@ import utils
 class params:
 
 	#indicate which dataset to use, default LA dataset
-	LA = False
-	HPWREN = True
+	LA = True
+	HPWREN = False
 
 
 	L = 48000 # 30000			# Edge of analysis area in m, use if dataFile not provided
@@ -95,7 +95,7 @@ class params:
 	else:
 		dataFile = './data/LA/dataLA.csv'           			 # End device locations
 		origin = [33.5466, -118.7025]
-		PLFile = './data/LA/path_loss_mat.npy'    			   	 # Path loss between each device-gw pair
+		PLFile = './data/LA/path_loss_mat2.npy'    			   	 # Path loss between each device-gw pair
 		GwAbleFile = './data/LA/gw_able.npy'       			 # Whether placing gateway at a location is allowed
 
 	data = True							# Whether to use the dataFile of end device locations
