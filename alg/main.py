@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# main file
 import numpy as np
 import math
 import random
@@ -78,7 +79,6 @@ class DataParams:
 	datasetPath = dir_path + '/../data/LA-dataset/'	# Path to the dataset
 	srFile = datasetPath + 'sr_loc.csv'		# End device locations
 	gwFile = datasetPath + 'gw_loc.csv'		# Candidate gateway locations
-	origin = datasetPath + 'origin.npy'		# Origin in latitude and longitude
 	PLFile = datasetPath + 'path_loss_mat.npy'	# Path loss between each device-gw pair
 	GwAbleFile = datasetPath + 'gw_able.npy'	# Whether placing gateway at a location is allowed
 

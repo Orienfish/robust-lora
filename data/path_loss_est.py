@@ -1,20 +1,23 @@
+#!/usr/bin/python3
 from utils import *
 import numpy as np
+import os
 
 # Load segmented map
-mat_file = "./data/entire_seg_map.npy"
+datasetPath = dir_path + '/LA-dataset/'
+mat_file = datasetPath + "entire_seg_map.npy"
 entire_seg_map = np.load(mat_file)
 
 # Load gateway and sensor location data
-gw_loc_file = "./relaxOpt/gw_loc.csv"
-sr_loc_file = "./relaxOpt/sr_loc.csv"
+gw_loc_file = datasetPath + "gw_loc.csv"
+sr_loc_file = datasetPath + "sr_loc.csv"
 
 gw_loc_mat = np.genfromtxt(gw_loc_file, delimiter = ",")
 sr_loc_mat = np.genfromtxt(sr_loc_file, delimiter = ",")
 
 
 # (Lat, Lon) of upper-left and upper-right corners
-LU = (34.2331, -118.7025)
+LU = (34.2331, -118.7025) # To Emily: Please store these information into a file and load it here.
 RU = (34.2331, -117.4719)
 
 
@@ -50,6 +53,6 @@ for i in range(gw_num):
         # print("line_distance={}m, path_loss={}\n".format(line_distance, path_loss))
 
 
-mat_file = "./data/path_loss_mat.npy"
+mat_file = datasetPath + "path_loss_mat.npy"
 np.save(mat_file, path_loss_mat)
 print("Saving results to {}\n".format(mat_file))

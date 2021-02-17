@@ -1,17 +1,20 @@
 #!/usr/bin/python3
+# The goal of this script is to generate the end devices locations and candidate
+# gateway location in the LA dataset
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
-# The goal of this script is to generate the end devices locations and candidate
-# gateway location in the LA dataset
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
 # Important parameters for the LA dataset
 class params:
 	gw_dist = 6000      # Distance between two gateways in m
 	# the given data files and bool variables showing whether or not to use them
-	dataFile = './dataLA.csv'			# End device locations
+	dataFile = dir_path + '/dataLA.csv'			# End device locations
 	origin = [33.5466, -118.7025]
-	GwAbleFile = './gw_able.npy'	# Whether placing gateway at a location is allowed
+	GwAbleFile = dir_path + '/gw_able.npy'	# Whether placing gateway at a location is allowed
 
 def ReadFile(filename, origin):
 	'''

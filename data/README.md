@@ -1,12 +1,44 @@
 # How to Prepare Dataset for LoRa Gateway Placement and End Device Assignment
 
- This is a tutorial walking you through the steps of how to generate dataset for our LoRa deployment problem. To prepare a dataset, you need:
+### Existing datasets
 
-* A screenshot of the area you want to deploy, e.g., `la.jpg` for our LA dataset. The latitude and longitude of the origin, which is the bottom-left corner of the image, needs to be specified in `root-of-robust-lora/main.py`.
-* A file indicating the coordinates of LoRa end devices in meters with regard to the origin. For example, we use `...` for our LA dataset.
-* A file indicating the coordinates of candidate gateways in meters with regard to the origin. For example, we use `...` for our LA dataset, which spreads in grids.
+In our repo, we offer two datasets. Each dataset shares a common structure:
 
-By the end of this tutorial, after using [GLNet](https://github.com/VITA-Group/GLNet) and the path-loss estimation algorithm proposed in [SateLoc](https://ieeexplore.ieee.org/abstract/document/9111031), you will get an path-loss matrix with the (i, j) element representing the estimated path loss in dB between the ith end device and jth gateway. Here we re-implement the path-loss estimation algorithm in SateLoc in `./path_loss_est.py`.
+```
+.
+├── entire_seg_map.npy  // Segmented map from la.jpg using GLNet
+├── gw_able.npy         // Feasibility to place gateway, 0 means the current location is
+                        // over the ocean thus infeasible for gateway placement
+├── gw_loc.csv          // List of candidate gateways' locations 
+├── origin.csv          // Latitude and longtitude of four corners of la.jpg
+├── la.jpg              // Screenshot of the satellite map of the region
+├── path_loss_mat.npy   // Generated path-loss matrix
+└── sr_loc.csv          // List of LoRa end devices' locations
+```
+
+More details about the two existing datasets:
+
+* LA dataset in `./LA-dataset`: The end devices locations are generated from [PurpleAir](https://www2.purpleair.com/) air-quality sensor deployments around the LA area. The raw end devices locations downloaded from the website is in `./LA-dataset/dataLA.csv`. **(Note: origin.csv needs to be added!)**
+
+  To generate list of LoRa end devices and candidate locations in the LA dataset, we offer a script to serve the purpose:  reading from `./LA-dataset/dataLA.csv` and generating `sr_loc.csv` and `gw_loc.csv` in the same directory:
+
+  ```bash
+  python3 ./LA-dataset/GenLocation.py
+  ```
+
+* HPWREN dataset...
+
+### Overview
+
+This tutorial will you through the steps of how to generate dataset for our LoRa deployment problem.
+
+To prepare a dataset, you need:
+
+* A screenshot of the area you want to deploy, e.g., `./LA-dataset/la.jpg` for our LA dataset. The latitude and longitude of the origin is also needed, which is stored in a file.
+* A file indicating the coordinates of LoRa end devices in meters with regard to the origin. For example, we use `./LA-dataset/sr_loc.csv` for our LA dataset.
+* A file indicating the coordinates of candidate gateways in meters with regard to the origin. For example, we use `./LA-dataset/gw_loc.csv` for our LA datase.
+
+By the end of this tutorial, using [GLNet](https://github.com/VITA-Group/GLNet) and the path-loss estimation algorithm proposed in [SateLoc](https://ieeexplore.ieee.org/abstract/document/9111031), you will get a path-loss matrix (e.g. `./LA-dataset/path_loss_mat.npy`) . The (i, j)th element of the matrix represents the estimated path loss in dB between the ith end device and jth gateway. Here we re-implement the path-loss estimation algorithm in SateLoc in `./path_loss_est.py`.
 
 ### Step 0: Preparation 
 
@@ -56,17 +88,13 @@ In the last block in `./GLNetSetup.ipynb` converts the generated image to an arr
 
 ### Step 2: Generate path-loss matrix 
 
-1. Copy `root-of-GLNet/entire_seg_map.npy` on Google drive into the local `root-of-robust-lora/data` folder. 
+1. Download `root-of-GLNet/entire_seg_map.npy` on Google drive to the local `root-of-robust-lora/data` folder. 
 
-2. Run the path-loss estimation algorithm proposed in [SateLoc](https://ieeexplore.ieee.org/abstract/document/9111031) to create path loss matrix:
+2. Run the path-loss estimation algorithm proposed in [SateLoc](https://ieeexplore.ieee.org/abstract/document/9111031) to create path loss matrix. Make sure you have specified the paths to (i) device locations, (ii) candidate gateway locations and (iii) segmented maps in `path_loss_est.py`. **(Note: it is recommended to add command line arguments to specify these paths)**
 
    ```bash
    python3 root-of-robust-lora/data/path_loss_est.py
    ```
 
-Now you have every component to run the LoRa gateway deployment and device configuration algorithm in `root-of-robust-lora/main.py`.
-
-
-
-
+Now you have every component to run the LoRa gateway deployment and device configuration algorithm in `root-of-robust-lora/alg/main.py`. Make sure you have specified the path to (i) device locations, (ii) candidate gateway locations and (iii) path-loss matrix files in class `DataParams` (line 74) in `main.py`.
 
