@@ -10,14 +10,13 @@ import sys
 import argparse
 logging.basicConfig(level=logging.INFO)
 
-import ICIOT
-import RGreedy
-import RGenetic
-import propagation
-import ReadData
-import clustering
-import optInterface
-import utils
+import alg.ICIOT as ICIOT
+import alg.RGreedy as RGreedy
+import alg.RGenetic as RGenetic
+import alg.propagation as propagation
+import alg.clustering as clustering
+import alg.optInterface as optInterface
+import alg.utils as utils
 
 ########################################
 # Important parameters
@@ -76,10 +75,10 @@ class params:
 	Lifetime_th = 2		# Lifetime threshold at each end node in years
 
 	# the given data files and bool variables showing whether or not to use them
-	dataFile = '../data/dataLA.csv'			# End device locations
+	dataFile = './data/dataLA.csv'			# End device locations
 	origin = [33.5466, -118.7025]
-	PLFile = '../data/path_loss_mat.npy'	# Path loss between each device-gw pair
-	GwAbleFile = '../data/gw_able.npy'		# Whether placing gateway at a location is allowed
+	PLFile = './data/path_loss_mat.npy'	# Path loss between each device-gw pair
+	GwAbleFile = './data/gw_able.npy'		# Whether placing gateway at a location is allowed
 	data = False							# Whether to use the dataFile of end device locations
 	PL = False								# Whether to use the PLFile of path loss matrix
 
@@ -221,15 +220,15 @@ def init(params):
 			N_kq[str(k) + '_' + str(q)] = []
 
 	# Save the end device locations and candidate gateway locations
-	np.savetxt('../relaxOpt/sr_loc.csv', sr_info[:, :2], delimiter=',')
-	np.savetxt('../relaxOpt/gw_loc.csv', G[:, :2], delimiter=',')
+	np.savetxt('./relaxOpt/sr_loc.csv', sr_info[:, :2], delimiter=',')
+	np.savetxt('./relaxOpt/gw_loc.csv', G[:, :2], delimiter=',')
 
 	# optInterface.TestLifetime(params)
 	c_ijks = optInterface.GenerateCijks(sr_info, G, PL, params)
 	Ptx_cnt = len(params.Ptx)
 	for k in range(SF_cnt):
 		for q in range(Ptx_cnt):
-			np.savetxt('../relaxOpt/cijk_{}_{}.csv'.format(k, q), \
+			np.savetxt('./relaxOpt/cijk_{}_{}.csv'.format(k, q), \
 				c_ijks[:, :, k, q], fmt='%d', delimiter=',')
 
 	return sr_info, G, PL, dist, N_kq

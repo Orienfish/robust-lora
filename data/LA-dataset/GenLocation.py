@@ -3,6 +3,10 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 
+# Important parameters or the LA dataset
+class params:
+	gw_dist = 6000      # Distance between two gateways in m
+
 def ReadFile(filename, origin):
 	'''
 	Read the [latitude longitude] from the file and convert them to location in km
