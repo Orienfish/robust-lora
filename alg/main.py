@@ -39,7 +39,7 @@ class params:
 		sr_cnt = 100              # Number of end devices
 		gw_dist = 6000            # Distance between two gateways, use if dataFile not provided
 	else:
-		sr_cnt = 650
+		sr_cnt = 600
 		gw_dist = 7250
 
 	# Version of log propagation model
@@ -102,10 +102,10 @@ class params:
 		PLFile = './data/LA/path_loss_mat2.npy'    			   	 # Path loss between each device-gw pair
 		GwAbleFile = './data/LA/gw_able.npy'       			 # Whether placing gateway at a location is allowed
 	else:
-		dataFile = './data/test/dataHPWREN.csv'			
+		dataFile = './data/test2/dataHPWREN.csv'
 		origin = [32.5451, -117.9608]
-		PLFile = './data/test/path_loss_mat.npy'
-		GwAbleFile = './data/test/gw_able.npy'
+		PLFile = './data/test2/path_loss_mat.npy'
+		GwAbleFile = './data/test2/gw_able.npy'
 
 	data = True							# Whether to use the dataFile of end device locations
 	PL = False						# Whether to use the PLFile of path loss matrix
