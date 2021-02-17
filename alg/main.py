@@ -72,10 +72,10 @@ class params:
 	Lifetime_th = 2		# Lifetime threshold at each end node in years
 
 class DataParams:
-	dataLoc = False							# Whether to use the predetermined locations
-	PL = False								# Whether to use the PLFile of path loss matrix
+	dataLoc = True							# Whether to use the predetermined locations
+	PL = True								# Whether to use the PLFile of path loss matrix
 	LogPropVer = 'Dongare'					# Version of log propagation model
-	datasetPath = '../data/LA-dataset/'	# Path to the dataset
+	datasetPath = dir_path + '/../data/LA-dataset/'	# Path to the dataset
 	srFile = datasetPath + 'sr_loc.csv'		# End device locations
 	gwFile = datasetPath + 'gw_loc.csv'		# Candidate gateway locations
 	origin = datasetPath + 'origin.npy'		# Origin in latitude and longitude
