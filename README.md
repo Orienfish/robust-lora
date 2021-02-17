@@ -20,6 +20,14 @@ MATLAB 2020a + [SNOPT 7.7](https://ccom.ucsd.edu/~optimizers/solvers/snopt/)
 └── relaxOpt     // MATLAB scripts to call SNOPT to optimally solve the relaxed problem
 ```
 
+## Data
+
+In `./data` folder, we include the tutorial on how to generate the datasets.
+
+Each dataset includes (i) end devices locations, (ii) candidate gateway locations and (iii) path loss matrix with (i, j) entry representing the path loss in dB between the ith end device and jth gateway.
+
+Detailed instructions are listed in [README.md](./data/).
+
 ## Algorithms
 
 In `./alg` folder, we implement the following algorithms:
@@ -34,7 +42,7 @@ The following baselines are included:
 
 `./alg/main.py` sets which algorithm to run and the parameters of the problem.
 
-To run the algorithms
+To run the algorithms:
 
 ```bash
 python3 ./alg/main.py
@@ -44,7 +52,7 @@ python3 ./alg/main.py
 
 To run the ns-3 simulations, first install [ns3-3.31](https://www.nsnam.org/releases/ns-3-31/).
 
-Then, clone our modified lorawan module and copy the test script
+Then, clone our modified lorawan module and copy the test script:
 
 ```bash
 cd root-of-ns3/ns-3.31/src
@@ -52,7 +60,7 @@ git clone https://github.com/Orienfish/lorawan.git
 cp path-to-this-repo/ns3-exp/adr.cc root-of-ns3/ns-3.31/scratch
 ```
 
-To run the ns-3 simulation
+To run the ns-3 simulation:
 
 ```bash
 cd root-of-ns3/ns-3.31
@@ -66,6 +74,8 @@ Multiple parameters can be set with the command:
 ```
 
 For more details, check the help function and the source code.
+
+Multiple bash scripts are included in `./ns3-exp` folder for running experiments.
 
 ## Relax Optimization
 
