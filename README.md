@@ -15,7 +15,7 @@ MATLAB 2020a + [SNOPT 7.7](https://ccom.ucsd.edu/~optimizers/solvers/snopt/)
 ├── LICENSE
 ├── README.md    // This file
 ├── alg          // Algorithms for LoRa gateway placement and device configuration
-├── data         // End device location and how to generate path loss matrix 
+├── data         // End device location data and how to generate path loss matrix 
 ├── ns3-exp      // Scripts to test in ns3
 └── relaxOpt     // MATLAB scripts to call SNOPT to optimally solve the relaxed problem
 ```
@@ -26,15 +26,15 @@ In `./data` folder, we include the tutorial on how to generate the datasets.
 
 Each dataset includes (i) end devices locations, (ii) candidate gateway locations and (iii) path loss matrix with (i, j) entry representing the path loss in dB between the ith end device and jth gateway.
 
-Detailed instructions are listed in [README.md](./data/).
+Detailed instructions are listed in [data/README.md](./data/).
 
 ## Algorithms
 
 In `./alg` folder, we implement the following algorithms:
 
 * Proposed greedy gateway placement and device configuration heuristic (`./alg/RGreedy.py`).
-* The above proposed heuristic with clustering acceleration (`./alg/clustering.py`).
-* Genetic algorithm with the [geneticalgorithm](https://pypi.org/project/geneticalgorithm/) package v1.0.1 (`./alg/RGenetic.py`).
+* The above proposed heuristic with clustering acceleration (`./alg/clustering.py`). Need the [scikit-learn](https://pypi.org/project/geneticalgorithm/) package.
+* Genetic algorithm (`./alg/RGenetic.py`). Need the [geneticalgorithm](https://pypi.org/project/geneticalgorithm/) package.
 
 The following baselines are included:
 
