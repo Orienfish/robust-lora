@@ -108,7 +108,7 @@ class params:
 		GwAbleFile = './data/test2/gw_able.npy'
 
 	data = True							# Whether to use the dataFile of end device locations
-	PL = False						# Whether to use the PLFile of path loss matrix
+	PL = True						# Whether to use the PLFile of path loss matrix
 
 # Parameters for the DBSCAN clustering algorithm
 class ClusterParams:
@@ -140,7 +140,7 @@ class GeneticParams:
 class run:
 	iteration = 1
 	M = [1, 2, 3] #[3, 2, 1]
-	RGreedy = False  	# Pure greedy algorithm
+	RGreedy = True  	# Pure greedy algorithm
 	RGreedy_c = False	# With cluster-based acceleration
 	RGreedy_e = False	# With end-of-exploration acceleration
 	RGreedy_ce = False	# With both accleration techniques
