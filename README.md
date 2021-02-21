@@ -15,18 +15,26 @@ MATLAB 2020a + [SNOPT 7.7](https://ccom.ucsd.edu/~optimizers/solvers/snopt/)
 ├── LICENSE
 ├── README.md    // This file
 ├── alg          // Algorithms for LoRa gateway placement and device configuration
-├── data         // End device location and how to generate path loss matrix 
+├── data         // End device location data and how to generate path loss matrix 
 ├── ns3-exp      // Scripts to test in ns3
 └── relaxOpt     // MATLAB scripts to call SNOPT to optimally solve the relaxed problem
 ```
+
+## Data
+
+In `./data` folder, we include the tutorial on how to generate the datasets.
+
+Each dataset includes (i) end devices locations, (ii) candidate gateway locations and (iii) path loss matrix with (i, j) entry representing the path loss in dB between the ith end device and jth gateway.
+
+Detailed instructions are listed in [data/README.md](./data/).
 
 ## Algorithms
 
 In `./alg` folder, we implement the following algorithms:
 
 * Proposed greedy gateway placement and device configuration heuristic (`./alg/RGreedy.py`).
-* The above proposed heuristic with clustering acceleration (`./alg/clustering.py`).
-* Genetic algorithm with the [geneticalgorithm](https://pypi.org/project/geneticalgorithm/) package v1.0.1 (`./alg/RGenetic.py`).
+* The above proposed heuristic with clustering acceleration (`./alg/clustering.py`). Need the [scikit-learn](https://pypi.org/project/geneticalgorithm/) package.
+* Genetic algorithm (`./alg/RGenetic.py`). Need the [geneticalgorithm](https://pypi.org/project/geneticalgorithm/) package.
 
 The following baselines are included:
 
@@ -34,7 +42,7 @@ The following baselines are included:
 
 `./alg/main.py` sets which algorithm to run and the parameters of the problem.
 
-To run the algorithms
+To run the algorithms:
 
 ```bash
 python3 ./alg/main.py
@@ -44,7 +52,7 @@ python3 ./alg/main.py
 
 To run the ns-3 simulations, first install [ns3-3.31](https://www.nsnam.org/releases/ns-3-31/).
 
-Then, clone our modified lorawan module and copy the test script
+Then, clone our modified lorawan module and copy the test script:
 
 ```bash
 cd root-of-ns3/ns-3.31/src
@@ -52,7 +60,7 @@ git clone https://github.com/Orienfish/lorawan.git
 cp path-to-this-repo/ns3-exp/adr.cc root-of-ns3/ns-3.31/scratch
 ```
 
-To run the ns-3 simulation
+To run the ns-3 simulation:
 
 ```bash
 cd root-of-ns3/ns-3.31
@@ -66,6 +74,8 @@ Multiple parameters can be set with the command:
 ```
 
 For more details, check the help function and the source code.
+
+Multiple bash scripts are included in `./ns3-exp` folder for running experiments.
 
 ## Relax Optimization
 

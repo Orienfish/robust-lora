@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# main file
 import numpy as np
 import math
 import random
@@ -12,17 +13,17 @@ logging.basicConfig(level=logging.INFO)
 
 import ICIOT
 import RGreedy
-import RGenetic
 import propagation
-import ReadData
-import clustering
 import optInterface
 import utils
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
 ########################################
 # Important parameters
 ########################################
 class params:
+<<<<<<< HEAD
 
 	#indicate which dataset to use, default LA dataset
 	LA = False
@@ -41,9 +42,11 @@ class params:
 	else:
 		sr_cnt = 650
 		gw_dist = 7250
-
-	# Version of log propagation model
-	LogPropVer = 'Dongare'
+=======
+	L = 30000			# Edge of analysis area in m
+	sr_cnt = 100        # Number of end devices
+	gw_dist = 6000      # Distance between two gateways in m
+>>>>>>> origin
 
 	T = 1200			# Sampling period in s
 
@@ -90,6 +93,7 @@ class params:
 	PDR_th = 0.8		# PDR threshold at each end node
 	Lifetime_th = 2		# Lifetime threshold at each end node in years
 
+<<<<<<< HEAD
 	# the given data files and bool variables showing whether or not to use them
 	if HPWREN: 
 		dataFile = './data/HPWREN/dataHPWREN.csv'			
@@ -109,6 +113,18 @@ class params:
 
 	data = True							# Whether to use the dataFile of end device locations
 	PL = False					# Whether to use the PLFile of path loss matrix
+=======
+class DataParams:
+	dataLoc = True							# Whether to use the predetermined locations
+	PL = True								# Whether to use the PLFile of path loss matrix
+	LogPropVer = 'Dongare'					# Version of log propagation model
+	datasetPath = dir_path + '/../data/LA-dataset/'	# Path to the dataset
+	srFile = datasetPath + 'sr_loc.csv'		# End device locations
+	gwFile = datasetPath + 'gw_loc.csv'		# Candidate gateway locations
+	PLFile = datasetPath + 'path_loss_mat.npy'	# Path loss between each device-gw pair
+	GwAbleFile = datasetPath + 'gw_able.npy'	# Whether placing gateway at a location is allowed
+
+>>>>>>> origin
 
 # Parameters for the DBSCAN clustering algorithm
 class ClusterParams:
@@ -160,19 +176,25 @@ def init(params):
 		PL: path loss matrix
 		dist: distance matrix
 	'''
+<<<<<<< HEAD
 	sr_info = []				# [x, y, SF, Ptx, CH]
 	# If dataFile is provided, read from the data file
+=======
+	#####################################################################
+	# Initialize sensor end device information
+	# If predetermined locations are provided, read from the dataLoc file
+>>>>>>> origin
 	# Else, randomly generate the end devices locations
-	if params.data:
-		coor = ReadData.ReadFile(params.dataFile, params.origin)
-		x_max = np.max(coor[:, 0])
-		y_max = np.max(coor[:, 1])
+	#####################################################################
+	sr_info = []		# [x, y, SF, Ptx, CH]
+	if DataParams.dataLoc:
+		coor = np.loadtxt(DataParams.srFile, delimiter=',')
 	else:
 		coor = np.random.rand(params.sr_cnt, 2) * params.L
 		x_max = params.L
 		y_max = params.L
 
-	# Fill in the coordinate date to the initial sensor info
+	# Fill in the sensor coordinates to the initial sensor info
 	for i in range(coor.shape[0]):
 		k = -1 #random.randint(0, len(params.SF)-1) # SFk
 		q = -1 # random.randint(0, len(params.CH)-1) # Channel q
@@ -180,32 +202,45 @@ def init(params):
 		sr_info.append(new_loc)
 
 	sr_info = np.array(sr_info)
-	# print(sr_info)
 	sr_cnt = sr_info.shape[0]
 
-
-	# Generate the grid candidate set N and G with their x, y coordinates
-	# N for sensor placement and G for gateway placement
+	#####################################################################
+	# Initialize candidate gateway information
+	# If predetermined locations are provided, read from the dataLoc file
+	# Else, randomly generate the end devices locations
+	#####################################################################
 	G = []				# [x, y, placed or not, can place or not]
-	x_gw = params.gw_dist / 2
-	y_gw = params.gw_dist / 2
-	gw_able = np.load(params.GwAbleFile)
-	gw_idx = 0
-	while x_gw < x_max:
-		while y_gw < y_max:
-			new_loc = [x_gw, y_gw, 0, gw_able[gw_idx]]
-			G.append(new_loc)
-			gw_idx += 1
-			y_gw += params.gw_dist
-		x_gw += params.gw_dist
+	if DataParams.dataLoc:
+		coor = np.loadtxt(DataParams.gwFile, delimiter=',')
+		gw_able = np.load(DataParams.GwAbleFile)
+	else:
+		x_gw = params.gw_dist / 2
 		y_gw = params.gw_dist / 2
+		gw_idx = 0
+		coor = []
+		while x_gw < x_max:
+			while y_gw < y_max:
+				coor.append([x_gw, y_gw])
+				gw_idx += 1
+				y_gw += params.gw_dist
+			x_gw += params.gw_dist
+			y_gw = params.gw_dist / 2
+		coor = np.array(coor)
+		gw_able = np.ones((coor.shape[0],))
+
+	# Fill in the gateway coordinates to the initial gateway info
+	for i in range(coor.shape[0]):
+		new_loc = [coor[i, 0], coor[i, 1], 0, gw_able[i]]
+		G.append(new_loc)
 
 	G = np.array(G)
-	# print(G)
 	gw_cnt = G.shape[0]
 
-	# Generate path loss and distance matrix between sensor i and
-	# candidate gateway j
+	#####################################################################
+	# Initialize path loss matrix
+	# If predetermined path losses are provided, read from the file
+	# Else, randomly generate the path loss using the specified model
+	#####################################################################
 	PL = np.zeros((sr_cnt, gw_cnt))
 	dist = np.zeros((sr_cnt, gw_cnt))
 	for i in range(sr_cnt):
@@ -214,28 +249,12 @@ def init(params):
 			loc2 = G[j, :2]
 			dist[i, j] = np.sqrt(np.sum((loc1 - loc2)**2))
 			PL[i, j] = propagation.LogDistancePathLossModel(d=dist[i, j], \
-				ver=params.LogPropVer)
+				ver=DataParams.LogPropVer)
 	# If PL file is provided, overwrite the isomophic one
-	if params.PL:
-		PL = np.load(params.PLFile).T
+	if DataParams.PL:
+		PL = np.load(DataParams.PLFile).T
 		logging.info('Load PL mat: {}'.format(PL.shape))
 		PL = PL + 10.0
-
-		d = np.reshape(dist, (-1))
-		loss_bor = list(map(lambda di: propagation.LogDistancePathLossModel(d=di, ver='Bor'), d))
-		Prx_log_Bor = [propagation.GetRSSI(20, lossi) for lossi in loss_bor]
-		plt.figure(figsize=(7, 5))
-		plt.plot(d/1000, -np.reshape(PL, (-1)), 'b.', label='Land Cover-based Model')
-		plt.plot(d/1000, Prx_log_Bor, 'r.', label='Log-Normal Model')
-		plt.xlabel('Distance (km)', fontsize=16)
-		plt.ylabel('RSS (dBm)', fontsize=16)
-		plt.xticks(fontsize=16)
-		plt.yticks(fontsize=16)
-		plt.legend(fontsize=16)
-		plt.tight_layout()
-		plt.savefig('./pl-res.png', dpi=300)
-		# plt.show()
-	#np.savetxt('./data/PL.csv', PL, delimiter=',')
 
 	# Use a dictionary to record the list of nodes using the SFk and channel q
 	# Note that the dictionary only records the primary connection
@@ -247,17 +266,21 @@ def init(params):
 		for q in range(CH_cnt):
 			N_kq[str(k) + '_' + str(q)] = []
 
+	#####################################################################
+	# Save information for relaxed problem optimization
+	#####################################################################
 	# Save the end device locations and candidate gateway locations
 	np.savetxt('./relaxOpt/sr_loc.csv', sr_info[:, :2], delimiter=',')
 	np.savetxt('./relaxOpt/gw_loc.csv', G[:, :2], delimiter=',')
 
-	# optInterface.TestLifetime(params)
+	# Generate the binary indicator for relaxed optimization
 	c_ijks = optInterface.GenerateCijks(sr_info, G, PL, params)
 	Ptx_cnt = len(params.Ptx)
 	for k in range(SF_cnt):
 		for q in range(Ptx_cnt):
 			np.savetxt('./relaxOpt/cijk_{}_{}.csv'.format(k, q), \
 				c_ijks[:, :, k, q], fmt='%d', delimiter=',')
+
 
 	return sr_info, G, PL, dist, N_kq
 
@@ -295,8 +318,8 @@ def main():
 		ICIOTParams.desired_gw_cnt = args.desired_gw_cnt
 
 	# Create flag w.r.t. file usage status for labeling results
-	flagData = 'd' if params.data else ''
-	flagPL = 'p' if params.PL else ''
+	flagData = 'd' if DataParams.dataLoc else ''
+	flagPL = 'p' if DataParams.PL else ''
 
 	for it in range(run.iteration):
 		# Initialization
@@ -334,6 +357,7 @@ def main():
 
 			# Greedy algorithm with cluster-based acceleration
 			if run.RGreedy_c:
+				import clustering
 				GreedyParams.cluster = True
 				GreedyParams.end = False
 
@@ -383,6 +407,7 @@ def main():
 
 			# Greedy algorithm with both acceleration techniques
 			if run.RGreedy_ce:
+				import clustering
 				GreedyParams.cluster = True
 				GreedyParams.end = True
 
@@ -408,6 +433,7 @@ def main():
 
 
 			if run.RGenetic:
+				import RGenetic as RGenetic
 				logging.info('Running RGenetic M = {}'.format(params.M))
 				st_time = time.time()
 				sr_info_res, G_res, m_gateway_res = \

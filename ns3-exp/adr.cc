@@ -44,6 +44,7 @@ void OnTxPowerChange (double oldTxPower, double newTxPower)
 }
 
 std::vector < std::string > split(std::string const & str, const char delim);
+void AddInterference(NodeContainer gateways, Time duration, double intfrPowerdBm);
 void EnablePeriodicDeviceStatusPrinting (NodeContainer endDevices,
                                          NodeContainer gateways,
                                          EnergySourceContainer sources,
@@ -53,14 +54,16 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
                           NodeContainer gateways,
                           EnergySourceContainer sources,
                           std::string filename);
+void EnableGatewaySwitch(NodeContainer gateways, Time interval, int nDownGateways,
+                         std::vector<uint32_t> lastDownGatewayIdx);
 void RecordTotalEnergyConsumption (NodeContainer endDevices,
                                    EnergySourceContainer sources);
 double CalObjectiveValue (NodeContainer endDevices,
                           NodeContainer gateways,
-                          LoraPacketTracker& tracker, 
+                          LoraPacketTracker& tracker,
                           Time startTime, Time stopTime, std::string filename);
 std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
-                                         LoraPacketTracker& tracker, 
+                                         LoraPacketTracker& tracker,
                                          Time startTime, Time stopTime, std::string filename);
 
 // Parameters in calculating the objective value
@@ -70,15 +73,20 @@ double E_cap_J = 23760;        // Battery capacity in J
 std::vector<double> energyVec; // A vector to store total energy consumption at each end device
 std::string srlocFile = "sr_loc.txt"; // Sensor location file
 std::string gwlocFile = "gw_loc.txt"; // Gateway location file
+std::string PLFile = "pl_mat.txt"; // Path loss file
 
 int main (int argc, char *argv[])
 {
 
   bool verbose = false;
   bool adrEnabled = false;
+  bool matrixPLEnabled = false;
   int nDevices = 0;
   int nGateways = 0;
-  int nPeriods = 24*3*365; // 1 year
+  int nPeriods = 24*3; // 1 month, per period is 20 min
+  int nGatewayDownPeriods = 24*3; // 1 day, per period is 20 min
+  int nDownGateways = 0;
+  double intfrPowerdBm = -1000.0;
   std::string adrType = "ns3::AdrComponent";
 
   CommandLine cmd;
@@ -88,14 +96,18 @@ int main (int argc, char *argv[])
   // cmd.AddValue ("MultiplePacketsCombiningMethod",
   //              "ns3::AdrComponent::MultiplePacketsCombiningMethod");
   // cmd.AddValue ("HistoryRange", "ns3::AdrComponent::HistoryRange");
+  cmd.AddValue ("AdrEnabled", "Whether to enable ADR", adrEnabled);
+  cmd.AddValue ("MatrixPLEnabled", "Whether to enable land-type path loss", matrixPLEnabled);
   cmd.AddValue ("MType", "ns3::EndDeviceLorawanMac::MType");
   cmd.AddValue ("EDDRAdaptation", "ns3::EndDeviceLorawanMac::EnableEDDataRateAdaptation");
   cmd.AddValue ("ChangeTransmissionPower",
                 "ns3::AdrComponent::ChangeTransmissionPower");
-  cmd.AddValue ("AdrEnabled", "Whether to enable ADR", adrEnabled);
   cmd.AddValue ("nDevices", "Number of devices to simulate", nDevices);
   cmd.AddValue ("nGateways", "Number of gateways to simulate", nDevices);
-  cmd.AddValue ("PeriodsToSimulate", "Number of periods to simulate", nPeriods);
+  cmd.AddValue ("nPeriods", "Number of periods to simulate", nPeriods);
+  cmd.AddValue ("nGatewayDownPeriods", "Number of periods to switch down gateways", nGatewayDownPeriods);
+  cmd.AddValue ("nDownGateways", "Number of gateways to switch down in each period", nDownGateways);
+  cmd.AddValue ("intfrPowerdBm", "Inference power in dBm", intfrPowerdBm);
   cmd.Parse (argc, argv);
 
 
@@ -106,7 +118,7 @@ int main (int argc, char *argv[])
   // LogComponentEnable ("AdrExample", LOG_LEVEL_ALL);
   // LogComponentEnable ("SimpleEndDeviceLoraPhy", LOG_LEVEL_ALL);
   // LogComponentEnable ("SimpleGatewayLoraPhy", LOG_LEVEL_ALL);
-  // LogComponentEnable ("LoraChannel", LOG_LEVEL_ALL); 
+  // LogComponentEnable ("LoraChannel", LOG_LEVEL_ALL);
   // LogComponentEnable ("PropagationLossModel", LOG_LEVEL_ALL);
   // LogComponentEnable ("LoraPacketTracker", LOG_LEVEL_ALL);
   // LogComponentEnable ("NetworkServer", LOG_LEVEL_ALL);
@@ -122,37 +134,13 @@ int main (int argc, char *argv[])
   // LogComponentEnable ("AdrExploraSf", LOG_LEVEL_ALL);
   // LogComponentEnable ("AdrExploraAt", LOG_LEVEL_ALL);
   // LogComponentEnable ("EndDeviceLorawanMac", LOG_LEVEL_ALL);
-  // LogComponentEnable ("LoraRadioEnergyModel", LOG_LEVEL_ALL);
+  // LogComponentEnable ("LoraInterferenceHelper", LOG_LEVEL_ALL);
   LogComponentEnableAll (LOG_PREFIX_FUNC);
   LogComponentEnableAll (LOG_PREFIX_NODE);
   LogComponentEnableAll (LOG_PREFIX_TIME);
 
   // Set the EDs to require Data Rate control from the NS
   Config::SetDefault ("ns3::EndDeviceLorawanMac::DRControl", BooleanValue (true));
-
-
-
-  //////////////////////////////////////
-  // Create a simple wireless channel //
-  //////////////////////////////////////
-
-  Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
-  loss->SetPathLossExponent (2.1495);
-  loss->SetReference (140, 105.5729);
-
-  Ptr<NormalRandomVariable> x = CreateObject<NormalRandomVariable> ();
-  x->SetAttribute ("Mean", DoubleValue (0));
-  x->SetAttribute ("Variance", DoubleValue (100.0724));
-
-  Ptr<RandomPropagationLossModel> randomLoss = CreateObject<RandomPropagationLossModel> ();
-  randomLoss->SetAttribute ("Variable", PointerValue (x));
-
-  loss->SetNext (randomLoss);
-
-  Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
-
-  Ptr<LoraChannel> channel = CreateObject<LoraChannel> (loss, delay);
-
 
 
   ////////////////
@@ -192,7 +180,7 @@ int main (int argc, char *argv[])
     NS_LOG_ERROR ("Unable to open file " << srlocFile);
     return -1;
   }
-  
+
   endDevices.Create (nDevices);
   mobilityEd.Install (endDevices);
 
@@ -216,7 +204,7 @@ int main (int argc, char *argv[])
         if (line.size() > 0) {
             std::vector < std::string > coordinates = split(line, ' ');
             double x = atof(coordinates.at(0).c_str());
-            double y = atof(coordinates.at(1).c_str());            
+            double y = atof(coordinates.at(1).c_str());
             positionAllocGw->Add (Vector (x, y, 15.0) );
             nGateways ++;
         }
@@ -232,6 +220,87 @@ int main (int argc, char *argv[])
 
   gateways.Create (nGateways);
   mobilityGw.Install (gateways);
+
+  //////////////////////////////////////
+  // Create a simple wireless channel //
+  //////////////////////////////////////
+  Ptr<LoraChannel> channel;
+  std::vector< std::vector<double> > PL(nDevices); // Path loss matrix
+  if (!matrixPLEnabled) // Use log path loss initialization
+  {
+    Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
+    loss->SetPathLossExponent (2.1495);
+    loss->SetReference (140, 105.5729);
+
+    Ptr<NormalRandomVariable> x = CreateObject<NormalRandomVariable> ();
+    x->SetAttribute ("Mean", DoubleValue (0));
+    x->SetAttribute ("Variance", DoubleValue (100.0724));
+    Ptr<RandomPropagationLossModel> randomLoss = CreateObject<RandomPropagationLossModel> ();
+    randomLoss->SetAttribute ("Variable", PointerValue (x));
+
+    loss->SetNext (randomLoss);
+
+    Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
+
+    channel = CreateObject<LoraChannel> (loss, delay);
+  }
+  else // Use predetermined matrix path loss according to land types
+  {
+    // Load path loss matrix from text file
+    std::ifstream PathLossFile(PLFile);
+    if (PathLossFile.is_open())
+    {
+      NS_LOG_DEBUG ("Read from path loss file.");
+      std::string line;
+      int curSrIdx = 0;
+      while (std::getline(PathLossFile, line)) {
+          if (line.size() > 0) {
+              std::vector<std::string> pl = split(line, ' ');
+              for (std::vector<std::string>::iterator i = pl.begin (); i != pl.end (); ++i)
+              {
+                PL[curSrIdx].push_back(atof((*i).c_str()));
+              }
+          }
+          curSrIdx ++;
+      }
+    }
+    else
+    {
+      NS_LOG_ERROR ("Unable to open file " << PLFile);
+      return -1;
+    }
+
+    Ptr<MatrixPropagationLossModel> loss = CreateObject<MatrixPropagationLossModel> ();
+    for (NodeContainer::Iterator ed = endDevices.Begin (); ed != endDevices.End (); ++ed)
+    {
+      Ptr<Node> edObject = *ed;
+      int edId = edObject->GetId();
+      Ptr<MobilityModel> edPos = edObject->GetObject<MobilityModel> ();
+      NS_ASSERT (edPos != 0);
+      for (NodeContainer::Iterator gw = gateways.Begin (); gw != gateways.End (); ++gw)
+      {
+        Ptr<Node> gwObject = *gw;
+        int gwId = gwObject->GetId() - nDevices; // gateway IDs counts after end devices
+        Ptr<MobilityModel> gwPos = gwObject->GetObject<MobilityModel> ();
+        NS_ASSERT (gwPos != 0);
+        // the last argument is set to true for symmetric path loss in each device-gateway pair
+        loss->SetLoss (edPos, gwPos, PL[edId][gwId], true);
+        // std::cout << edId << " " << gwId << " " << PL[edId][gwId] << std::endl;
+      }
+    }
+
+    Ptr<NormalRandomVariable> x = CreateObject<NormalRandomVariable> ();
+    x->SetAttribute ("Mean", DoubleValue (0));
+    x->SetAttribute ("Variance", DoubleValue (100.0724));
+    Ptr<RandomPropagationLossModel> randomLoss = CreateObject<RandomPropagationLossModel> ();
+    randomLoss->SetAttribute ("Variable", PointerValue (x));
+
+    loss->SetNext (randomLoss);
+
+    Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
+
+    channel = CreateObject<LoraChannel> (loss, delay);
+  }
 
 
 
@@ -340,7 +409,10 @@ int main (int argc, char *argv[])
 
   // Activate printing of ED MAC parameters
   Time stateSamplePeriod = Seconds (1200);
+  Time downPeriod = Seconds (1200 * nGatewayDownPeriods);
+  std::vector<uint32_t> lastDownGatewayIdx;
   EnablePeriodicDeviceStatusPrinting (endDevices, gateways, sources, "nodeData.txt", stateSamplePeriod);
+  EnableGatewaySwitch (gateways, downPeriod, nDownGateways, lastDownGatewayIdx);
   helper.EnablePeriodicPhyPerformancePrinting (gateways, "phyPerformance.txt", stateSamplePeriod);
   helper.EnablePeriodicGlobalPerformancePrinting ("globalPerformance.txt", stateSamplePeriod);
 
@@ -348,6 +420,9 @@ int main (int argc, char *argv[])
   LoraPacketTracker& tracker = helper.GetPacketTracker ();
 
   Time simulationTime = Seconds (1200 * nPeriods);
+
+    // Add inteference
+  AddInterference(gateways, simulationTime, intfrPowerdBm);
 
   // Schedule an event at the end of simulation to record energy consumpton at each end device
   Simulator::Schedule (simulationTime, &RecordTotalEnergyConsumption, endDevices, sources);
@@ -369,8 +444,8 @@ int main (int argc, char *argv[])
     std::cout << tracker.PrintMacPacketsCpsrPerEd (Seconds (0), simulationTime, edId) << " "
               << tracker.PrintPhyPacketsPerEd (Seconds (0), simulationTime, edId) << std::endl;
   }
-  
-  std::cout << "PrintPhyPacketsPerGw:" << std::endl 
+
+  std::cout << "PrintPhyPacketsPerGw:" << std::endl
             << "TOTAL RECEIVED INTERFERED NO_MORE_RECEIVERS UNDER_SENSITIVITY LOST_BECAUSE_TX" << std::endl;
   for (int gwId = nDevices; gwId < nDevices + nGateways; ++gwId)
   {
@@ -378,7 +453,7 @@ int main (int argc, char *argv[])
   }
   std::cout << std::endl;
 
-  std::cout << "PrintPhyPacketsPerGwEd:" << std::endl 
+  std::cout << "PrintPhyPacketsPerGwEd:" << std::endl
             << "TOTAL RECEIVED INTERFERED NO_MORE_RECEIVERS UNDER_SENSITIVITY LOST_BECAUSE_TX" << std::endl;
   for (int edId = 0; edId < nDevices; ++edId)
   {
@@ -388,16 +463,16 @@ int main (int argc, char *argv[])
     }
     std::cout << std::endl;
   }
-  
+
   std::cout << CalObjectiveValue (endDevices, gateways, tracker, Seconds (0), simulationTime, "nodeEE.txt") << std::endl;
-  
+
 
   return 0;
 }
 
 
 // split implementation for reading from external text files
-std::vector < std::string > split(std::string const & str, const char delim) 
+std::vector < std::string > split(std::string const & str, const char delim)
 {
     std::vector < std::string > result;
 
@@ -409,6 +484,37 @@ std::vector < std::string > split(std::string const & str, const char delim)
     }
 
     return result;
+}
+
+// Add interferences to each gateway on all SFs and channels
+void AddInterference(NodeContainer gateways, Time duration, double intfrPowerdBm)
+{
+  std::vector<uint8_t> SFArray = {7, 8, 9, 10};
+  std::vector<double> freqArray = {902.3, 902.5, 902.7, 902.9, 903.1, 903.3, 903.5, 903.7};
+
+  for (NodeContainer::Iterator j = gateways.Begin (); j != gateways.End (); ++j)
+  {
+    Ptr<Node> object = *j;
+
+    // Get netDevice
+    Ptr<NetDevice> netDevice = object->GetDevice (0);
+    Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+    NS_ASSERT (loraNetDevice != 0);
+
+    // Get phy status
+    Ptr<SimpleGatewayLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<SimpleGatewayLoraPhy> ();
+
+    // Iterate through all SFs and channels (frequencies)
+    for (std::vector<uint8_t>::iterator i = SFArray.begin ();
+         i < SFArray.end (); ++i)
+    {
+      for (std::vector<double>::iterator j = freqArray.begin ();
+           j < freqArray.end (); ++j)
+      {
+        phy->AddInterference(duration, intfrPowerdBm, *i, *j);
+      }
+    }
+  }
 }
 
 // Schedule periodic end devices' status printing - including energy
@@ -446,7 +552,7 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
   }
 
   Time currentTime = Simulator::Now();
-  
+
   // Iterate through all end devices
   for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
   {
@@ -474,7 +580,7 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
     Ptr<DeviceEnergyModel> LoRaRadioModelPtr = SourcePtr->FindDeviceEnergyModels("ns3::LoraRadioEnergyModel").Get(0);
     NS_ASSERT (LoRaRadioModelPtr != 0);
     double energy_consumption = LoRaRadioModelPtr->GetTotalEnergyConsumption();
-    
+
     outputFile << currentTime.GetSeconds () << " "
                << object->GetId () <<  " "
                << pos.x << " " << pos.y << " " << pos.z << " "
@@ -486,14 +592,80 @@ void DoPrintDeviceStatus (NodeContainer endDevices,
   for (NodeContainer::Iterator j = gateways.Begin (); j != gateways.End (); ++j)
   {
     Ptr<Node> object = *j;
+
+    // Get position
     Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
+    NS_ASSERT (position != 0);
     Vector pos = position->GetPosition ();
+
+    // Get netDevice
+    Ptr<NetDevice> netDevice = object->GetDevice (0);
+    Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+    NS_ASSERT (loraNetDevice != 0);
+
+    // Get phy status
+    Ptr<SimpleGatewayLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<SimpleGatewayLoraPhy> ();
+    bool status = phy->GetStatus (); // ON or OFF status of the gateway at the current time
+
     outputFile << currentTime.GetSeconds () << " "
                << object->GetId () <<  " "
                << pos.x << " " << pos.y << " " << pos.z << " "
-               << "-1 -1 -1" << std::endl;
+               << status << " -1 -1" << std::endl;
   }
   outputFile.close ();
+}
+
+// Schudule periodic events to switch on/off gateways
+void EnableGatewaySwitch(NodeContainer gateways, Time interval, int nDownGateways,
+  std::vector<uint32_t> lastDownGatewayIdx)
+{
+  // Reset the gateways turned down in the last period
+  for (std::vector<uint32_t>::iterator i = lastDownGatewayIdx.begin ();
+       i < lastDownGatewayIdx.end (); ++i)
+  {
+    uint32_t gwIdx = *i;
+    Ptr<Node> object = gateways.Get (gwIdx);
+
+    // Get netDevice
+    Ptr<NetDevice> netDevice = object->GetDevice (0);
+    Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+    NS_ASSERT (loraNetDevice != 0);
+
+    // Set phy status
+    Ptr<SimpleGatewayLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<SimpleGatewayLoraPhy> ();
+    phy->SetStatus (true);
+  }
+
+  // Select new gateways to turn down
+  uint32_t gwCnt = gateways.GetN ();
+  std::vector<uint32_t> downGatewayIdx;
+  Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
+  for (int i = 0; i < nDownGateways; ++i)
+  {
+    uint32_t gwIdx = x->GetInteger (0, gwCnt-1);
+    // If gateway has already been selected, select a new gateway
+    if (std::find(downGatewayIdx.begin(), downGatewayIdx.end(), gwIdx) != downGatewayIdx.end())
+    {
+      continue;
+    }
+    downGatewayIdx.push_back (gwIdx);
+
+    Ptr<Node> object = gateways.Get (gwIdx);
+
+    // Get netDevice
+    Ptr<NetDevice> netDevice = object->GetDevice (0);
+    Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+    NS_ASSERT (loraNetDevice != 0);
+
+    // Set phy status
+    Ptr<SimpleGatewayLoraPhy> phy = loraNetDevice->GetPhy ()->GetObject<SimpleGatewayLoraPhy> ();
+    phy->SetStatus (false);
+
+    std::cout << "gw idx to turn down: " << gwIdx << std::endl;
+  }
+
+  Simulator::Schedule (interval, &EnableGatewaySwitch, gateways, interval,
+    nDownGateways, downGatewayIdx);
 }
 
 // Record the total energy consumption at each end device in the global vector energyVec
@@ -521,7 +693,7 @@ void RecordTotalEnergyConsumption (NodeContainer endDevices,
 // Calculate the objective value in the ICIOT paper
 double CalObjectiveValue (NodeContainer endDevices,
                           NodeContainer gateways,
-                          LoraPacketTracker& tracker, 
+                          LoraPacketTracker& tracker,
                           Time startTime, Time stopTime, std::string filename)
 {
   std::vector<double> EEVec = CalEnergyEfficiency(endDevices, tracker, startTime, stopTime, filename);
@@ -535,7 +707,7 @@ double CalObjectiveValue (NodeContainer endDevices,
 
 // Calculate the energy efficiency across all end devices
 std::vector<double> CalEnergyEfficiency (NodeContainer endDevices,
-                                         LoraPacketTracker& tracker, 
+                                         LoraPacketTracker& tracker,
                                          Time startTime, Time stopTime, std::string filename)
 {
   std::vector<double> EEVec;
