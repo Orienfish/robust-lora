@@ -3,7 +3,7 @@ from utils import *
 import numpy as np
 import os
 
-#dir_path = "./data"
+dir_path = "./data"
 
 # Specify dataset, default LA
 HPWREN = False
@@ -24,10 +24,10 @@ gw_loc_mat = np.genfromtxt(gw_loc_file, delimiter = ",")
 sr_loc_mat = np.genfromtxt(sr_loc_file, delimiter = ",")
 
 # Load (Lat, Lon) of upper-left and upper-right corners
-coor_file = datasetPath + "coor.csv"
-coor = np.genfromtxt(coor_file, delimiter=",")
-LU = coor[0]
-RU = coor[1]
+origin_file = datasetPath + "origin.csv"
+origin = np.genfromtxt(origin_file, delimiter=",")
+LU = origin[0]
+RU = origin[1]
 
 # Calculate map resolution
 R = lat_lon_to_distance(origin=LU, destination=RU)/entire_seg_map.shape[1]
