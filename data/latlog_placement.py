@@ -5,7 +5,7 @@ import math
 import random
 
 ################## USER ENTERED DATA #################
-img_name = './data/HPWREN/HPWREN.jpg'
+img_name = './data/HPWREN/test.jpg'
 
 
 
@@ -25,35 +25,7 @@ loc_name = ["bbm", "boucher", "cuyamaca", "lospinos", "lyons", "mesa", "mtlag", 
             "otay", "pala", "lacruz", "red", "sanclem", "sanjuan", "sanmiguel", "ysabel",
             "santiago","signal", "sky", "SMER", "toro", "upperbell", "uppertalega", "UCSD", "warner"]
             
-#create gw_able file
-gw_able = np.array([ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
-            
-np.save("./data/HPWREN/gw_able.npy", gw_able)
-print(np.load("./data/HPWREN/gw_able.npy"))
+
 
 #in meters
 mapwidth = 180263.28
@@ -73,8 +45,7 @@ sat_img = Image.open(img_name)
 width, height = sat_img.size
 ig,ax = plt.subplots(1)
 ax.set_aspect('equal')
-
-#show image
+#show imagel
 implot = plt.imshow(im)
 
 #conversion factors
@@ -99,10 +70,10 @@ for i in range(width_gw_num):
 		#places gateways 
 		xcoord_gw = (i*gw_pix)
 		ycoord_gw = (j*gw_pix)
-		plt.scatter(xcoord_gw, ycoord_gw, c = 'm', s = 1)
+		#plt.scatter(xcoord_gw, ycoord_gw, c = 'm', s = 1)
 		latlog_gw.insert(i+j, [lat_top-(ycoord_gw * lat_pix), log_left-(xcoord_gw * log_pix)])
 nplatlog_gw = np.asarray(latlog_gw)
-np.savetxt("./data/HPWREN/HPWREN_gw_loc.csv", nplatlog_gw, delimiter=",", header = "gateway locations")
+#np.savetxt("./data/test3/HPWREN_gw_loc.csv", nplatlog_gw, delimiter=",", header = "gateway locations")
 
 ################## SENSOR PLACEMENT ##################
 
@@ -125,13 +96,14 @@ for j in range(len(lat_sen)):
             mag = math.sqrt(pow((x_sen - x_pix),2) + pow((y_sen - y_pix),2))
             #if sensor is in range, place sensor
             if mag < sen_range:
-                plt.scatter(x_pix, y_pix, s=1, c='y', alpha=0.85)
+                #plt.scatter(x_pix, y_pix, s=1, c='y', alpha=0.85)
+                plt.scatter(x_pix, y_pix, c='b')
                 latlog_sen.append([i, latcoord, logcoord])
                 i = i + 1
     plt.scatter(x_sen, y_sen, s=15, c='g', alpha=0.85)
     
 nplatlog_sen = np.asarray(latlog_sen)
-np.savetxt("./data/HPWREN/dataHPWREN.csv", nplatlog_sen, delimiter=",", header = "sensor")
+#np.savetxt("./data/test3/dataHPWREN.csv", nplatlog_sen, delimiter=",", header = "sensor")
 
 plt.show()
 
