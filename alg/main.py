@@ -23,30 +23,20 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 # Important parameters
 ########################################
 class params:
-<<<<<<< HEAD
 
-	#indicate which dataset to use, default LA dataset
-	LA = False
+	L = 30000			# Edge of analysis area in m, use if dataFile not provided
+
+	#indicate whch dataset to use, default LA dataset
 	HPWREN = False
-	Test = True
-
-
-	L = 48000 # 30000			# Edge of analysis area in m, use if dataFile not provided
 
 	if HPWREN:
-		sr_cnt = 1300
-		gw_dist = 7250
-	if LA:
-		sr_cnt = 100              # Number of end devices
-		gw_dist = 6000            # Distance between two gateways, use if dataFile not provided
+		dataset = '/HPWREN-dataset/'	# directory name with dataset 
+		sr_cnt = 1300	# Number of end devices 
+		gw_dist = 7250	# Distance between two gateways in m 
 	else:
-		sr_cnt = 650
-		gw_dist = 7250
-=======
-	L = 30000			# Edge of analysis area in m
-	sr_cnt = 100        # Number of end devices
-	gw_dist = 6000      # Distance between two gateways in m
->>>>>>> origin
+		dataset = '/LA-dataset/'
+		sr_cnt = 100             
+		gw_dist = 6000           
 
 	T = 1200			# Sampling period in s
 
@@ -93,38 +83,17 @@ class params:
 	PDR_th = 0.8		# PDR threshold at each end node
 	Lifetime_th = 2		# Lifetime threshold at each end node in years
 
-<<<<<<< HEAD
-	# the given data files and bool variables showing whether or not to use them
-	if HPWREN: 
-		dataFile = './data/HPWREN/dataHPWREN.csv'			
-		origin = [32.5451, -117.9608]
-		PLFile = './data/HPWREN/path_loss_mat.npy'
-		GwAbleFile = './data/HPWREN/gw_able.npy'
-	if LA:
-		dataFile = './data/LA/dataLA.csv'           			 # End device locations
-		origin = [33.5466, -118.7025]
-		PLFile = './data/LA/path_loss_mat2.npy'    			   	 # Path loss between each device-gw pair
-		GwAbleFile = './data/LA/gw_able.npy'       			 # Whether placing gateway at a location is allowed
-	else:
-		dataFile = './data/test/dataHPWREN.csv'
-		origin = [32.5451, -117.9608]
-		PLFile = './data/test/path_loss_mat.npy'
-		GwAbleFile = './data/test/gw_able.npy'
+	LogPropVer = 'Dongare'					# Version of log propagation model
 
-	data = True							# Whether to use the dataFile of end device locations
-	PL = False					# Whether to use the PLFile of path loss matrix
-=======
 class DataParams:
 	dataLoc = True							# Whether to use the predetermined locations
 	PL = True								# Whether to use the PLFile of path loss matrix
 	LogPropVer = 'Dongare'					# Version of log propagation model
-	datasetPath = dir_path + '/../data/LA-dataset/'	# Path to the dataset
+	datasetPath = dir_path + '/../data' + params.dataset	# Path to the dataset
 	srFile = datasetPath + 'sr_loc.csv'		# End device locations
 	gwFile = datasetPath + 'gw_loc.csv'		# Candidate gateway locations
 	PLFile = datasetPath + 'path_loss_mat.npy'	# Path loss between each device-gw pair
 	GwAbleFile = datasetPath + 'gw_able.npy'	# Whether placing gateway at a location is allowed
-
->>>>>>> origin
 
 # Parameters for the DBSCAN clustering algorithm
 class ClusterParams:
@@ -176,14 +145,10 @@ def init(params):
 		PL: path loss matrix
 		dist: distance matrix
 	'''
-<<<<<<< HEAD
-	sr_info = []				# [x, y, SF, Ptx, CH]
-	# If dataFile is provided, read from the data file
-=======
+
 	#####################################################################
 	# Initialize sensor end device information
 	# If predetermined locations are provided, read from the dataLoc file
->>>>>>> origin
 	# Else, randomly generate the end devices locations
 	#####################################################################
 	sr_info = []		# [x, y, SF, Ptx, CH]

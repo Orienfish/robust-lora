@@ -5,11 +5,10 @@ import math
 import random
 
 ################## USER ENTERED DATA #################
+#image name
 img_name = './data/HPWREN/test.jpg'
 
-
-
-#in degrees
+#in degrees (latitude and longitude of top and bottom of image)
 lat_top = 33.825275
 lat_bottom = 32.45297
 log_left = -118.27046
@@ -24,15 +23,18 @@ log_sen = [-116.81, -116.92, -116.61, -116.58, -116.76, -116.76, -116.42, -116.4
 loc_name = ["bbm", "boucher", "cuyamaca", "lospinos", "lyons", "mesa", "mtlag", "mtlagobs", "mtwoodson",
             "otay", "pala", "lacruz", "red", "sanclem", "sanjuan", "sanmiguel", "ysabel",
             "santiago","signal", "sky", "SMER", "toro", "upperbell", "uppertalega", "UCSD", "warner"]
-            
-
 
 #in meters
 mapwidth = 180263.28
 mapheight = 135562.06
+
+#distance between gateways in meters
 gw_dist = 7250
+
+#radius for sensor placement
 sen_rad = 14000
 
+#number of sensors to place around each HPWREN location
 sensor_num = 50
 
 #buffer for range to generate potential sensors in degrees (optimizes sensor placement)
