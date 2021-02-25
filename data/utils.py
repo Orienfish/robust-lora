@@ -78,8 +78,8 @@ def path_loss_estimation(segmented_land_map, map_LU, map_RU, gateway_loc, sensor
             line_land_type.append(5)
         elif(np.array_equal(line_land_rgb[i], [255, 255, 255])): #if land type is barren
             line_land_type.append(6)
-        else: #land type is unknown
-            line_land_type.append(0)
+        else: #land type is unknown, assume forrest land type
+            line_land_type.append(4)
         
     ################ Calculate path loss ################
     map_resolution = lat_lon_to_distance(origin=map_LU, destination=map_RU)/seg_map.shape[1]
