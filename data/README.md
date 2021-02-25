@@ -40,7 +40,8 @@ This tutorial walk will you through the steps of how to generate a dataset for o
 
 To prepare a dataset, you need:
 
-* A screenshot of the area you want to deploy, e.g., `./LA-dataset/la.jpg` for our LA dataset. The latitude and longitude of the origin is also needed, which is stored in a file. (Note: The origin is the bottom left corner of the test image.)
+* A screenshot of the area you want to deploy, e.g., `./LA-dataset/la.jpg` for our LA dataset. 
+* The latitude and longitude of each of the four corners of the image is also needed. These values should be stored in a file called origin.csv with one latitude, longitude pair per line in this order: Upper Left, Upper Right, Lower Left, Lower Right
 * A file indicating the coordinates of LoRa end devices in meters with regard to the origin. For example, we use `./LA-dataset/sr_loc.csv` for our LA dataset.
 * A file indicating the coordinates of candidate gateways in meters with regard to the origin. For example, we use `./LA-dataset/gw_loc.csv` for our LA dataset.
 
@@ -103,4 +104,6 @@ In the last block in `./GLNetSetup.ipynb` converts the generated image to an arr
    ```
 
 Now you have every component to run the LoRa gateway deployment and device configuration algorithm in `root-of-robust-lora/alg/main.py`. Make sure you have specified the path to (i) device locations, (ii) candidate gateway locations and (iii) path-loss matrix files in class `DataParams` (line 74) in `main.py`.
+
+### Common Errors
 
