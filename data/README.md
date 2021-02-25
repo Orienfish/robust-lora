@@ -41,7 +41,7 @@ This tutorial walk will you through the steps of how to generate a dataset for o
 To prepare a dataset, you need:
 
 * A screenshot of the area you want to deploy, e.g., `./LA-dataset/la.jpg` for our LA dataset. 
-* The latitude and longitude of each of the four corners of the image is also needed. These values should be stored in a file called origin.csv with one latitude, longitude pair per line in this order: Upper Left, Upper Right, Lower Left, Lower Right
+* The latitude and longitude of each of the four corners of the image is also needed. These values should be stored in a file called origin.csv with one latitude, longitude pair per line. The order of the pairs should be upper left corner, upper right corner, lower left corner, and, lastly, lower right corner.
 * A file indicating the coordinates of LoRa end devices in meters with regard to the origin. For example, we use `./LA-dataset/sr_loc.csv` for our LA dataset.
 * A file indicating the coordinates of candidate gateways in meters with regard to the origin. For example, we use `./LA-dataset/gw_loc.csv` for our LA dataset.
 
