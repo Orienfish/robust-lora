@@ -6,7 +6,7 @@ import random
 
 ################## USER ENTERED DATA #################
 #image name
-img_name = './data/HPWREN/test.jpg'
+img_name = './data/HPWREN-dataset/HPWREN.jpg'
 
 #in degrees (latitude and longitude of top and bottom of image)
 lat_top = 33.825275
@@ -75,7 +75,7 @@ for i in range(width_gw_num):
 		#plt.scatter(xcoord_gw, ycoord_gw, c = 'm', s = 1)
 		latlog_gw.insert(i+j, [lat_top-(ycoord_gw * lat_pix), log_left-(xcoord_gw * log_pix)])
 nplatlog_gw = np.asarray(latlog_gw)
-#np.savetxt("./data/test3/HPWREN_gw_loc.csv", nplatlog_gw, delimiter=",", header = "gateway locations")
+np.savetxt("./data/HPWREN-dataset/HPWREN_gw_loc.csv", nplatlog_gw, delimiter=",", header = "gateway locations")
 
 ################## SENSOR PLACEMENT ##################
 
@@ -105,7 +105,7 @@ for j in range(len(lat_sen)):
     plt.scatter(x_sen, y_sen, s=15, c='g', alpha=0.85)
     
 nplatlog_sen = np.asarray(latlog_sen)
-#np.savetxt("./data/test3/dataHPWREN.csv", nplatlog_sen, delimiter=",", header = "sensor")
+np.savetxt("./data/HPWREN-dataset/dataHPWREN.csv", nplatlog_sen, delimiter=",", header = "sensor")
 
 plt.show()
 
