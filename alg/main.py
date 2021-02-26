@@ -27,7 +27,7 @@ class params:
 	L = 30000			# Edge of analysis area in m, use if dataFile not provided
 
 	#indicate whch dataset to use, default LA dataset
-	HPWREN = False
+	HPWREN = True
 
 	if HPWREN:
 		dataset = '/HPWREN-dataset/'	# directory name with dataset 
@@ -84,6 +84,9 @@ class params:
 	Lifetime_th = 2		# Lifetime threshold at each end node in years
 
 	LogPropVer = 'Dongare'					# Version of log propagation model
+
+	data = True
+	PL = True
 
 class DataParams:
 	dataLoc = True							# Whether to use the predetermined locations

@@ -13,7 +13,8 @@ class params:
 	gw_dist = 7250      # Distance between two gateways in m
 	# the given data files and bool variables showing whether or not to use them
 	dataFile = dir_path + '/dataHPWREN.csv'			# End device locations
-	origin = [32.5451, -117.9608]
+	originFile = np.genfromtxt(dir_path + '/origin.csv', delimiter=",")
+	origin = originFile[2] 
 	GwAbleFile = dir_path + '/gw_able.npy'	# Whether placing gateway at a location is allowed
 
 def ReadFile(filename, origin):
