@@ -3,10 +3,10 @@ from utils import *
 import numpy as np
 import os
 
-#dir_path = "./data"
+dir_path = "./data"
 
 # Specify dataset, default LA
-HPWREN = False
+HPWREN = True
 if HPWREN:
     dataset = '/HPWREN-dataset/'
 else:
