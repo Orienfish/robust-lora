@@ -106,6 +106,8 @@ In the last block in `./GLNetSetup.ipynb` converts the generated image to an arr
 Now you have every component to run the LoRa gateway deployment and device configuration algorithm in `root-of-robust-lora/alg/main.py`. Make sure you have specified the path to (i) device locations, (ii) candidate gateway locations and (iii) path-loss matrix files in class `DataParams` (line 74) in `main.py`.
 
 ### Common Errors
-When running `./GLNetSetup.ipynb`, a common error is for the output to become mismatched; in other words, the cropped images are not composited together correctly in the final image. The fix to this error is to clone the [GLNet repo](https://github.com/VITA-Group/GLNet) again, and redownload the pretrained models. Reupload these to Google drive and proceed with Step 1 of the tutorial. 
-![alt text](https://drive.google.com/file/d/19SI-ueW4tcxJvKYpGkUKuzRHG5TXY_ZV/view?usp=sharing)
+When running `./GLNetSetup.ipynb`, a common error is for the output to become mismatched; in other words, the cropped images are not composited together correctly in the final image. The fix to this error is to clone the [GLNet repo](https://github.com/VITA-Group/GLNet) again, and redownload the pretrained models. Reupload these to Google drive and proceed with Step 1 of the tutorial. Refer to image below as an example of the error.
+
+
+![](https://github.com/Orienfish/robust-lora/blob/emily_refactoring/data/mismatchedOutput.png)
 
