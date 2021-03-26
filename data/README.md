@@ -10,7 +10,7 @@ In our repo, we offer two datasets. Each dataset shares a common structure:
 ├── gw_able.npy         // Feasibility to place gateway, 0 means the current location is
                         // over the ocean thus infeasible for gateway placement
 ├── gw_loc.csv          // List of candidate gateways' locations 
-├── origin.csv          // Latitude and longtitude of four corners of la.jpg
+├── origin.csv          // Latitude and longtitude of four corners of la.jpg in order of UL, UR, LL, LR
 ├── la.jpg              // Screenshot of the satellite map of the region
 ├── path_loss_mat.npy   // Generated path-loss matrix
 └── sr_loc.csv          // List of LoRa end devices' locations
@@ -105,9 +105,33 @@ In the last block in `./GLNetSetup.ipynb` converts the generated image to an arr
 
 Now you have every component to run the LoRa gateway deployment and device configuration algorithm in `root-of-robust-lora/alg/main.py`. Make sure you have specified the path to (i) device locations, (ii) candidate gateway locations and (iii) path-loss matrix files in class `DataParams` (line 74) in `main.py`.
 
+### Visualization 
+The GLNet result will be a color-coded map, differentiated by the different land types in the original image, such as the example result below. 
+
+![](https://github.com/Orienfish/robust-lora/blob/emily_refactoring/data/correctOutput.png)
+
+The table below details the colors associated with each land type.
+
+| Land type  | Color |
+| :---: | :---: | 
+| Urban | [0, 255, 255] |
+| Argiculture | [255, 255, 0] |
+| Rangeland | [255, 0, 255] |
+| Forrest | [0, 255, 0] |
+| Water | [0, 0, 255] |
+| Barren | [255, 255, 255] |
+
+When later generating the path loss matrix, the color of each region will be used to determine which predefined parameters should be applied in the path loss calculation. The predefined parameters have been extracted from [SateLoc](https://ieeexplore.ieee.org/abstract/document/9111031). Note that [SateLoc](https://ieeexplore.ieee.org/abstract/document/9111031) does not include predefined parameters for the barren land type; thus, we chose to use the predefined parameters associated with the rangeland land type for the barren land type. 
+
+
 ### Common Errors
 When running `./GLNetSetup.ipynb`, a common error is for the output to become mismatched; in other words, the cropped images are not composited together correctly in the final image. The fix to this error is to clone the [GLNet repo](https://github.com/VITA-Group/GLNet) again, and redownload the pretrained models from `GLNet`. Reupload these items to Google drive and proceed with Step 1 of the tutorial. Refer to the image below as an example of the mismatching error.
 
 
 ![](https://github.com/Orienfish/robust-lora/blob/emily_refactoring/data/mismatchedOutput.png)
+
+
+
+
+
 
