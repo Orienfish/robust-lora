@@ -3,13 +3,14 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+import time
 matplotlib.rcParams['figure.figsize'] = (20.0, 10.0)
 
 # Predefined parameters for various land types
 # 0:unknown, 1:urban, 2:agriculture, 3:rangeland, 4:forest, 5:water, 6:barren
-PL_d0_table = {0: 0, 1: 23.091, 2:20.478, 3:20.392, 4:21.254, 5:20.709, 6:21.254}
-n_table   = {0: 0, 1: 4.499, 2:2.056, 3:2.274, 4:3.616, 5:2.158, 6:3.616}
-sigma_table = {0: 0, 1: 1.887, 2:0.569, 3:0.622, 4:0.854, 5:0.599, 6:0.854}
+PL_d0_table = {0: 0, 1: 23.091, 2:20.478, 3:20.392, 4:21.254, 5:20.709, 6:20.392}
+n_table   = {0: 0, 1: 4.499, 2:2.056, 3:2.274, 4:3.616, 5:2.158, 6:2.274}
+sigma_table = {0: 0, 1: 1.887, 2:0.569, 3:0.622, 4:0.854, 5:0.599, 6:0.622}
 
 #############################################################################
 def path_loss_estimation(segmented_land_map, map_LU, map_RU, gateway_loc, sensor_loc, verbose=False):
@@ -76,7 +77,7 @@ def path_loss_estimation(segmented_land_map, map_LU, map_RU, gateway_loc, sensor
         elif(np.array_equal(line_land_rgb[i], [0, 0, 255])): #if land type is water
             line_land_type.append(5)
         elif(np.array_equal(line_land_rgb[i], [255, 255, 255])): #if land type is barren
-            line_land_type.append(6)
+            line_land_type.append(3)
         else: #land type is unknown
             line_land_type.append(0)
         
