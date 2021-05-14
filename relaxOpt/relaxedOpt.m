@@ -11,17 +11,19 @@ warning('off','all');
 params.SF_cnt = 4;
 params.CH_cnt = 8;
 params.TP_cnt = 6;
-params.Tk = [0.098, 0.175, 0.329, 0.616];
-params.SSk = [-123, -126, -129, -132];
+params.T_k = [0.098, 0.175, 0.329, 0.616];
+params.SS_k = [-123, -126, -129, -132];
 params.Time = 1200;
-params.PDRth = 0.8;
+params.PDR_th = 0.8;
 params.M = 1;
 params.Ptx_array = [5.0, 8.0, 11.0, 14.0, 17.0, 20.0];
+params.pl_sigma = 10.0;
 
 sr_loc = csvread('sr_loc.csv');
 gw_loc = csvread('gw_loc.csv');
 params.sr_cnt = size(sr_loc, 1);
 params.gw_cnt = size(gw_loc, 1);
+PL = csvread('pl.csv');
 c_ijks = zeros(params.sr_cnt, params.gw_cnt, params.SF_cnt, params.TP_cnt);
 for i = 0:params.SF_cnt-1
     for j = 0:params.TP_cnt-1
@@ -61,9 +63,10 @@ ub = ones(params.var_cnt, 1);
 
 % Call the optimal solver
 tic
-%x = fmincon(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub, @(x)pdr(x, c_ijk, params));
+%x = fmincon(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub, ...
+%            @(x)pdr(x, PL, c_ijk, params));
 [x,fval,INFO,output,lambda,states] = snsolve(@(x)(f*x), x0, A, b, ...
-    Aeq, beq, lb, ub, @(x)pdr(x, c_ijks, params));
+    Aeq, beq, lb, ub, @(x)pdr(x, PL, c_ijks, params));
 exeTime = toc;
 %x
 
