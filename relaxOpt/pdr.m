@@ -15,29 +15,38 @@ function [c, ceq] = pdr(x, c_ijks, params)
 gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
 g = gw_extract * x;
 
-% Compute collision probability at end device i 
-hi = zeros(params.sr_cnt, 1);
+% Compute collision probability transmitting from end device i to gateway j
+hij = zeros(params.sr_cnt, params.gw_cnt);
 for i = 1:params.sr_cnt
-    Ni = 0; % Number of nodes transmitting with the same SF and channel
-    for j = 1:params.sr_cnt
-        if j == i % j != i in calculating collision probabilities
-            continue;
-        end
-        
-        % Traverse all possible combinations of SF and channel
-        for k = 1:params.SF_cnt
-            for q = 1:params.CH_cnt
-                sf_ik = x(params.sf_st + (i-1) * params.SF_cnt + k);
-                sf_jk = x(params.sf_st + (j-1) * params.SF_cnt + k);
-                ch_iq = x(params.ch_st + (i-1) * params.CH_cnt + q);
-                ch_jq = x(params.ch_st + (j-1) * params.CH_cnt + q);
-                Ni = Ni + sf_ik * sf_jk * ch_iq * ch_jq;
+    % Get the current selections at i
+    sf_i = x(params.sf_st + (i-1) * params.SF_cnt + 1 : ...
+             params.sf_st + i * params.SF_cnt);
+    ch_i = x(params.ch_st + (i-1) * params.CH_cnt + 1 : ...
+             params.ch_st + i * params.CH_cnt);
+    %tp_i = x(params.tp_st + (i-1) * params.TP_cnt + 1 : ...
+    %         params.tp_st + i * params.TP_cnt);
+    Nij = 0; % Number of nodes transmitting with the same SF and channel to gateway j
+    for j = 1:params.gw_cnt
+        for i_prime = 1:params.sr_cnt
+            % Get the current CH selection at i prime
+            ch_i_prime = x(params.ch_st + (i_prime-1) * params.CH_cnt + 1 : ...
+                           params.ch_st + i_prime * params.CH_cnt);
+            for k = 1:params.SF_cnt
+                 % Get the current binary selection of SF k at i prime
+                sf_i_prime_k = x(params.sf_st + (i_prime-1) * params.SF_cnt + k);
+                for s = 1:params.TP_cnt
+                    % Get the current binary selection of TP s at i prime
+                    tp_i_prime_s = x(params.tp_st + (i_prime-1) * params.TP_cnt + s);
+                    N_ij = N_ij + c_ijks(i_prime, j, k, s) 
+                end
             end
         end
     end
-    % Get the current SF selection at i
+    
     sf_i = x(params.sf_st + (i-1) * params.SF_cnt + 1 : ...
         params.sf_st + i * params.SF_cnt);
+    
+    
     hi(i) = 1 - exp(-2 * (params.Tk * sf_i) * Ni / params.Time);
     %for k = 1:params.SF_cnt
     %    fprintf('%f ', sf_i(k));
