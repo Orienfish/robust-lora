@@ -76,7 +76,7 @@ def plot(sr_info, G, method):
 	plt.savefig(filename)
 	# plt.show()
 
-def SaveInfo(sr_info, G, PL, method, params):
+def SaveInfo(sr_info, G, PL, method, params, DataParams):
 	'''
 	Save the generated solution to text file
 
@@ -85,6 +85,7 @@ def SaveInfo(sr_info, G, PL, method, params):
 		G: generated gateway placement solution
 		PL: path losses between end devices and selected gateways
 		method: a string showing the algorithm, to be added to file name
+		params, DataParams: parameters on experiments and datasets
 	'''
 	sr_cnt = sr_info.shape[0]
 	gw_cnt = G.shape[0]
@@ -109,10 +110,12 @@ def SaveInfo(sr_info, G, PL, method, params):
 					str(round(G[i, 1], 2)) + '\n')
 
 	filename = './res/pl_{}.txt'.format(method)
-	# if PL file is not provided, we need to extract the ground-truth PL
+	# If PL file is not provided, we need to extract the ground-truth PL
 	# like the process in the initialization function init()
-	if params.data and not params.PL:
-		PL = np.load(params.PLFile).T
+	# This is for making deployment decisions under the isomorphic PL
+	# but simulating under the real PL, to see the difference due to PL
+	if DataParams.dataLoc and not DataParams.PL:
+		PL = np.load(DataParams.PLFile).T
 		PL = PL + 10.0
 
 	with open (filename, 'w') as out:

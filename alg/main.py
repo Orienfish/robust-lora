@@ -24,19 +24,24 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 ########################################
 class params:
 
-	L = 30000			# Edge of analysis area in m, use if dataFile not provided
+	#indicate whch dataset to use, default random field
+	dataset = 'random'
 
-	#indicate whch dataset to use, default LA dataset
-	HPWREN = True
-
-	if HPWREN:
-		dataset = '/HPWREN-dataset/'	# directory name with dataset 
+	if dataset == 'random':
+		datapath = ''
+		L = 30000		# Edge of analysis area in m, use if dataFile not provided
+		sr_cnt = 100
+		gw_dist = 6000
+	elif dataset == 'HPWREN':
+		datapath = '/HPWREN-dataset/'	# directory name with dataset 
 		sr_cnt = 1300	# Number of end devices 
 		gw_dist = 7250	# Distance between two gateways in m 
-	else:
-		dataset = '/LA-dataset/'
+	elif dataset == 'LA':
+		datapath = '/LA-dataset/'
 		sr_cnt = 100             
-		gw_dist = 6000           
+		gw_dist = 6000
+	else:
+		print('Invalid dataset!')          
 
 	T = 1200			# Sampling period in s
 
@@ -85,14 +90,12 @@ class params:
 
 	LogPropVer = 'Dongare'					# Version of log propagation model
 
-	data = True
-	PL = True
 
 class DataParams:
-	dataLoc = True							# Whether to use the predetermined locations
-	PL = True								# Whether to use the PLFile of path loss matrix
+	dataLoc = False							# Whether to use the predetermined locations
+	PL = False								# Whether to use the PLFile of path loss matrix
 	LogPropVer = 'Dongare'					# Version of log propagation model
-	datasetPath = dir_path + '/../data' + params.dataset	# Path to the dataset
+	datasetPath = dir_path + '/../data' + params.datapath	# Path to the dataset
 	srFile = datasetPath + 'sr_loc.csv'		# End device locations
 	gwFile = datasetPath + 'gw_loc.csv'		# Candidate gateway locations
 	PLFile = datasetPath + 'path_loss_mat.npy'	# Path loss between each device-gw pair
@@ -237,9 +240,10 @@ def init(params):
 	#####################################################################
 	# Save information for relaxed problem optimization
 	#####################################################################
-	# Save the end device locations and candidate gateway locations
+	# Save the information as input to the relaxed problem optimization
 	np.savetxt('./relaxOpt/sr_loc.csv', sr_info[:, :2], delimiter=',')
 	np.savetxt('./relaxOpt/gw_loc.csv', G[:, :2], delimiter=',')
+	np.savetxt('./relaxOpt/pl.csv', PL, delimiter=',')
 
 	# Generate the binary indicator for relaxed optimization
 	c_ijks = optInterface.GenerateCijks(sr_info, G, PL, params)
@@ -273,9 +277,9 @@ def main():
 		help="desired number of gateways in the ICIOT algorithm")
 	args = parser.parse_args()
 	if args.data:
-		params.data = args.data
+		DataParams.dataLoc = args.data
 	if args.PL:
-		params.PL = args.PL
+		DataParams.PL = args.PL
 	if args.sr_cnt:
 		params.sr_cnt = args.sr_cnt
 	if args.RGreedy:
@@ -321,7 +325,7 @@ def main():
 				utils.SaveRes('G', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
-				utils.SaveInfo(sr_info_res, G_res, PL, method, params)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params, DataParams)
 
 			# Greedy algorithm with cluster-based acceleration
 			if run.RGreedy_c:
@@ -347,7 +351,7 @@ def main():
 				utils.SaveRes('Gc', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
-				utils.SaveInfo(sr_info_res, G_res, PL, method, params)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params, DataParams)
 
 			# Greedy algorithm with end-of-exploration acceleration
 			if run.RGreedy_e:
@@ -363,7 +367,7 @@ def main():
 				print(np.reshape(m_gateway_res, (1, -1)))
 
 				# Print out PDR and lifetime at each end device
-				utils.eval(sr_info_res, G_res, PL, params)
+				utils.eval(sr_info_res, G_res, PL, params, DataParams)
 
 				# Plot and log result
 				method = 'RGreedye_{}_{}_{}{}{}'.format(M, sr_cnt, it, flagData, flagPL)
@@ -371,7 +375,7 @@ def main():
 				utils.SaveRes('Ge', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
-				utils.SaveInfo(sr_info_res, G_res, PL, method, params)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params, DataParams)
 
 			# Greedy algorithm with both acceleration techniques
 			if run.RGreedy_ce:
@@ -397,7 +401,7 @@ def main():
 				utils.SaveRes('Gce', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
-				utils.SaveInfo(sr_info_res, G_res, PL, method, params)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params, DataParams)
 
 
 			if run.RGenetic:
@@ -420,7 +424,7 @@ def main():
 				utils.SaveRes('Genetic', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
-				utils.SaveInfo(sr_info_res, G_res, PL, method, params)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params, DataParams)
 
 
 		if run.ICIOT:
@@ -444,7 +448,7 @@ def main():
 
 			# Write sensor and gateway information to file
 
-			utils.SaveInfo(sr_info_res, G_res, PL, method, params)
+			utils.SaveInfo(sr_info_res, G_res, PL, method, params, DataParams)
 
 
 if __name__ == '__main__':
