@@ -16,7 +16,7 @@ gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.g
 g = gw_extract * x;
 
 % Compute collision probability transmitting from end device i to gateway j
-hij = zeros(params.sr_cnt, params.gw_cnt);
+h_ij = zeros(params.sr_cnt, params.gw_cnt);
 for i = 1:params.sr_cnt
     % Get the current selections at i
     sf_i = x(params.sf_st + (i-1) * params.SF_cnt + 1 : ...
@@ -25,37 +25,33 @@ for i = 1:params.sr_cnt
              params.ch_st + i * params.CH_cnt);
     %tp_i = x(params.tp_st + (i-1) * params.TP_cnt + 1 : ...
     %         params.tp_st + i * params.TP_cnt);
-    Nij = 0; % Number of nodes transmitting with the same SF and channel to gateway j
     for j = 1:params.gw_cnt
+        % Init the number of nodes transmitting with the same SF and channel 
+        % to gateway j, considering feasibility by integrating c_ijks
+        N_ij = 0;
         for i_prime = 1:params.sr_cnt
-            % Get the current CH selection at i prime
+            % Get the current selections at i prime
+            sf_i_prime = x(params.sf_st + (i_prime-1) * params.SF_cnt + 1 : ...
+                           params.sf_st + i_prime * params.SF_cnt);
             ch_i_prime = x(params.ch_st + (i_prime-1) * params.CH_cnt + 1 : ...
                            params.ch_st + i_prime * params.CH_cnt);
-            for k = 1:params.SF_cnt
-                 % Get the current binary selection of SF k at i prime
-                sf_i_prime_k = x(params.sf_st + (i_prime-1) * params.SF_cnt + k);
-                for s = 1:params.TP_cnt
-                    % Get the current binary selection of TP s at i prime
-                    tp_i_prime_s = x(params.tp_st + (i_prime-1) * params.TP_cnt + s);
-                    N_ij = N_ij + c_ijks(i_prime, j, k, s) 
-                end
-            end
+            tp_i_prime = x(params.tp_st + (i_prime-1) * params.TP_cnt + 1 : ...
+                           params.tp_st + i_prime * params.TP_cnt);
+            % Get one number for sf_i = sf_i_prime
+            SF_equal = sf_i * sf_i_prime';
+            % Get one number for ch_i = ch_i_prime
+            CH_equal = ch_i * ch_i_prime';
+            % Accumulate N_ij
+            N_ij = N_ij + SF_equal * c_ijks(i_prime, j, :, :) * ...
+                tp_i_prime' * CH_equal; 
         end
+        h_ij(i, j) = exp(-2 * (params.Tk * sf_i) * N_ij / params.Time);
     end
-    
-    sf_i = x(params.sf_st + (i-1) * params.SF_cnt + 1 : ...
-        params.sf_st + i * params.SF_cnt);
-    
-    
-    hi(i) = 1 - exp(-2 * (params.Tk * sf_i) * Ni / params.Time);
-    %for k = 1:params.SF_cnt
-    %    fprintf('%f ', sf_i(k));
-    %end
-    %fprintf('Collision probability: %f\n', hi);
 end
 
+fprintf('Non-Collision Probability: %f\n', h_ij);
+
 % Compute transmission reliability from i to j
-% combining collision probability hi and reachability c_ijks
 Pij = zeros(params.sr_cnt, params.gw_cnt);
 for i = 1:params.sr_cnt
     sf_i = x(params.sf_st + (i-1) * params.SF_cnt + 1 : ...

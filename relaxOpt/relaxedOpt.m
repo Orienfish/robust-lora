@@ -12,6 +12,7 @@ params.SF_cnt = 4;
 params.CH_cnt = 8;
 params.TP_cnt = 6;
 params.Tk = [0.098, 0.175, 0.329, 0.616];
+params.SSk = [-123, -126, -129, -132];
 params.Time = 1200;
 params.PDRth = 0.8;
 params.M = 1;
