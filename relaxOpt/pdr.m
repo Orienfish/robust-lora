@@ -47,7 +47,7 @@ for i = 1:params.sr_cnt
     end
 end
 
-fprintf('Non-Collision Probability: %f\n', h_ij);
+% fprintf('Non-Collision Probability: %f\n', h_ij);
 
 % Compute transmission reliability from i to j
 P_ij = zeros(params.sr_cnt, params.gw_cnt);
@@ -73,4 +73,5 @@ g = gw_extract * x;
 % Factorize the form of PDR constraints, let c <= 0
 c = log(1 - P_ij) * g - log(1 - params.PDR_th);
 ceq = [];
+c'
 end
