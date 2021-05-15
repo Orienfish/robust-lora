@@ -30,8 +30,8 @@ class params:
 	if dataset == 'random':
 		datapath = ''
 		L = 30000		# Edge of analysis area in m, use if dataFile not provided
-		sr_cnt = 100
-		gw_dist = 6000
+		sr_cnt = 5
+		gw_dist = 10000
 	elif dataset == 'HPWREN':
 		datapath = '/HPWREN-dataset/'	# directory name with dataset 
 		sr_cnt = 1300	# Number of end devices 
@@ -130,7 +130,7 @@ class GeneticParams:
 # which algorithm to run
 class run:
 	iteration = 1
-	M = [1, 2, 3] #[3, 2, 1]
+	M = [1] #[3, 2, 1]
 	RGreedy = True 	# Pure greedy algorithm
 	RGreedy_c = False	# With cluster-based acceleration
 	RGreedy_e = False	# With end-of-exploration acceleration
