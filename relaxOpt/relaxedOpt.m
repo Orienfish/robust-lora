@@ -1,7 +1,7 @@
 % Call SNOPT for the relaxed version of the problem
-setenv('SNOPT_LICENSE','/home/xiaofan/Github/snopt-matlab/snopt7.lic');
-addpath('~/Github/snopt-matlab/');
-addpath('~/Github/snopt-matlab/util/');
+setenv('SNOPT_LICENSE','/home/xiaofan/Github/snopt7_matlab/snopt7.lic');
+addpath('~/Github/snopt7_matlab/');
+addpath('~/Github/snopt7_matlab/util/');
 clc;
 clear;
 close all;
@@ -64,7 +64,7 @@ ub = ones(params.var_cnt, 1);
 % Call the optimal solver
 tic
 %x = fmincon(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub, ...
-%            @(x)pdr(x, PL, c_ijk, params));
+%            @(x)pdr(x, PL, c_ijks, params));
 [x,fval,INFO,output,lambda,states] = snsolve(@(x)(f*x), x0, A, b, ...
     Aeq, beq, lb, ub, @(x)pdr(x, PL, c_ijks, params));
 exeTime = toc;
@@ -128,7 +128,7 @@ for i = 1:params.sr_cnt
     end
     % TP
     for s = 1:params.TP_cnt
-        Aeq((i-1)*3+3, params.tp_st+(i-1)*params.TP_cnt+s) = 1; % ch_i^{1-8}
+        Aeq((i-1)*3+3, params.tp_st+(i-1)*params.TP_cnt+s) = 1; % ch_i^{1-6}
     end
 end
 beq = ones(size(Aeq, 1), 1);

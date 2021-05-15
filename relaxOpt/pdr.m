@@ -35,15 +35,15 @@ for i = 1:params.sr_cnt
                            params.ch_st + i_prime * params.CH_cnt);
             tp_i_prime = x(params.tp_st + (i_prime-1) * params.TP_cnt + 1 : ...
                            params.tp_st + i_prime * params.TP_cnt);
-            % Get one number for sf_i = sf_i_prime
-            SF_equal = sf_i * sf_i_prime';
+            % Get an array for sf_i = sf_i_prime
+            SF_arr = sf_i .* sf_i_prime;
             % Get one number for ch_i = ch_i_prime
-            CH_equal = ch_i * ch_i_prime';
+            CH_num = ch_i' * ch_i_prime;
             % Accumulate N_ij
-            N_ij = N_ij + SF_equal * c_ijks(i_prime, j, :, :) * ...
-                tp_i_prime' * CH_equal; 
+            N_ij = N_ij + SF_arr' * squeeze(c_ijks(i_prime, j, :, :)) * ...
+                tp_i_prime * CH_num; 
         end
-        h_ij(i, j) = exp(-2 * (params.T_k * sf_i') * N_ij / params.Time);
+        h_ij(i, j) = exp(-2 * (params.T_k * sf_i) * N_ij / params.Time);
     end
 end
 
@@ -57,8 +57,8 @@ for i = 1:params.sr_cnt
              params.sf_st + i * params.SF_cnt);
     tp_i = x(params.tp_st + (i-1) * params.TP_cnt + 1 : ...
              params.tp_st + i * params.TP_cnt);
-    tp = params.Ptx_array * tp_i';
-    SS = params.params.SS_k * sf_i';
+    tp = params.Ptx_array * tp_i;
+    SS = params.SS_k * sf_i;
     for j = 1:params.gw_cnt
         % Get the probability that path loss satisfies sensitivity bound
         pl_prob = normcdf(tp-SS, PL(i, j), params.pl_sigma);
