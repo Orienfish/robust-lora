@@ -1,7 +1,14 @@
 % Call SNOPT for the relaxed version of the problem
-setenv('SNOPT_LICENSE','/home/xiaofan/Github/snopt7_matlab/snopt7.lic');
-addpath('~/Github/snopt7_matlab/');
-addpath('~/Github/snopt7_matlab/util/');
+% Set SNOPT environments according to the platform
+if isunix
+    setenv('SNOPT_LICENSE','/home/xiaofan/Github/snopt7_matlab/snopt7.lic');
+    addpath('~/Github/snopt7_matlab/');
+    addpath('~/Github/snopt7_matlab/util/');
+elseif ispc
+    setenv('SNOPT_LICENSE',"D:\Github\snopt7_matlab\snopt7.lic");
+    addpath("D:\Github\snopt7_matlab\");
+    addpath("D:\Github\snopt7_matlab\util\");
+end
 clc;
 clear;
 close all;
