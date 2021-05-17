@@ -73,7 +73,7 @@ g = gw_extract * x;
 % Compute PDR at i
 PDR_i = zeros(params.sr_cnt, 1);
 for i = 1:params.sr_cnt
-    P = 1 - Pij(i, 1:end)' .* g;
+    P = 1 - P_ij(i, :)' .* g;
     PDR_i(i) = 1 - prod(P);
 end
 PDR_i'
@@ -95,6 +95,7 @@ end
 Pow_i = Pow_i / params.Time;
 Pow_i'
 
-c = [params.PDRth - PDRi; Pow_i - params.E_batt/params.L_th];
+c = [params.PDR_th - PDR_i; Pow_i - params.E_batt/params.L_th];
+%c = params.PDR_th - PDR_i;
 ceq = [];
 end
