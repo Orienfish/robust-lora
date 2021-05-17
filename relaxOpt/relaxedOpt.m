@@ -18,13 +18,19 @@ warning('off','all');
 params.SF_cnt = 4;
 params.CH_cnt = 8;
 params.TP_cnt = 6;
-params.T_k = [0.098, 0.175, 0.329, 0.616];
-params.SS_k = [-123, -126, -129, -132];
-params.Time = 1200;
-params.PDR_th = 0.8;
-params.M = 1;
-params.Ptx_array = [5.0, 8.0, 11.0, 14.0, 17.0, 20.0];
-params.pl_sigma = 10.0;
+params.T_k = [0.098, 0.175, 0.329, 0.616]; % Tx time in seconds
+params.SS_k = [-123, -126, -129, -132]; % Sensitivity thres
+params.Time = 1200; % Sampling interval in seconds
+params.PDR_th = 0.8; % Packet delivery ratio thres
+params.M = 1; % M-gateway connectivity requirement
+params.Ptx_array = [5.0, 8.0, 11.0, 14.0, 17.0, 20.0]; % Tx power candidates
+params.PowerTx = [0.4, 0.4, 0.3, 0.25, 0.2, 0.15]; % Tx power consumption
+params.P_MCU_off = 174.65e-6; % Power of MCU (Arduino Uno) in deep sleep in mW
+params.P_MCU_on = 23.48e-3; % Power of MCU (Arduino Uno) on in mW
+params.P_R_off = 1e-4; % Power of radio in deep sleep in W
+params.pl_sigma = 10.0; % Variances in path loss
+params.E_batt = 3.0; % Battery cap in Ah
+params.L_th = 2*24*365; % Lifetime thres in years
 
 sr_loc = csvread('sr_loc.csv');
 gw_loc = csvread('gw_loc.csv');
@@ -54,12 +60,9 @@ x0 = zeros(params.var_cnt, 1);
 f = gw_mask;
 
 % Linear inequality constraint: A * x <= b
-A1 = - [c_ijks(1:end, 1:end, params.SF_cnt, params.TP_cnt), ...
+A = - [c_ijks(1:end, 1:end, params.SF_cnt, params.TP_cnt), ...
     zeros(params.sr_cnt, params.var_cnt-params.gw_cnt)];
-b1 = - params.M * ones(params.sr_cnt, 1);
-[A2, b2] = lifetimeConstraint(params);
-A = [A1; A2];
-b = [b1; b2];
+b = - params.M * ones(params.sr_cnt, 1);
 
 % Linear equality constraint: Aeq * x = beq
 [Aeq, beq] = validConstraint(params);
@@ -109,17 +112,6 @@ function plot_solution(sr_loc, gw_loc)
         'LineWidth', 2);
 end
 
-% Get the matrix for lifetime constraint
-function [A2, b2] = lifetimeConstraint(params)
-A2 = zeros(params.sr_cnt, params.var_cnt);
-for i = 1:params.sr_cnt
-    % Converted lifetime constraint: sf_i^4+tp_i^5+tp_i^6 <= 1
-    A2(i, params.sf_st+(i-1)*params.SF_cnt+4) = 1; % sf_i^4
-    A2(i, params.tp_st+(i-1)*params.TP_cnt+5) = 1; % tp_i^5
-    A2(i, params.tp_st+(i-1)*params.TP_cnt+6) = 1; % tp_i^6
-end
-b2 = ones(size(A2, 1), 1);
-end
 
 % Get the matrix for validation constraint
 function [Aeq, beq] = validConstraint(params)
