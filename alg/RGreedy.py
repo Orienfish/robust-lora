@@ -78,45 +78,11 @@ def GetPDR(sr_info, G, PL, N_kq, params, idx):
 		# Count the number of end nodes using the same SFk and channel q and
 		# calculate the collision probability under pure Aloha
 		Cnt_kq = len(N_kq[str(k) + '_' + str(q)])
-		Coll = 1 - math.exp(-2 * Cnt_kq * params.AirTime_k[k] / params.T)
-		logging.debug('Cnt of nodes using same SF and CH: {} Coll Prob: {}'.format(Cnt_kq, Coll))
+		Non_Coll = math.exp(-2 * Cnt_kq * params.AirTime_k[k] / params.T)
+		logging.debug('Cnt of nodes using same SF and CH: {}' \
+			' Non Coll Prob: {}'.format(Cnt_kq, Non_Coll))
 
-		# Sum of the expected reception power at gateway j of all nodes using
-		# the same SFk and channel q
-		Noise_node_info = N_kq[str(k) + '_' + str(q)].copy()
-		#print(Noise_node_info)
-		#print(sr_info[idx, :])
-		Noise_node_info = [x for x in Noise_node_info if not (x[0] == sr_info[idx, 0] and \
-			x[1] == sr_info[idx, 1])] # Remove the same node
-		#print(Noise_node_info)
-
-		Prx_W_list = []
-		for noise_node in Noise_node_info:
-			loc1 = noise_node[:2]
-			loc2 = G[j, :2]
-			Noise_PL = propagation.LogDistancePathLossModel(d=np.sqrt(np.sum((loc1 - loc2)**2)), \
-				ver=params.LogPropVer)
-			Prx_dB = propagation.GetRSSI(noise_node[3], Noise_PL)
-			Prx_W_list.append(10 ** (Prx_dB / 10))
-		#print(Prx_W_list)
-
-		Prx_W_sum = sum(Prx_W_list)
-		Prx_W_noise = Coll * Prx_W_sum + params.N0
-		logging.debug('Noise from other signals in W: {} AWGN noise in W: {}'.format( \
-			Coll * Prx_W_sum, params.N0))
-		Prx_dB_noise = 10 * math.log10(Prx_W_noise)
-
-		# Get the probability that the SNR requirement is satisfied	
-		Val = Prx - Prx_dB_noise - params.SNR_k[k]
-		logging.debug('Val: {} Prx: {} Prx_dB_noise: {}'.format(Val, Prx, Prx_dB_noise))
-		# Converted sigma
-		Sigma_new = propagation.LogDistancePathLossModel.sigma * \
-			math.sqrt(Coll ** 2 * (Cnt_kq - 1) + 1)
-		Prob_snr = 0.5 * (1 + math.erf(Val / (Sigma_new * math.sqrt(2))))
-		logging.debug('Prob_snr: {} sigma_new: {}'.format(Prob_snr, Sigma_new))
-
-		P_idxj.append(Prob_ss * Prob_snr)
-		logging.debug('Prob_ss: {} Prob_snr: {}'.format(Prob_ss, Prob_snr))
+		P_idxj.append(Prob_ss * Non_Coll)
 
 	P_idxj = np.array(P_idxj)
 	PDR = 1 - np.prod(1 - P_idxj)

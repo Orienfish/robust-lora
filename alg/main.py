@@ -116,7 +116,7 @@ class GreedyParams:
 
 # Parameters for the ICIOT algorithm
 class ICIOTParams:
-	desired_gw_cnt = 12 # Number of desired gateways
+	desired_gw_cnt = 2  # Number of desired gateways
 	alpha = 1       	# Weight parameter in the objective function
 
 # Parameters for the genetic algorithm

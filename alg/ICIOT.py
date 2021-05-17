@@ -131,22 +131,22 @@ def DeviceConfiguration(sr_info, G, PL, params):
 
 	# If using path loss matrix, sort according to path loss
 	# Else, sort according to distance
-	if params.PL:
+	#if DataParams.PL:
 		# Get the min PL to gateways of each end device
 		# Get the min dist to gateways of each end device
-		for i in range(sr_cnt):
-			gw_link[i] = np.argmin(PL[i, :])
-			min_val[i] = PL[i, int(gw_link[i])]
-	else:
-		# Get the min dist to gateways of each end device
-		for i in range(sr_cnt):
-			for j in range(gw_cnt):
-				loc1 = sr_info[i, :2]
-				loc2 = G[j, :2]
-				cur_dist = np.sqrt(np.sum((loc1 - loc2)**2))
-				if cur_dist < min_val[i]:
-					min_val[i] = cur_dist
-					gw_link[i] = j
+	#	for i in range(sr_cnt):
+	#		gw_link[i] = np.argmin(PL[i, :])
+	#		min_val[i] = PL[i, int(gw_link[i])]
+	#else:
+	# Get the min dist to gateways of each end device
+	for i in range(sr_cnt):
+		for j in range(gw_cnt):
+			loc1 = sr_info[i, :2]
+			loc2 = G[j, :2]
+			cur_dist = np.sqrt(np.sum((loc1 - loc2)**2))
+			if cur_dist < min_val[i]:
+				min_val[i] = cur_dist
+				gw_link[i] = j
 
 	# Get the order of indexes resulting from sorting
 	min_index = np.argsort(min_val, axis=0)
