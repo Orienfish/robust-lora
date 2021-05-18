@@ -1,5 +1,5 @@
 % Call SNOPT for the relaxed version of the problem
-% Set environments according to the platform
+% Set SNOPT environments according to the platform
 if isunix
     setenv('SNOPT_LICENSE','/home/xiaofan/Github/snopt7_matlab/snopt7.lic');
     addpath('~/Github/snopt7_matlab/');
@@ -54,7 +54,7 @@ params.gw_st = 0; params.gw_ed = params.gw_cnt;
 params.sf_st = params.gw_ed; params.sf_ed = params.sf_st + params.SF_cnt * params.sr_cnt;
 params.ch_st = params.sf_ed; params.ch_ed = params.ch_st + params.CH_cnt * params.sr_cnt;
 params.tp_st = params.ch_ed; params.tp_ed = params.tp_st + params.TP_cnt * params.sr_cnt;
-x0 = zeros(params.var_cnt, 1);
+x0 = zeros(params.var_cnt, 1); % Initial guess
 
 % Objective function
 f = gw_mask;
@@ -93,6 +93,33 @@ fprintf(fid, '%f,%d,%f\n', f*x, sum(gw_mask), exeTime);
 fclose(fid);
 export_solution(x, sr_loc, gw_loc, params, method);
 plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
+
+% Call BONMIN in OPTI toolbox to solve the optimal problem
+method = 'bonmin';
+% Nonlinear Constraint
+nlcon =  @(x)pdr(x, PL, c_ijks, params);
+nlrhs = 0.0;
+nle = -1; % -1 for <=, 0 for ==, +1 >= 
+% Integer Constraints
+xtype = 'B';
+% Create OPTI Object
+Opt = opti('fun', @(x)(f*x), 'nlmix', nlcon, nlrhs, nle, 'ineq', A, b, ...
+    'eq', Aeq, beq, 'bounds', lb, ub, 'xtype', xtype);
+% Solve the MINLP problem
+tic
+[x,fval,exitflag,info] = solve(Opt,x0);
+exeTime = toc;
+
+% Print the results
+gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
+gw_mask = logical(round(gw_extract * x));
+res_file = sprintf('result_%s.txt', method);
+fid = fopen(res_file, 'a+');
+fprintf(fid, '%f,%d,%f\n', f*x, sum(gw_mask), exeTime);
+fclose(fid);
+export_solution(x, sr_loc, gw_loc, params, method);
+plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
+
 
 % Plot the solution in the grid space
 function plot_solution(sr_loc, gw_loc, method)
