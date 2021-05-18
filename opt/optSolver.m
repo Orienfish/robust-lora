@@ -98,10 +98,10 @@ plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
 method = 'bonmin';
 % Nonlinear Constraint
 nlcon =  @(x)pdr(x, PL, c_ijks, params);
-nlrhs = 0.0;
-nle = -1; % -1 for <=, 0 for ==, +1 >= 
+nlrhs = zeros(params.sr_cnt, 1);
+nle = - ones(params.sr_cnt, 1); % -1 for <=, 0 for ==, +1 >= 
 % Integer Constraints
-xtype = 'B';
+xtype = repmat('B', 1, params.var_cnt);
 % Create OPTI Object
 Opt = opti('fun', @(x)(f*x), 'nlmix', nlcon, nlrhs, nle, 'ineq', A, b, ...
     'eq', Aeq, beq, 'bounds', lb, ub, 'xtype', xtype);
