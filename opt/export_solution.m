@@ -1,17 +1,19 @@
 % Export the generated solution
-function export_solution(x, sr_loc, gw_loc, params)
+function export_solution(x, sr_loc, gw_loc, params, method)
     % Export gateway placement
     gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
     gw_mask = logical(round(gw_extract * x));
     placed_gw_loc = gw_loc(gw_mask, :);
-    fid = fopen('gw_relaxOpt.txt', 'w');
+    gw_file = sprintf('gw_%s.txt', method);
+    fid = fopen(gw_file, 'w');
     for i = 1:size(placed_gw_loc, 1)
         fprintf(fid, '%f %f\n', placed_gw_loc(i, 1), placed_gw_loc(i, 2));
     end
     fclose(fid);
 
     % Export end device placement
-    fid = fopen('sr_relaxOpt.txt', 'w');
+    sr_file = sprintf('sr_%s.txt', method);
+    fid = fopen(sr_file, 'w');
     for i = 1:size(sr_loc, 1)
         % Find the assigned sf as the index of the max value
         sf_i = x(params.sf_st + (i-1) * params.SF_cnt + 1 : ...

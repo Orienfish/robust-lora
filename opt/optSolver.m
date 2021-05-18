@@ -1,5 +1,5 @@
 % Call SNOPT for the relaxed version of the problem
-% Set SNOPT environments according to the platform
+% Set environments according to the platform
 if isunix
     setenv('SNOPT_LICENSE','/home/xiaofan/Github/snopt7_matlab/snopt7.lic');
     addpath('~/Github/snopt7_matlab/');
@@ -60,9 +60,12 @@ x0 = zeros(params.var_cnt, 1);
 f = gw_mask;
 
 % Linear inequality constraint: A * x <= b
-A = - [c_ijks(1:end, 1:end, params.SF_cnt, params.TP_cnt), ...
+A1 = - [c_ijks(1:end, 1:end, params.SF_cnt, params.TP_cnt), ...
     zeros(params.sr_cnt, params.var_cnt-params.gw_cnt)];
-b = - params.M * ones(params.sr_cnt, 1);
+b1 = - params.M * ones(params.sr_cnt, 1);
+[A2, b2] = lifetimeConstraint(params);
+A = [A1; A2];
+b = [b1; b2];
 
 % Linear equality constraint: Aeq * x = beq
 [Aeq, beq] = validConstraint(params);
@@ -71,7 +74,8 @@ b = - params.M * ones(params.sr_cnt, 1);
 lb = zeros(params.var_cnt, 1);
 ub = ones(params.var_cnt, 1);
 
-% Call the optimal solver
+% Call SNOPT to solve the relax problem
+method = 'snopt';
 tic
 %x = fmincon(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub, ...
 %            @(x)pdr(x, PL, c_ijks, params));
@@ -83,14 +87,15 @@ exeTime = toc;
 % Print the results
 gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
 gw_mask = logical(round(gw_extract * x));
-fid = fopen('result.txt', 'a+');
+res_file = sprintf('result_%s.txt', method);
+fid = fopen(res_file, 'a+');
 fprintf(fid, '%f,%d,%f\n', f*x, sum(gw_mask), exeTime);
 fclose(fid);
-export_solution(x, sr_loc, gw_loc, params);
-plot_solution(sr_loc, gw_loc(gw_mask, 1:end));
+export_solution(x, sr_loc, gw_loc, params, method);
+plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
 
 % Plot the solution in the grid space
-function plot_solution(sr_loc, gw_loc)
+function plot_solution(sr_loc, gw_loc, method)
     % intialization
     sr_cnt = size(sr_loc, 1);  % number of end devices
     gw_cnt = size(gw_loc, 1);  % number of gateways
@@ -110,6 +115,20 @@ function plot_solution(sr_loc, gw_loc)
     figure;
     scatter(nodes(:, 1), nodes(:, 2), sz_nodes, color_nodes, 'filled', ...
         'LineWidth', 2);
+    title(method);
+end
+
+
+% Get the matrix for lifetime constraint
+function [A2, b2] = lifetimeConstraint(params)
+A2 = zeros(params.sr_cnt, params.var_cnt);
+for i = 1:params.sr_cnt
+    % Converted lifetime constraint: sf_i^4+tp_i^5+tp_i^6 <= 1
+    A2(i, params.sf_st+(i-1)*params.SF_cnt+4) = 1; % sf_i^4
+    A2(i, params.tp_st+(i-1)*params.TP_cnt+5) = 1; % tp_i^5
+    A2(i, params.tp_st+(i-1)*params.TP_cnt+6) = 1; % tp_i^6
+end
+b2 = ones(size(A2, 1), 1);
 end
 
 
