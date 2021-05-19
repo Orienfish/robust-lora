@@ -106,9 +106,12 @@ xtype = repmat('B', 1, params.var_cnt);
 Opt = opti('fun', @(x)(f*x), 'nlmix', nlcon, nlrhs, nle, 'ineq', A, b, ...
     'eq', Aeq, beq, 'bounds', lb, ub, 'xtype', xtype);
 % Solve the MINLP problem
+fprintf("Calling BONMIN...\n");
 tic
 [x,fval,exitflag,info] = solve(Opt,x0);
 exeTime = toc;
+exitflag
+info
 
 % Print the results
 gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
