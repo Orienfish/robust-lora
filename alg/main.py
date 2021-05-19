@@ -31,7 +31,7 @@ class params:
 	if dataset == 'random':
 		datapath = ''
 		L = 30000  # Edge of analysis area in m, use if dataFile not provided
-		sr_cnt = 50
+		sr_cnt = 16
 		gw_dist = 10000
 	elif dataset == 'HPWREN':
 		datapath = '/HPWREN-dataset/'  # directory name with dataset
@@ -142,7 +142,7 @@ class run:
 	RGreedy_e = False  # With end-of-exploration acceleration
 	RGreedy_ce = False  # With both accleration techniques
 	RGenetic = False
-	ICIOT = False
+	ICIOT = True
 
 
 def init(params):
@@ -331,6 +331,10 @@ def main():
 
 				# Write sensor and gateway information to file
 				utils.SaveInfo(sr_info_res, G_res, PL, method, params, DataParams)
+
+				# If running ICIOT after, set the gateway number to the same
+				if run.ICIOT:
+					ICIOTParams.desired_gw_cnt = int(np.sum(G_res[:, 2]))
 
 			# Greedy algorithm with cluster-based acceleration
 			if run.RGreedy_c:
