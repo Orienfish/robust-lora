@@ -38,6 +38,7 @@ __pycache__
 *.csv
 *.asv
 *.mat
+*.idea*
 
 Path_loss_est_code
 *.ipynb_checkpoints*
