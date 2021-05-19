@@ -119,7 +119,7 @@ def DeviceConfiguration(sr_info, G, PL, params):
 	N_k = sr_cnt / np.sum(1 / np.array(params.AirTime_k)) / params.AirTime_k
 	N_k = np.rint(N_k)
 	# Make sure the sum of N_k is equal to sr_cnt, but this is fine
-	N_k[-1] += int(sr_cnt - np.sum(N_k))
+	N_k[-1] += max(0, int(sr_cnt - np.sum(N_k)))
 
 	min_val = np.ones((sr_cnt, 1)) * np.inf # the min PL or distance of each 
 											# end device to any deployed gateway
