@@ -109,9 +109,12 @@ rl = [rl; beq];
 % Integer Constraints
 xtype = repmat('I', 1, params.var_cnt);
 % Solve the MINLP problem
+fprintf("Calling BONMIN...\n");
 tic
 [x,fval,ef,info] = baron(@(x)(f*x),A,rl,ru,lb,ub,nlcon,cl,cu,xtype,x0)
 exeTime = toc;
+exitflag
+info
 
 % Print the results
 gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
