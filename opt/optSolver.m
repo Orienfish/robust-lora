@@ -9,6 +9,7 @@ elseif ispc
     addpath("D:\Github\snopt7_matlab\");
     addpath("D:\Github\snopt7_matlab\util\");
 end
+
 clc;
 clear;
 close all;
@@ -59,13 +60,14 @@ x0 = zeros(params.var_cnt, 1); % Initial guess
 % Objective function
 f = gw_mask;
 
-% Linear inequality constraint: A * x <= b
+% Linear inequality constraint: rl <= A * x <= ru
 A1 = - [c_ijks(1:end, 1:end, params.SF_cnt, params.TP_cnt), ...
     zeros(params.sr_cnt, params.var_cnt-params.gw_cnt)];
 b1 = - params.M * ones(params.sr_cnt, 1);
 [A2, b2] = lifetimeConstraint(params);
 A = [A1; A2];
-b = [b1; b2];
+ru = [b1; b2];
+rl = [-Inf(size(b2)); zeros(size(b2))];
 
 % Linear equality constraint: Aeq * x = beq
 [Aeq, beq] = validConstraint(params);
@@ -79,7 +81,7 @@ method = 'snopt';
 tic
 %x = fmincon(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub, ...
 %            @(x)pdr(x, PL, c_ijks, params));
-[x,fval,INFO,output,lambda,states] = snsolve(@(x)(f*x), x0, A, b, ...
+[x,fval,INFO,output,lambda,states] = snsolve(@(x)(f*x), x0, A, ru, ...
     Aeq, beq, lb, ub, @(x)pdr(x, PL, c_ijks, params));
 exeTime = toc;
 %x
@@ -94,20 +96,21 @@ fclose(fid);
 export_solution(x, sr_loc, gw_loc, params, method);
 plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
 
-% Call BONMIN in OPTI toolbox to solve the optimal problem
+% Call BARON to solve the optimal problem
 method = 'bonmin';
 % Nonlinear Constraint
 nlcon =  @(x)pdr(x, PL, c_ijks, params);
-nlrhs = zeros(params.sr_cnt, 1);
-nle = - ones(params.sr_cnt, 1); % -1 for <=, 0 for ==, +1 >= 
+cu = zeros(params.sr_cnt, 1);
+cl = -Inf(params.sr_cnt, 1); 
+% Linear Constraint
+A = [A; Aeq];
+ru = [ru; beq];
+rl = [rl; beq];
 % Integer Constraints
-xtype = repmat('B', 1, params.var_cnt);
-% Create OPTI Object
-Opt = opti('fun', @(x)(f*x), 'nlmix', nlcon, nlrhs, nle, 'ineq', A, b, ...
-    'eq', Aeq, beq, 'bounds', lb, ub, 'xtype', xtype);
+xtype = repmat('I', 1, params.var_cnt);
 % Solve the MINLP problem
 tic
-[x,fval,exitflag,info] = solve(Opt,x0);
+[x,fval,ef,info] = baron(@(x)(f*x),A,rl,ru,lb,ub,nlcon,cl,cu,xtype,x0)
 exeTime = toc;
 
 % Print the results
