@@ -76,27 +76,27 @@ lb = zeros(params.var_cnt, 1);
 ub = ones(params.var_cnt, 1);
 
 % Call SNOPT to solve the relax problem
-%method = 'snopt';
-%tic
+method = 'snopt';
+tic
 %x = fmincon(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub, ...
 %            @(x)pdr(x, PL, c_ijks, params));
-%[x,fval,INFO,output,lambda,states] = snsolve(@(x)(f*x), x0, A, b, ...
-%    Aeq, beq, lb, ub, @(x)pdr(x, PL, c_ijks, params));
-%exeTime = toc;
-%x
+[x_sn,fval_sn,INFO_sn,output_sn,lambda_sn,states_sn] = snsolve(@(x)(f*x), ...
+    x0, A, b, Aeq, beq, lb, ub, @(x)pdr(x, PL, c_ijks, params))
+exeTime = toc;
 
 % Print the results
-%gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
-%gw_mask = logical(gw_extract * x > 0.4);
-%res_file = sprintf('result_%s.txt', method);
-%fid = fopen(res_file, 'a+');
-%fprintf(fid, '%f,%d,%f\n', f*x, sum(gw_mask), exeTime);
-%fclose(fid);
-%export_solution(x, sr_loc, gw_loc, params, method);
-%plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
+gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
+gw_mask = logical(gw_extract * x_sn > 0.4);
+res_file = sprintf('result_%s.txt', method);
+fid = fopen(res_file, 'a+');
+fprintf(fid, '%f,%d,%f\n', fval_sn, sum(gw_mask), exeTime);
+fclose(fid);
+export_solution(x_sn, sr_loc, gw_loc, params, method);
+plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
 
 % Call OPTI toolbox to solve the optimal problem
-method = 'nomad';
+max_hour = 4;
+method = 'bonmin';
 % Nonlinear Constraint
 nlcon =  @(x)pdr(x, PL, c_ijks, params);
 nlrhs = zeros(params.sr_cnt, 1);
@@ -104,26 +104,44 @@ nle = - ones(params.sr_cnt, 1); % -1 for <=, 0 for ==, +1 >=
 % Integer Constraints
 xtype = repmat('B', 1, params.var_cnt);
 % Setup options
-opts = optiset('solver', method, 'display', 'iter', 'maxtime', 1e3);
+opts = optiset('solver', method, 'display', 'iter', 'maxtime', max_hour*3600);
 % Create OPTI Object
 Opt = opti('fun', @(x)(f*x), 'nlmix', nlcon, nlrhs, nle, 'ineq', A, b, ...
-    'eq', Aeq, beq, 'bounds', lb, ub, 'xtype', xtype);
+    'eq', Aeq, beq, 'bounds', lb, ub, 'xtype', xtype, 'options', opts);
 % Solve the MINLP problem
 fprintf("Calling %s...\n", method);
 tic
-[x,fval,exitflag,info] = solve(Opt,x0);
+[x_bm,fval_bm,exitflag_bm,info_bm] = solve(Opt,x0)
 exeTime = toc;
-exitflag
-info
 
 % Print the results
-gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
-gw_mask = logical(gw_extract * x > 0.4);
+gw_mask = logical(gw_extract * x_bm > 0.4);
 res_file = sprintf('result_%s.txt', method);
 fid = fopen(res_file, 'a+');
-fprintf(fid, '%f,%d,%f\n', f*x, sum(gw_mask), exeTime);
+fprintf(fid, '%f,%d,%f\n', fval_bm, sum(gw_mask), exeTime);
 fclose(fid);
-export_solution(x, sr_loc, gw_loc, params, method);
+export_solution(x_bm, sr_loc, gw_loc, params, method);
+plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
+
+% Call MINLP solver NOMAD
+method = 'nomad';
+opts = optiset('solver', method, 'display', 'iter', 'maxtime', max_hour*3600);
+% Create OPTI Object
+Opt = opti('fun', @(x)(f*x), 'nlmix', nlcon, nlrhs, nle, 'ineq', A, b, ...
+    'eq', Aeq, beq, 'bounds', lb, ub, 'xtype', xtype, 'options', opts);
+% Solve the MINLP problem
+fprintf("Calling %s...\n", method);
+tic
+[x_no,fval_no,exitflag_no,info_no] = solve(Opt,x0)
+exeTime = toc;
+
+% Print the results
+gw_mask = logical(gw_extract * x_no > 0.4);
+res_file = sprintf('result_%s.txt', method);
+fid = fopen(res_file, 'a+');
+fprintf(fid, '%f,%d,%f\n', fval_no, sum(gw_mask), exeTime);
+fclose(fid);
+export_solution(x_no, sr_loc, gw_loc, params, method);
 plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
 
 
