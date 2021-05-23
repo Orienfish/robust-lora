@@ -9,6 +9,7 @@ elseif ispc
     addpath("D:\Github\snopt7_matlab\");
     addpath("D:\Github\snopt7_matlab\util\");
 end
+
 clc;
 clear;
 close all;
@@ -59,7 +60,7 @@ x0 = zeros(params.var_cnt, 1); % Initial guess
 % Objective function
 f = gw_mask;
 
-% Linear inequality constraint: A * x <= b
+% Linear inequality constraint: rl <= A * x <= ru
 A1 = - [c_ijks(1:end, 1:end, params.SF_cnt, params.TP_cnt), ...
     zeros(params.sr_cnt, params.var_cnt-params.gw_cnt)];
 b1 = - params.M * ones(params.sr_cnt, 1);
@@ -75,7 +76,7 @@ lb = zeros(params.var_cnt, 1);
 ub = ones(params.var_cnt, 1);
 
 % Call SNOPT to solve the relax problem
-method = 'snopt';
+%method = 'snopt';
 %tic
 %x = fmincon(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub, ...
 %            @(x)pdr(x, PL, c_ijks, params));
@@ -86,7 +87,7 @@ method = 'snopt';
 
 % Print the results
 %gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
-%gw_mask = logical(round(gw_extract * x));
+%gw_mask = logical(gw_extract * x > 0.4);
 %res_file = sprintf('result_%s.txt', method);
 %fid = fopen(res_file, 'a+');
 %fprintf(fid, '%f,%d,%f\n', f*x, sum(gw_mask), exeTime);
@@ -94,7 +95,7 @@ method = 'snopt';
 %export_solution(x, sr_loc, gw_loc, params, method);
 %plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
 
-% Call BONMIN in OPTI toolbox to solve the optimal problem
+% Call BARON to solve the optimal problem
 method = 'bonmin';
 % Nonlinear Constraint
 nlcon =  @(x)pdr(x, PL, c_ijks, params);
@@ -106,7 +107,7 @@ xtype = repmat('B', 1, params.var_cnt);
 opts = optiset('display', 'iter', 'maxtime', 1e3);
 % Create OPTI Object
 Opt = opti('fun', @(x)(f*x), 'nlmix', nlcon, nlrhs, nle, 'ineq', A, b, ...
-    'eq', Aeq, beq, 'xtype', xtype, 'options', opts);
+    'eq', Aeq, beq, 'bounds', lb, ub, 'xtype', xtype);
 % Solve the MINLP problem
 fprintf("Calling BONMIN...\n");
 tic
@@ -117,7 +118,7 @@ info
 
 % Print the results
 gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
-gw_mask = logical(round(gw_extract * x));
+gw_mask = logical(gw_extract * x > 0.4);
 res_file = sprintf('result_%s.txt', method);
 fid = fopen(res_file, 'a+');
 fprintf(fid, '%f,%d,%f\n', f*x, sum(gw_mask), exeTime);
