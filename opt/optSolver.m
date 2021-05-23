@@ -95,8 +95,8 @@ ub = ones(params.var_cnt, 1);
 %export_solution(x, sr_loc, gw_loc, params, method);
 %plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
 
-% Call BARON to solve the optimal problem
-method = 'bonmin';
+% Call OPTI toolbox to solve the optimal problem
+method = 'nomad';
 % Nonlinear Constraint
 nlcon =  @(x)pdr(x, PL, c_ijks, params);
 nlrhs = zeros(params.sr_cnt, 1);
@@ -104,12 +104,12 @@ nle = - ones(params.sr_cnt, 1); % -1 for <=, 0 for ==, +1 >=
 % Integer Constraints
 xtype = repmat('B', 1, params.var_cnt);
 % Setup options
-opts = optiset('display', 'iter', 'maxtime', 1e3);
+opts = optiset('solver', method, 'display', 'iter', 'maxtime', 1e3);
 % Create OPTI Object
 Opt = opti('fun', @(x)(f*x), 'nlmix', nlcon, nlrhs, nle, 'ineq', A, b, ...
     'eq', Aeq, beq, 'bounds', lb, ub, 'xtype', xtype);
 % Solve the MINLP problem
-fprintf("Calling BONMIN...\n");
+fprintf("Calling %s...\n", method);
 tic
 [x,fval,exitflag,info] = solve(Opt,x0);
 exeTime = toc;
