@@ -30,8 +30,8 @@ class params:
 
 	if dataset == 'random':
 		datapath = ''
-		L = 24000  # Edge of analysis area in m, use if dataFile not provided
-		sr_cnt = 40
+		L = 50000  # Edge of analysis area in m, use if dataFile not provided
+		sr_cnt = 100
 		gw_dist = 6000
 	elif dataset == 'HPWREN':
 		datapath = '/HPWREN-dataset/'  # directory name with dataset
@@ -135,8 +135,8 @@ class GeneticParams:
 
 # which algorithm to run
 class run:
-	iteration = 1
-	M = [1]  # [3, 2, 1]
+	iteration = 10
+	M = [1, 2, 3] # [3, 2, 1]
 	RGreedy = True  # Pure greedy algorithm
 	RGreedy_c = False  # With cluster-based acceleration
 	RGreedy_e = False  # With end-of-exploration acceleration
@@ -434,28 +434,28 @@ def main():
 				# Write sensor and gateway information to file
 				utils.SaveInfo(sr_info_res, G_res, PL, method, params, DataParams)
 
-		if run.ICIOT:
-			st_time = time.time()
-			sr_info_res, G_res = ICIOT.ICIOTAlg(sr_info, G, PL, params, ICIOTParams)
-			run_time = time.time() - st_time
+			if run.ICIOT:
+				st_time = time.time()
+				sr_info_res, G_res = ICIOT.ICIOTAlg(sr_info, G, PL, params, ICIOTParams)
+				run_time = time.time() - st_time
 
-			# This paper assumes all end devices share one channel
-			# We randomly allocate channels to make it the same as our assumption
-			for i in range(sr_cnt):
-				sr_info_res[i, 4] = random.randint(0, len(params.CH) - 1)
+				# This paper assumes all end devices share one channel
+				# We randomly allocate channels to make it the same as our assumption
+				for i in range(sr_cnt):
+					sr_info_res[i, 4] = random.randint(0, len(params.CH) - 1)
 
-			# Print out PDR and lifetime at each end device
-			utils.eval(sr_info_res, G_res, PL, params)
+				# Print out PDR and lifetime at each end device
+				utils.eval(sr_info_res, G_res, PL, params)
 
-			# Plot result
-			method = 'ICIOT_{}_{}_{}{}{}'.format(ICIOTParams.desired_gw_cnt, sr_cnt, it, \
-												 flagData, flagPL)
-			utils.plot(sr_info_res, G_res, method)
-			utils.SaveRes('ICIOT', sr_cnt, 1, np.sum(G_res[:, 2]), run_time)
+				# Plot result
+				method = 'ICIOT_{}_{}_{}{}{}'.format(ICIOTParams.desired_gw_cnt, sr_cnt, it, \
+													 flagData, flagPL)
+				utils.plot(sr_info_res, G_res, method)
+				utils.SaveRes('ICIOT', sr_cnt, 1, np.sum(G_res[:, 2]), run_time)
 
-			# Write sensor and gateway information to file
+				# Write sensor and gateway information to file
 
-			utils.SaveInfo(sr_info_res, G_res, PL, method, params, DataParams)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params, DataParams)
 
 
 if __name__ == '__main__':
