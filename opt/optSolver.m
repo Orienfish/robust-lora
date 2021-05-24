@@ -76,6 +76,8 @@ b = [b1; b2];
 lb = zeros(params.var_cnt, 1);
 ub = ones(params.var_cnt, 1);
 
+% Call SNOPT to solve the relax problem
+method = 'snopt';
 tic
 %x = fmincon(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub, ...
 %            @(x)pdr(x, PL, c_ijks, params));
