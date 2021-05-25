@@ -79,8 +79,8 @@ ub = ones(params.var_cnt, 1);
 % Call SNOPT to solve the relax problem
 method = 'snopt';
 tic
-x = fmincon(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub, ...
-            @(x)pdr(x, PL, c_ijks, params));
+%x = fmincon(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub, ...
+%            @(x)pdr(x, PL, c_ijks, params));
 [x_sn,fval_sn,INFO_sn,output_sn,lambda_sn,states_sn] = snsolve(@(x)(f*x), ...
     x0, A, b, Aeq, beq, lb, ub, @(x)pdr(x, PL, c_ijks, params))
 exeTime = toc;
