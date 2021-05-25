@@ -450,7 +450,7 @@ def main():
 				# Plot result
 				method = 'ICIOT_{}_{}_{}{}{}'.format(M, sr_cnt, it, flagData, flagPL)
 				utils.plot(sr_info_res, G_res, method)
-				utils.SaveRes('ICIOT', sr_cnt, 1, np.sum(G_res[:, 2]), run_time)
+				utils.SaveRes('ICIOT', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
 				# Write sensor and gateway information to file
 
