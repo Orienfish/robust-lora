@@ -94,6 +94,7 @@ fprintf(fid, '%f,%d,%f\n', fval_sn, sum(gw_mask), exeTime);
 fclose(fid);
 export_solution(x_sn, sr_loc, gw_loc, params, method);
 plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
+save('snopt.mat'); % Save workspace variables
 
 % Call OPTI toolbox to solve the optimal problem
 max_hour = 8;
@@ -123,7 +124,7 @@ fprintf(fid, '%f,%d,%f\n', fval_bm, sum(gw_mask), exeTime);
 fclose(fid);
 export_solution(x_bm, sr_loc, gw_loc, params, method);
 plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
-
+save('bonmin.mat'); % Save workspace variables
 
 
 % Plot the solution in the grid space
