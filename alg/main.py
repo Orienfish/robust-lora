@@ -135,8 +135,8 @@ class GeneticParams:
 
 # which algorithm to run
 class run:
-	iteration = 10
-	M = [1, 2, 3] # [3, 2, 1]
+	iteration = 1
+	M = [1] # [3, 2, 1]
 	RGreedy = True  # Pure greedy algorithm
 	RGreedy_c = False  # With cluster-based acceleration
 	RGreedy_e = False  # With end-of-exploration acceleration
@@ -448,8 +448,7 @@ def main():
 				utils.eval(sr_info_res, G_res, PL, params)
 
 				# Plot result
-				method = 'ICIOT_{}_{}_{}{}{}'.format(ICIOTParams.desired_gw_cnt, sr_cnt, it, \
-													 flagData, flagPL)
+				method = 'ICIOT_{}_{}_{}{}{}'.format(M, sr_cnt, it, flagData, flagPL)
 				utils.plot(sr_info_res, G_res, method)
 				utils.SaveRes('ICIOT', sr_cnt, 1, np.sum(G_res[:, 2]), run_time)
 

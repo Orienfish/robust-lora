@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for sr_cnt in 100 200 500 1000 2000
+for sr_cnt in 100 200 500 1000 2000 5000 10000
 do
 	echo "$sr_cnt"
 	python3 ../alg/main.py --sr_cnt $sr_cnt
