@@ -42,3 +42,4 @@ __pycache__
 
 Path_loss_est_code
 *.ipynb_checkpoints*
+*log

@@ -14,6 +14,7 @@ clc;
 clear;
 close all;
 warning('off','all');
+diary log; % Export log
 
 % Important parameters
 params.SF_cnt = 4;
@@ -78,25 +79,25 @@ ub = ones(params.var_cnt, 1);
 tic
 %x = fmincon(@(x)(f*x), x0, A, b, Aeq, beq, lb, ub, ...
 %            @(x)pdr(x, PL, c_ijks, params));
-%[x_sn,fval_sn,INFO_sn,output_sn,lambda_sn,states_sn] = snsolve(@(x)(f*x), ...
-%    x0, A, b, Aeq, beq, lb, ub, @(x)pdr(x, c_ijks, params))
-%exeTime = toc;
+[x_sn,fval_sn,INFO_sn,output_sn,lambda_sn,states_sn] = snsolve(@(x)(f*x), ...
+    x0, A, b, Aeq, beq, lb, ub, @(x)pdr(x, PL, c_ijks, params))
+exeTime = toc;
 
 % Print the results
-%gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
-%gw_mask = logical(gw_extract * x_sn > 0.4);
-%res_file = sprintf('result_%s.txt', method);
-%fid = fopen(res_file, 'a+');
-%fprintf(fid, '%f,%d,%f\n', fval_sn, sum(gw_mask), exeTime);
-%fclose(fid);
-%export_solution(x_sn, sr_loc, gw_loc, params, method);
-%plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
+gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
+gw_mask = logical(gw_extract * x_sn > 0.4);
+res_file = sprintf('result_%s.txt', method);
+fid = fopen(res_file, 'a+');
+fprintf(fid, '%f,%d,%f\n', fval_sn, sum(gw_mask), exeTime);
+fclose(fid);
+export_solution(x_sn, sr_loc, gw_loc, params, method);
+plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
 
 % Call OPTI toolbox to solve the optimal problem
 max_hour = 4;
 method = 'bonmin';
 % Nonlinear Constraint
-nlcon =  @(x)pdr(x, c_ijks, params);
+nlcon =  @(x)pdr(x, PL, c_ijks, params);
 nlrhs = zeros(params.sr_cnt, 1);
 nle = - ones(params.sr_cnt, 1); % -1 for <=, 0 for ==, +1 >= 
 % Integer Constraints
