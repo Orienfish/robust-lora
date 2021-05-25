@@ -79,8 +79,8 @@ class params:
 	bat_volt = 3.3  # Battery supply voltage in V
 
 	# Power of MCU
-	P_MCU_off = 174.65e-6  # Power of MCU (Arduino Uno) in deep sleep in mW
-	P_MCU_on = 23.48e-3  # Power of MCU (Arduino Uno) on in mW
+	P_MCU_off = 174.65e-6  # Power of MCU (Arduino Uno) in deep sleep in W
+	P_MCU_on = 23.48e-3  # Power of MCU (Arduino Uno) on in W
 	P_R_off = 1e-4  # Power of radio in deep sleep in W
 
 	# Power of additive white Gaussian noise with zero-mean
