@@ -79,8 +79,8 @@ class params:
 	bat_volt = 3.3  # Battery supply voltage in V
 
 	# Power of MCU
-	P_MCU_off = 174.65e-6  # Power of MCU (Arduino Uno) in deep sleep in mW
-	P_MCU_on = 23.48e-3  # Power of MCU (Arduino Uno) on in mW
+	P_MCU_off = 174.65e-6  # Power of MCU (Arduino Uno) in deep sleep in W
+	P_MCU_on = 23.48e-3  # Power of MCU (Arduino Uno) on in W
 	P_R_off = 1e-4  # Power of radio in deep sleep in W
 
 	# Power of additive white Gaussian noise with zero-mean
@@ -136,7 +136,7 @@ class GeneticParams:
 # which algorithm to run
 class run:
 	iteration = 1
-	M = [1]  # [3, 2, 1]
+	M = [1, 2, 3] # [3, 2, 1]
 	RGreedy = True  # Pure greedy algorithm
 	RGreedy_c = False  # With cluster-based acceleration
 	RGreedy_e = False  # With end-of-exploration acceleration
@@ -434,28 +434,27 @@ def main():
 				# Write sensor and gateway information to file
 				utils.SaveInfo(sr_info_res, G_res, PL, method, params, DataParams)
 
-		if run.ICIOT:
-			st_time = time.time()
-			sr_info_res, G_res = ICIOT.ICIOTAlg(sr_info, G, PL, params, ICIOTParams)
-			run_time = time.time() - st_time
+			if run.ICIOT:
+				st_time = time.time()
+				sr_info_res, G_res = ICIOT.ICIOTAlg(sr_info, G, PL, params, ICIOTParams)
+				run_time = time.time() - st_time
 
-			# This paper assumes all end devices share one channel
-			# We randomly allocate channels to make it the same as our assumption
-			for i in range(sr_cnt):
-				sr_info_res[i, 4] = random.randint(0, len(params.CH) - 1)
+				# This paper assumes all end devices share one channel
+				# We randomly allocate channels to make it the same as our assumption
+				for i in range(sr_cnt):
+					sr_info_res[i, 4] = random.randint(0, len(params.CH) - 1)
 
-			# Print out PDR and lifetime at each end device
-			utils.eval(sr_info_res, G_res, PL, params)
+				# Print out PDR and lifetime at each end device
+				utils.eval(sr_info_res, G_res, PL, params)
 
-			# Plot result
-			method = 'ICIOT_{}_{}_{}{}{}'.format(ICIOTParams.desired_gw_cnt, sr_cnt, it, \
-												 flagData, flagPL)
-			utils.plot(sr_info_res, G_res, method)
-			utils.SaveRes('ICIOT', sr_cnt, 1, np.sum(G_res[:, 2]), run_time)
+				# Plot result
+				method = 'ICIOT_{}_{}_{}{}{}'.format(M, sr_cnt, it, flagData, flagPL)
+				utils.plot(sr_info_res, G_res, method)
+				utils.SaveRes('ICIOT', sr_cnt, params.M, np.sum(G_res[:, 2]), run_time)
 
-			# Write sensor and gateway information to file
+				# Write sensor and gateway information to file
 
-			utils.SaveInfo(sr_info_res, G_res, PL, method, params, DataParams)
+				utils.SaveInfo(sr_info_res, G_res, PL, method, params, DataParams)
 
 
 if __name__ == '__main__':
