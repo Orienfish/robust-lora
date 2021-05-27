@@ -97,34 +97,34 @@ plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
 save('snopt.mat'); % Save workspace variables
 
 % Call OPTI toolbox to solve the optimal problem
-%max_hour = 8;
-%method = 'bonmin';
+max_hour = 8;
+method = 'bonmin';
 % Nonlinear Constraint
-%nlcon =  @(x)pdr(x, PL, c_ijks, params);
-%nlrhs = zeros(params.sr_cnt, 1);
-%nle = - ones(params.sr_cnt, 1); % -1 for <=, 0 for ==, +1 >= 
+nlcon =  @(x)pdr(x, PL, c_ijks, params);
+nlrhs = zeros(params.sr_cnt, 1);
+nle = - ones(params.sr_cnt, 1); % -1 for <=, 0 for ==, +1 >= 
 % Integer Constraints
-%xtype = repmat('B', 1, params.var_cnt);
+xtype = repmat('B', 1, params.var_cnt);
 % Setup options
-%opts = optiset('solver', method, 'display', 'iter', 'maxtime', max_hour*3600);
+opts = optiset('solver', method, 'display', 'iter', 'maxtime', max_hour*3600);
 % Create OPTI Object
-%Opt = opti('fun', @(x)(f*x), 'nlmix', nlcon, nlrhs, nle, 'ineq', A, b, ...
-%    'eq', Aeq, beq, 'bounds', lb, ub, 'xtype', xtype, 'options', opts);
+Opt = opti('fun', @(x)(f*x), 'nlmix', nlcon, nlrhs, nle, 'ineq', A, b, ...
+    'eq', Aeq, beq, 'bounds', lb, ub, 'xtype', xtype, 'options', opts);
 % Solve the MINLP problem
-%fprintf("Calling %s...\n", method);
-%tic
-%[x_bm,fval_bm,exitflag_bm,info_bm] = solve(Opt,x0)
-%exeTime = toc;
+fprintf("Calling %s...\n", method);
+tic
+[x_bm,fval_bm,exitflag_bm,info_bm] = solve(Opt,x0)
+exeTime = toc;
 
 % Print the results
-%gw_mask = logical(gw_extract * x_bm > 0.4);
-%res_file = sprintf('result_%s.txt', method);
-%fid = fopen(res_file, 'a+');
-%fprintf(fid, '%f,%d,%f\n', fval_bm, sum(gw_mask), exeTime);
-%fclose(fid);
-%export_solution(x_bm, sr_loc, gw_loc, params, method);
-%plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
-%save('bonmin.mat'); % Save workspace variables
+gw_mask = logical(gw_extract * x_bm > 0.4);
+res_file = sprintf('result_%s.txt', method);
+fid = fopen(res_file, 'a+');
+fprintf(fid, '%f,%d,%f\n', fval_bm, sum(gw_mask), exeTime);
+fclose(fid);
+export_solution(x_bm, sr_loc, gw_loc, params, method);
+plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
+save('bonmin.mat'); % Save workspace variables
 
 
 % Plot the solution in the grid space
