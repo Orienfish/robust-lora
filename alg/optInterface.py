@@ -15,7 +15,7 @@ def TestLifetime(params):
 
 	return
 
-def GenerateCijks(sr_info, G, PL, params):
+def GenerateCijks(sr_info, G, PL, sigma, params):
 	'''
 	Generate the c_ijkq matrix denoting the reachability from devices to
 	gateways using SF k and transmission power s
@@ -24,6 +24,7 @@ def GenerateCijks(sr_info, G, PL, params):
 		sr_loc: sensor information
 		G: gateway information
 		PL: path loss matrix
+		sigma: standard deviation of path loss
 		params: important parameters
 
 	Return:
@@ -40,7 +41,9 @@ def GenerateCijks(sr_info, G, PL, params):
 			for k in range(SF_cnt):
 				for s in range(TP_cnt):
 					# Note that Ptx array in params is in reverse order
-					if propagation.GetRSSI(params.Ptx[TP_cnt-s-1], PL[i, j]) > \
+					# Make path loss threshold to mean_value + 0.85*sigma
+					# can ensure the PDR to be approximately 80%
+					if propagation.GetRSSI(params.Ptx[TP_cnt-s-1], PL[i, j]+0.85*sigma) > \
 						params.RSSI_k[k]:
 						c_ijks[i, j, k, s] = 1
 

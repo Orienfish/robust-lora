@@ -31,7 +31,7 @@ class params:
 	if dataset == 'random':
 		datapath = ''
 		L = 24000  # Edge of analysis area in m, use if dataFile not provided
-		sr_cnt = 15
+		sr_cnt = 20
 		gw_dist = 6000
 	elif dataset == 'HPWREN':
 		datapath = '/HPWREN-dataset/'  # directory name with dataset
@@ -136,7 +136,7 @@ class GeneticParams:
 # which algorithm to run
 class run:
 	iteration = 1
-	M = [1, 2, 3] # [3, 2, 1]
+	M = [1] # [3, 2, 1]
 	RGreedy = True  # Pure greedy algorithm
 	RGreedy_c = False  # With cluster-based acceleration
 	RGreedy_e = False  # With end-of-exploration acceleration
@@ -252,7 +252,8 @@ def init(params):
 	np.savetxt(dir_path + '/../opt/pl.csv', PL, delimiter=',')
 
 	# Generate the binary indicator for relaxed optimization
-	c_ijks = optInterface.GenerateCijks(sr_info, G, PL, params)
+	sigma = propagation.LogDistancePathLossModel.sigma
+	c_ijks = optInterface.GenerateCijks(sr_info, G, PL, sigma, params)
 	Ptx_cnt = len(params.Ptx)
 	for k in range(SF_cnt):
 		for q in range(Ptx_cnt):
