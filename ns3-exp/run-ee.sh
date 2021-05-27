@@ -33,8 +33,3 @@ do
 		#mv ./phyPerformance.txt ./res/phyPerformancePL-GP.txt
 	done
 done
-
-for sr in 100 200 500 1000 2000
-do
-	
-done
