@@ -30,8 +30,8 @@ class params:
 
 	if dataset == 'random':
 		datapath = ''
-		L = 50000  # Edge of analysis area in m, use if dataFile not provided
-		sr_cnt = 100
+		L = 24000  # Edge of analysis area in m, use if dataFile not provided
+		sr_cnt = 15
 		gw_dist = 6000
 	elif dataset == 'HPWREN':
 		datapath = '/HPWREN-dataset/'  # directory name with dataset
