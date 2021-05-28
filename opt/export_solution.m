@@ -2,7 +2,7 @@
 function export_solution(x, sr_loc, gw_loc, params, method)
     % Export gateway placement
     gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
-    gw_mask = logical(gw_extract * x > 0.4);
+    gw_mask = logical(gw_extract * x > 0.5);
     placed_gw_loc = gw_loc(gw_mask, :);
     gw_file = sprintf('gw_%s.txt', method);
     fid = fopen(gw_file, 'w');

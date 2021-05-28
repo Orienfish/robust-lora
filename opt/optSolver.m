@@ -83,14 +83,14 @@ tic
 %            @(x)pdr(x, PL, c_ijks, params));
 [x_sn,fval_sn,INFO_sn,output_sn,lambda_sn,states_sn] = snsolve(@(x)(f*x), ...
     x0, A, b, Aeq, beq, lb, ub, @(x)pdr(x, PL, c_ijks, params))
-exeTime = toc;
+exeTime_sn = toc;
 
 % Print the results
 gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
-gw_mask = logical(gw_extract * x_sn > 0.4);
+gw_mask = logical(gw_extract * x_sn > 0.5);
 res_file = sprintf('result_%s.txt', method);
 fid = fopen(res_file, 'a+');
-fprintf(fid, '%f,%d,%f\n', fval_sn, sum(gw_mask), exeTime);
+fprintf(fid, '%f,%d,%f\n', fval_sn, sum(gw_mask), exeTime_sn);
 fclose(fid);
 export_solution(x_sn, sr_loc, gw_loc, params, method);
 plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
@@ -114,13 +114,13 @@ Opt = opti('fun', @(x)(f*x), 'nlmix', nlcon, nlrhs, nle, 'ineq', A, b, ...
 fprintf("Calling %s...\n", method);
 tic
 [x_bm,fval_bm,exitflag_bm,info_bm] = solve(Opt,x0)
-exeTime = toc;
+exeTime_bm = toc;
 
 % Print the results
-gw_mask = logical(gw_extract * x_bm > 0.4);
+gw_mask = logical(gw_extract * x_bm > 0.5);
 res_file = sprintf('result_%s.txt', method);
 fid = fopen(res_file, 'a+');
-fprintf(fid, '%f,%d,%f\n', fval_bm, sum(gw_mask), exeTime);
+fprintf(fid, '%f,%d,%f\n', fval_bm, sum(gw_mask), exeTime_bm);
 fclose(fid);
 export_solution(x_bm, sr_loc, gw_loc, params, method);
 plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
