@@ -108,9 +108,9 @@ mv ./nodeEE.txt ./res/nodeEE32.txt
 mv ./globalPerformance.txt ./res/globalPerformance32.txt
 mv ./phyPerformance.txt ./res/phyPerformance32.txt
 
-cp ~/Github/robust-lora/alg/res/sr_ICIOT_6_264_0dp.txt ./sr_loc.txt
-cp ~/Github/robust-lora/alg/res/gw_ICIOT_6_264_0dp.txt ./gw_loc.txt
-cp ~/Github/robust-lora/alg/res/pl_ICIOT_6_264_0dp.txt ./pl_mat.txt
+cp ~/Github/robust-lora/alg/res/sr_ICIOT_1_264_0dp.txt ./sr_loc.txt
+cp ~/Github/robust-lora/alg/res/gw_ICIOT_1_264_0dp.txt ./gw_loc.txt
+cp ~/Github/robust-lora/alg/res/pl_ICIOT_1_264_0dp.txt ./pl_mat.txt
 #destlog=logiciot
 #start=`date +%s`
 #./waf --run "adr --MType=Confirmed --MatrixPLEnabled" > "$destlog" 2>&1
@@ -144,9 +144,9 @@ mv ./nodeEE.txt ./res/nodeEEiciot6-124.txt
 mv ./globalPerformance.txt ./res/globalPerformanceiciot6-124.txt
 mv ./phyPerformance.txt ./res/phyPerformanceiciot6-124.txt
 
-cp ~/Github/robust-lora/alg/res/sr_ICIOT_9_264_0dp.txt ./sr_loc.txt
-cp ~/Github/robust-lora/alg/res/gw_ICIOT_9_264_0dp.txt ./gw_loc.txt
-cp ~/Github/robust-lora/alg/res/pl_ICIOT_9_264_0dp.txt ./pl_mat.txt
+cp ~/Github/robust-lora/alg/res/sr_ICIOT_2_264_0dp.txt ./sr_loc.txt
+cp ~/Github/robust-lora/alg/res/gw_ICIOT_2_264_0dp.txt ./gw_loc.txt
+cp ~/Github/robust-lora/alg/res/pl_ICIOT_2_264_0dp.txt ./pl_mat.txt
 #destlog=logiciot9
 #start=`date +%s`
 #./waf --run "adr --MType=Confirmed --MatrixPLEnabled" > "$destlog" 2>&1
@@ -180,9 +180,9 @@ mv ./nodeEE.txt ./res/nodeEEiciot9-124.txt
 mv ./globalPerformance.txt ./res/globalPerformanceiciot9-124.txt
 mv ./phyPerformance.txt ./res/phyPerformanceiciot9-124.txt
 
-cp ~/Github/robust-lora/alg/res/sr_ICIOT_12_264_0dp.txt ./sr_loc.txt
-cp ~/Github/robust-lora/alg/res/gw_ICIOT_12_264_0dp.txt ./gw_loc.txt
-cp ~/Github/robust-lora/alg/res/pl_ICIOT_12_264_0dp.txt ./pl_mat.txt
+cp ~/Github/robust-lora/alg/res/sr_ICIOT_3_264_0dp.txt ./sr_loc.txt
+cp ~/Github/robust-lora/alg/res/gw_ICIOT_3_264_0dp.txt ./gw_loc.txt
+cp ~/Github/robust-lora/alg/res/pl_ICIOT_3_264_0dp.txt ./pl_mat.txt
 #destlog=logiciot12
 #start=`date +%s`
 #./waf --run "adr --MType=Confirmed --MatrixPLEnabled" > "$destlog" 2>&1

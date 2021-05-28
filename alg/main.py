@@ -26,7 +26,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 ########################################
 class params:
 	# indicate whch dataset to use, default random field
-	dataset = 'random'
+	dataset = 'LA'
 
 	if dataset == 'random':
 		datapath = ''
@@ -136,7 +136,7 @@ class GeneticParams:
 # which algorithm to run
 class run:
 	iteration = 1
-	M = [1] # [3, 2, 1]
+	M = [1, 2, 3] # [3, 2, 1]
 	RGreedy = True  # Pure greedy algorithm
 	RGreedy_c = False  # With cluster-based acceleration
 	RGreedy_e = False  # With end-of-exploration acceleration
