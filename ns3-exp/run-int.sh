@@ -20,10 +20,10 @@ start=`date +%s`
 end=`date +%s`
 runtime=$((end-start))
 echo "$runtime" >> "$destlog"
-mv ./nodeData.txt ./res/nodeData11.txt
-mv ./nodeEE.txt ./res/nodeEE11.txt
-mv ./globalPerformance.txt ./res/globalPerformance11.txt
-mv ./phyPerformance.txt ./res/phyPerformance11.txt
+mv ./nodeData.txt ./res/nodeData1-130.txt
+mv ./nodeEE.txt ./res/nodeEE1-130.txt
+mv ./globalPerformance.txt ./res/globalPerformance1-130.txt
+mv ./phyPerformance.txt ./res/phyPerformance1-130.txt
 
 destlog=log1-124
 start=`date +%s`
@@ -31,10 +31,10 @@ start=`date +%s`
 end=`date +%s`
 runtime=$((end-start))
 echo "$runtime" >> "$destlog"
-mv ./nodeData.txt ./res/nodeData12.txt
-mv ./nodeEE.txt ./res/nodeEE12.txt
-mv ./globalPerformance.txt ./res/globalPerformance12.txt
-mv ./phyPerformance.txt ./res/phyPerformance12.txt
+mv ./nodeData.txt ./res/nodeData1-124.txt
+mv ./nodeEE.txt ./res/nodeEE1-124.txt
+mv ./globalPerformance.txt ./res/globalPerformance1-124.txt
+mv ./phyPerformance.txt ./res/phyPerformance1-124.txt
 
 cp ~/Github/robust-lora/alg/res/sr_RGreedy_2_264_0dp.txt ./sr_loc.txt
 cp ~/Github/robust-lora/alg/res/gw_RGreedy_2_264_0dp.txt ./gw_loc.txt
@@ -56,10 +56,10 @@ start=`date +%s`
 end=`date +%s`
 runtime=$((end-start))
 echo "$runtime" >> "$destlog"
-mv ./nodeData.txt ./res/nodeData21.txt
-mv ./nodeEE.txt ./res/nodeEE21.txt
-mv ./globalPerformance.txt ./res/globalPerformance21.txt
-mv ./phyPerformance.txt ./res/phyPerformance21.txt
+mv ./nodeData.txt ./res/nodeData2-130.txt
+mv ./nodeEE.txt ./res/nodeEE2-130.txt
+mv ./globalPerformance.txt ./res/globalPerformance2-130.txt
+mv ./phyPerformance.txt ./res/phyPerformance2-130.txt
 
 destlog=log2-124
 start=`date +%s`
@@ -67,10 +67,10 @@ start=`date +%s`
 end=`date +%s`
 runtime=$((end-start))
 echo "$runtime" >> "$destlog"
-mv ./nodeData.txt ./res/nodeData22.txt
-mv ./nodeEE.txt ./res/nodeEE22.txt
-mv ./globalPerformance.txt ./res/globalPerformance22.txt
-mv ./phyPerformance.txt ./res/phyPerformance22.txt
+mv ./nodeData.txt ./res/nodeData2-124.txt
+mv ./nodeEE.txt ./res/nodeEE2-124.txt
+mv ./globalPerformance.txt ./res/globalPerformance2-124.txt
+mv ./phyPerformance.txt ./res/phyPerformance2-124.txt
 
 cp ~/Github/robust-lora/alg/res/sr_RGreedy_3_264_0dp.txt ./sr_loc.txt
 cp ~/Github/robust-lora/alg/res/gw_RGreedy_3_264_0dp.txt ./gw_loc.txt
@@ -92,10 +92,10 @@ start=`date +%s`
 end=`date +%s`
 runtime=$((end-start))
 echo "$runtime" >> "$destlog"
-mv ./nodeData.txt ./res/nodeData31.txt
-mv ./nodeEE.txt ./res/nodeEE31.txt
-mv ./globalPerformance.txt ./res/globalPerformance31.txt
-mv ./phyPerformance.txt ./res/phyPerformance31.txt
+mv ./nodeData.txt ./res/nodeData3-130.txt
+mv ./nodeEE.txt ./res/nodeEE3-130.txt
+mv ./globalPerformance.txt ./res/globalPerformance3-130.txt
+mv ./phyPerformance.txt ./res/phyPerformance3-130.txt
 
 destlog=log3-124
 start=`date +%s`
@@ -103,10 +103,10 @@ start=`date +%s`
 end=`date +%s`
 runtime=$((end-start))
 echo "$runtime" >> "$destlog"
-mv ./nodeData.txt ./res/nodeData32.txt
-mv ./nodeEE.txt ./res/nodeEE32.txt
-mv ./globalPerformance.txt ./res/globalPerformance32.txt
-mv ./phyPerformance.txt ./res/phyPerformance32.txt
+mv ./nodeData.txt ./res/nodeData3-124.txt
+mv ./nodeEE.txt ./res/nodeEE3-124.txt
+mv ./globalPerformance.txt ./res/globalPerformance3-124.txt
+mv ./phyPerformance.txt ./res/phyPerformance3-124.txt
 
 cp ~/Github/robust-lora/alg/res/sr_ICIOT_1_264_0dp.txt ./sr_loc.txt
 cp ~/Github/robust-lora/alg/res/gw_ICIOT_1_264_0dp.txt ./gw_loc.txt
