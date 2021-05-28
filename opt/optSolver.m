@@ -87,7 +87,7 @@ exeTime = toc;
 
 % Print the results
 gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
-gw_mask = logical(gw_extract * x_sn > 0.4);
+gw_mask = logical(gw_extract * x_sn > 0.5);
 res_file = sprintf('result_%s.txt', method);
 fid = fopen(res_file, 'a+');
 fprintf(fid, '%f,%d,%f\n', fval_sn, sum(gw_mask), exeTime);
@@ -117,7 +117,7 @@ save('snopt.mat'); % Save workspace variables
 %exeTime = toc;
 
 % Print the results
-%gw_mask = logical(gw_extract * x_bm > 0.4);
+%gw_mask = logical(gw_extract * x_bm > 0.5);
 %res_file = sprintf('result_%s.txt', method);
 %fid = fopen(res_file, 'a+');
 %fprintf(fid, '%f,%d,%f\n', fval_bm, sum(gw_mask), exeTime);
