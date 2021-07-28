@@ -83,49 +83,48 @@ tic
 %            @(x)pdr(x, PL, c_ijks, params));
 [x_sn,fval_sn,INFO_sn,output_sn,lambda_sn,states_sn] = snsolve(@(x)(f*x), ...
     x0, A, b, Aeq, beq, lb, ub, @(x)pdr(x, PL, c_ijks, params))
-exeTime = toc;
+exeTime_sn = toc;
 
 % Print the results
 gw_extract = [eye(params.gw_cnt), zeros(params.gw_cnt, params.var_cnt - params.gw_cnt)];
 gw_mask = logical(gw_extract * x_sn > 0.5);
 res_file = sprintf('result_%s.txt', method);
 fid = fopen(res_file, 'a+');
-fprintf(fid, '%f,%d,%f\n', fval_sn, sum(gw_mask), exeTime);
+fprintf(fid, '%f,%d,%f\n', fval_sn, sum(gw_mask), exeTime_sn);
 fclose(fid);
 export_solution(x_sn, sr_loc, gw_loc, params, method);
 plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
 save('snopt.mat'); % Save workspace variables
 
 % Call OPTI toolbox to solve the optimal problem
-%max_hour = 8;
-%method = 'bonmin';
+max_hour = 8;
+method = 'bonmin';
 % Nonlinear Constraint
-%nlcon =  @(x)pdr(x, PL, c_ijks, params);
-%nlrhs = zeros(params.sr_cnt, 1);
-%nle = - ones(params.sr_cnt, 1); % -1 for <=, 0 for ==, +1 >= 
+nlcon =  @(x)pdr(x, PL, c_ijks, params);
+nlrhs = zeros(params.sr_cnt, 1);
+nle = - ones(params.sr_cnt, 1); % -1 for <=, 0 for ==, +1 >= 
 % Integer Constraints
-%xtype = repmat('B', 1, params.var_cnt);
+xtype = repmat('B', 1, params.var_cnt);
 % Setup options
-%opts = optiset('solver', method, 'display', 'iter', 'maxtime', max_hour*3600);
+opts = optiset('solver', method, 'display', 'iter', 'maxtime', max_hour*3600);
 % Create OPTI Object
-%Opt = opti('fun', @(x)(f*x), 'nlmix', nlcon, nlrhs, nle, 'ineq', A, b, ...
-%    'eq', Aeq, beq, 'bounds', lb, ub, 'xtype', xtype, 'options', opts);
+Opt = opti('fun', @(x)(f*x), 'nlmix', nlcon, nlrhs, nle, 'ineq', A, b, ...
+    'eq', Aeq, beq, 'bounds', lb, ub, 'xtype', xtype, 'options', opts);
 % Solve the MINLP problem
-%fprintf("Calling %s...\n", method);
-%tic
-%[x_bm,fval_bm,exitflag_bm,info_bm] = solve(Opt,x0)
-%exeTime = toc;
+fprintf("Calling %s...\n", method);
+tic
+[x_bm,fval_bm,exitflag_bm,info_bm] = solve(Opt,x0)
+exeTime_bm = toc;
 
 % Print the results
-%gw_mask = logical(gw_extract * x_bm > 0.5);
-%res_file = sprintf('result_%s.txt', method);
-%fid = fopen(res_file, 'a+');
-%fprintf(fid, '%f,%d,%f\n', fval_bm, sum(gw_mask), exeTime);
-%fclose(fid);
-%export_solution(x_bm, sr_loc, gw_loc, params, method);
-%plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
-%save('bonmin.mat'); % Save workspace variables
-
+gw_mask = logical(gw_extract * x_bm > 0.5);
+res_file = sprintf('result_%s.txt', method);
+fid = fopen(res_file, 'a+');
+fprintf(fid, '%f,%d,%f\n', fval_bm, sum(gw_mask), exeTime_bm);
+fclose(fid);
+export_solution(x_bm, sr_loc, gw_loc, params, method);
+plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
+save('bonmin.mat'); % Save workspace variables
 
 % Plot the solution in the grid space
 function plot_solution(sr_loc, gw_loc, method)
