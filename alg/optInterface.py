@@ -43,7 +43,7 @@ def GenerateCijks(sr_info, G, PL, sigma, params):
 					# Note that Ptx array in params is in reverse order
 					# Make path loss threshold to mean_value + 0.85*sigma
 					# can ensure the PDR to be approximately 80%
-					if propagation.GetRSSI(params.Ptx[TP_cnt-s-1], PL[i, j]+0.85*sigma) > \
+					if propagation.GetRSSI(params.Ptx[TP_cnt-s-1], PL[i, j]) > \
 						params.RSSI_k[k]:
 						c_ijks[i, j, k, s] = 1
 

@@ -126,7 +126,6 @@ export_solution(x_bm, sr_loc, gw_loc, params, method);
 plot_solution(sr_loc, gw_loc(gw_mask, 1:end), method);
 save('bonmin.mat'); % Save workspace variables
 
-
 % Plot the solution in the grid space
 function plot_solution(sr_loc, gw_loc, method)
     % intialization
