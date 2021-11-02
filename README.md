@@ -1,5 +1,13 @@
 # robust-lora
 
+This repo contains the implementation for paper
+
+[Automating Reliable and Fault-Tolerant Design of LoRa-based IoT Networks](https://cseweb.ucsd.edu//~x1yu/docs/cnsm2021/yu2021lora.pdf)
+
+Xiaofan Yu, Weihong Xu, Ludmila Cherkasova, Tajana Šimunić Rosing.
+
+CNSM 2021. Best Paper Award.
+
 ## Environments
 
 Python 3.7
